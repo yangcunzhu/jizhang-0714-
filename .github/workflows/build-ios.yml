@@ -3,11 +3,12 @@ name: Build iOS .ipa
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-14  # GitHub Actions macOS runner
+    runs-on: macos-14
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -19,17 +20,49 @@ jobs:
           flutter-version: '3.44.6'
           channel: stable
 
+      - name: Cache pub & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            build/
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
       - name: Install dependencies
         run: flutter pub get
 
-      # TODO(Day 2): 配置 Apple 证书 + Provisioning Profile（Base64 -> Keychain）
+      - name: Analyze
+        run: flutter analyze
 
-      - name: Build .ipa (未签名，Day 2 再加签名)
-        run: flutter build ios --release --no-codesign
+      - name: Test
+        run: flutter test
+
+      # 0 成本方案:产出未签名 .ipa,由 AltStore 在 iPhone 上用免费 Apple ID 自动签名
+      # 见 docs/product-design-v4.html §2.12 部署架构 + §8.48 AltStore 部署
+      - name: Build unsigned .ipa
+        run: |
+          flutter build ios --release --no-codesign
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -R Runner.app Payload/
+          zip -r ../../../Runner.ipa Payload
+          ls -la ../../../Runner.ipa
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: jizhang-app-unsigned
-          path: build/ios/iphoneos/Runner.app
+          path: build/Runner.ipa
           retention-days: 7
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ~/.gradle/daemon/*.log
+            build/
+          retention-days: 3
