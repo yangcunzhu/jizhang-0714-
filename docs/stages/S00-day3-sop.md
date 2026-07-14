@@ -1,6 +1,6 @@
 # Day 3 SOP — 给旧电脑 Claude 的操作手册
 
-> **使用对象**: 旧电脑(Windows)上的 Claude
+> **使用对象**: 旧电脑(Windows,无显示器,远程 RDP 操作)上的 Claude
 > **目的**: 安装 AltServer + 配对 iPhone AltStore + 安装 Runner.ipa
 > **项目背景**: 你不需要懂,跟着做即可
 > **敏感信息**: **Apple ID 密码 = 用户自己输入,不要让 Claude 看到**
@@ -10,6 +10,29 @@
 ## 🎯 任务目标
 
 iPhone 上能启动《审计官》App,显示 "Hello 审计官"。
+
+## 📁 工作目录
+
+```
+G:\altstore\
+├── ipa\    ← 放 Runner.ipa
+├── sop\    ← 本文件副本
+└── logs\   ← AltServer 日志
+```
+
+**所有下载/操作都基于 G:\altstore\**,不要污染其他盘。
+
+## 🌐 远程操作(旧电脑无显示器)
+
+用户通过 **Windows RDP** 远程连接旧电脑,所以你操作的东西用户**都看得到**。
+
+| 用户操作 | 你不用做 |
+|---|---|
+| iPhone USB 连接 + 信任弹窗 | ✅ 用户直接操作 |
+| iPhone 设置 → 通用 → 信任证书 | ✅ 用户在 iPhone 上点 |
+| Apple ID + 密码输入 | ✅ 用户自己输入(你看不到) |
+
+**你负责**: AltServer 安装 + Runner.ipa 下载 + AltServer GUI 操作(用户在 RDP 里帮你点)。
 
 ## 📦 你的工具清单
 
@@ -64,12 +87,12 @@ winget install --id AltStore.AltServer
 或自己去: https://github.com/yangcunzhu/jizhang-0714-/actions
 - 找最新一个绿色 ✅ 的 run
 - 点进去 → 底部 Artifacts → 下载 `jizhang-app-unsigned.zip`
-- 解压到 `C:\altstore-work\Runner.ipa`
+- 解压到 `G:\altstore\ipa\Runner.ipa`
 
 ### 3.2 用 curl 下载(更快)
 用户会给 token 或 GitHub Actions 直接公开 URL:
 ```powershell
-curl -L -o C:\altstore-work\Runner.ipa "URL_FROM_USER"
+curl -L -o G:\altstore\ipa\Runner.ipa "URL_FROM_USER"
 ```
 
 ---
@@ -83,9 +106,9 @@ curl -L -o C:\altstore-work\Runner.ipa "URL_FROM_USER"
 4. 输入 Apple ID + 密码 → 等待签名 + 安装
 
 ### 方式 B:在旧电脑上 AltServer 直接 Sideload
-1. 把 `Runner.ipa` 复制到 `C:\altstore-work\`
+1. 把 `Runner.ipa` 复制到 `G:\altstore\ipa\`
 2. AltServer 系统托盘图标右键 → **Sideload .ipa**
-3. 选择 `C:\altstore-work\Runner.ipa`
+3. 选择 `G:\altstore\ipa\Runner.ipa`
 4. 输入 Apple ID + 密码 → 等待
 
 ---
