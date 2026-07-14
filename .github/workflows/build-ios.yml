@@ -1,0 +1,35 @@
+name: Build iOS .ipa
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: macos-14  # GitHub Actions macOS runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # TODO(Day 2): 配置 Apple 证书 + Provisioning Profile（Base64 -> Keychain）
+
+      - name: Build .ipa (未签名，Day 2 再加签名)
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jizhang-app-unsigned
+          path: build/ios/iphoneos/Runner.app
+          retention-days: 7
