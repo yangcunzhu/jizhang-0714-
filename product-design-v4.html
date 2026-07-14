@@ -1,0 +1,4228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《审计官》记账 App · 完整开发方案 v4.0</title>
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #131825;
+    --bg-card: #1a2138;
+    --bg-elevated: #232b45;
+    --bg-code: #0d1220;
+    --border: #2a3454;
+    --text-primary: #e8ecf4;
+    --text-secondary: #a0a8be;
+    --text-muted: #6b7388;
+    --accent-cyan: #00d4ff;
+    --accent-gold: #ffd700;
+    --accent-purple: #a855f7;
+    --accent-green: #00ff88;
+    --accent-red: #ff4d6d;
+    --accent-orange: #ff9f43;
+    --accent-blue: #4dabf7;
+    --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+    --gradient-gold: linear-gradient(135deg, #ffd700 0%, #ff9f43 100%);
+    --gradient-success: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace; }
+
+  /* ============ HERO ============ */
+  .hero {
+    background: linear-gradient(135deg, #0a0e1a 0%, #1a2138 50%, #0a0e1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 24px 40px;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 100px;
+    color: var(--accent-cyan);
+    font-size: 13px;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    margin-bottom: 16px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-subtitle {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text-secondary);
+    max-width: 800px;
+    margin: 0 auto 24px;
+  }
+  .phase-flow {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    margin: 24px auto; max-width: 1000px;
+  }
+  .phase {
+    padding: 6px 14px; border-radius: 100px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    font-size: 12px; color: var(--text-secondary); font-weight: 600;
+  }
+  .phase.part { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+  .badge-row {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px; margin-top: 16px;
+  }
+  .badge-row .b {
+    padding: 4px 12px; border-radius: 100px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    font-size: 12px; color: var(--text-secondary);
+  }
+
+  /* ============ LAYOUT ============ */
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 32px; padding: 40px 24px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky; top: 24px; align-self: start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  @media (max-width: 900px) { .nav { position: static; max-height: none; } }
+  .nav-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted); margin-bottom: 12px; font-weight: 600;
+  }
+  .nav-part { color: var(--accent-cyan); font-size: 11px; margin-top: 12px; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .nav ol { list-style: none; counter-reset: nav-counter; padding-left: 0; }
+  .nav li { counter-increment: nav-counter; margin-bottom: 2px; }
+  .nav a {
+    display: block; padding: 6px 10px; color: var(--text-secondary);
+    text-decoration: none; border-radius: 6px; font-size: 13px;
+    transition: all 0.2s; border-left: 2px solid transparent;
+  }
+  .nav a::before { content: counter(nav-counter, decimal-leading-zero) " "; color: var(--accent-cyan); font-weight: 600; }
+  .nav a:hover { background: var(--bg-elevated); color: var(--text-primary); border-left-color: var(--accent-cyan); }
+
+  /* ============ MAIN ============ */
+  main { min-width: 0; }
+  section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-card);
+  }
+  @media (max-width: 600px) { section { padding: 24px 18px; } }
+  section h2 {
+    font-size: 26px; font-weight: 700; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  section h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: var(--gradient-primary); border-radius: 8px;
+    font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  section h3 { font-size: 19px; font-weight: 600; margin: 28px 0 10px; color: var(--accent-cyan); }
+  section h4 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--text-primary); }
+  section p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  section ul, section ol { padding-left: 22px; color: var(--text-secondary); margin-bottom: 16px; font-size: 14px; }
+  section li { margin-bottom: 6px; }
+  section strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ============ COMPONENTS ============ */
+  .callout {
+    padding: 14px 18px; border-radius: 10px; margin: 16px 0;
+    border-left: 4px solid; background: var(--bg-elevated);
+  }
+  .callout-info { border-left-color: var(--accent-cyan); }
+  .callout-warn { border-left-color: var(--accent-orange); background: rgba(255, 159, 67, 0.08); }
+  .callout-danger { border-left-color: var(--accent-red); background: rgba(255, 77, 109, 0.08); }
+  .callout-success { border-left-color: var(--accent-green); background: rgba(0, 255, 136, 0.08); }
+  .callout-gold { border-left-color: var(--accent-gold); background: rgba(255, 215, 0, 0.08); }
+  .callout-title { font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--bg-elevated); color: var(--text-primary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { color: var(--text-secondary); }
+  tr:hover td { background: rgba(0, 212, 255, 0.04); }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag-p0 { background: rgba(255, 77, 109, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
+  .tag-p1 { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); border: 1px solid var(--accent-orange); }
+  .tag-p2 { background: rgba(0, 212, 255, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+
+  pre {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px; overflow-x: auto;
+    font-size: 12px; line-height: 1.6; margin: 14px 0;
+  }
+  code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--accent-cyan); }
+  pre code { background: transparent; padding: 0; color: var(--text-primary); }
+
+  .mockup {
+    background: #000; border: 2px solid var(--border);
+    border-radius: 24px; padding: 16px; margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    line-height: 1.4; color: #e8ecf4; overflow-x: auto; white-space: pre;
+  }
+  .m-title { color: var(--accent-cyan); }
+  .m-gold { color: var(--accent-gold); }
+  .m-red { color: var(--accent-red); }
+  .m-green { color: var(--accent-green); }
+  .m-purple { color: var(--accent-purple); }
+  .m-dim { color: var(--text-muted); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
+  @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .feature-card h5 { color: var(--accent-cyan); font-size: 13px; margin-bottom: 6px; font-weight: 700; }
+
+  .flow {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    margin: 14px 0; padding: 14px; background: var(--bg-elevated);
+    border-radius: 10px; overflow-x: auto;
+  }
+  .flow-step {
+    padding: 6px 12px; background: var(--bg-card);
+    border: 1px solid var(--accent-cyan); border-radius: 6px;
+    color: var(--accent-cyan); font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .flow-arrow { color: var(--text-muted); font-size: 16px; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding-left: 26px; position: relative; color: var(--text-secondary); }
+  .checklist li::before { content: '□'; position: absolute; left: 0; color: var(--accent-cyan); font-size: 16px; }
+
+  .part-divider {
+    text-align: center; padding: 20px 0; margin: 24px 0;
+    background: linear-gradient(90deg, transparent 0%, var(--bg-elevated) 50%, transparent 100%);
+    border-radius: 8px; font-weight: 700; letter-spacing: 2px;
+    color: var(--accent-cyan); font-size: 13px;
+  }
+
+  footer {
+    text-align: center; padding: 40px 24px; color: var(--text-muted);
+    font-size: 13px; border-top: 1px solid var(--border); margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="hero-badge">COMPLETE DEV PLAN v4.0 · 2026-07-14</span>
+  <h1>《审计官》记账 App · 完整开发方案</h1>
+  <p class="hero-subtitle">按「需求 → 架构 → 详细设计 → UI → 原型 → 编码 → 测试 → 上线」全流程<br>基于咔皮记账深度调研 · AI 审计官内核 + RPG 化攒钱合伙人外壳 · 0 成本本地化</p>
+  <div class="phase-flow">
+    <span class="phase part">需求</span>→
+    <span class="phase part">架构</span>→
+    <span class="phase part">详细设计</span>→
+    <span class="phase part">UI</span>→
+    <span class="phase part">原型</span>→
+    <span class="phase part">编码</span>→
+    <span class="phase part">测试</span>→
+    <span class="phase part">上线</span>
+  </div>
+  <div class="badge-row">
+    <span class="b">📱 iOS 16+</span>
+    <span class="b">🎯 个人长期使用</span>
+    <span class="b">💰 0 现金成本</span>
+    <span class="b">⚡ Flutter 跨平台</span>
+    <span class="b">🔒 纯本地加密</span>
+    <span class="b">🎮 重度 RPG</span>
+    <span class="b">🤖 MiniMax-M3 驱动</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="nav">
+    <div class="nav-title">目录 · Contents</div>
+    <div class="nav-part">第一部分 · 需求分析</div>
+    <ol>
+      <li><a href="#p1-1">产品愿景与定位</a></li>
+      <li><a href="#p1-2">目标用户画像</a></li>
+      <li><a href="#p1-3">咔皮记账深度对标</a></li>
+      <li><a href="#p1-4">功能需求矩阵</a></li>
+      <li><a href="#p1-5">用户旅程</a></li>
+      <li><a href="#p1-6">非功能需求</a></li>
+    </ol>
+    <div class="nav-part">第二部分 · 架构设计</div>
+    <ol>
+      <li><a href="#p2-7">系统架构总览</a></li>
+      <li><a href="#p2-8">技术选型</a></li>
+      <li><a href="#p2-9">模块划分</a></li>
+      <li><a href="#p2-10">数据架构</a></li>
+      <li><a href="#p2-11">AI 架构</a></li>
+      <li><a href="#p2-12">部署架构</a></li>
+    </ol>
+    <div class="nav-part">第三部分 · 详细设计</div>
+    <ol>
+      <li><a href="#p3-13">数据库详细设计</a></li>
+      <li><a href="#p3-14">AI 模型管理</a></li>
+      <li><a href="#p3-15">仪表盘系统</a></li>
+      <li><a href="#p3-16">分类自定义</a></li>
+      <li><a href="#p3-17">标签系统</a></li>
+      <li><a href="#p3-18">定时记账</a></li>
+      <li><a href="#p3-19">RPG 化系统</a></li>
+      <li><a href="#p3-20">OCR + Siri Shortcuts</a></li>
+      <li><a href="#p3-21">数据导入导出</a></li>
+      <li><a href="#p3-22">数据快照与版本</a></li>
+      <li><a href="#p3-23">异常检测</a></li>
+      <li><a href="#p3-24">攒攒对话系统</a></li>
+    </ol>
+    <div class="nav-part">第四部分 · UI 设计</div>
+    <ol>
+      <li><a href="#p4-25">设计原则</a></li>
+      <li><a href="#p4-26">视觉规范</a></li>
+      <li><a href="#p4-27">信息架构</a></li>
+      <li><a href="#p4-28">导航结构</a></li>
+      <li><a href="#p4-29">关键页面设计</a></li>
+    </ol>
+    <div class="nav-part">第五部分 · 原型设计</div>
+    <ol>
+      <li><a href="#p5-30">主页与记账流</a></li>
+      <li><a href="#p5-31">信用卡管理流</a></li>
+      <li><a href="#p5-32">仪表盘原型</a></li>
+      <li><a href="#p5-33">AI 助手原型</a></li>
+      <li><a href="#p5-34">个人中心原型</a></li>
+      <li><a href="#p5-35">关键交互细节</a></li>
+    </ol>
+    <div class="nav-part">第六部分 · 编码规范</div>
+    <ol>
+      <li><a href="#p6-36">代码结构</a></li>
+      <li><a href="#p6-37">命名规范</a></li>
+      <li><a href="#p6-38">Git 规范</a></li>
+      <li><a href="#p6-39">状态管理</a></li>
+      <li><a href="#p6-40">错误处理</a></li>
+    </ol>
+    <div class="nav-part">第七部分 · 测试方案</div>
+    <ol>
+      <li><a href="#p7-41">单元测试</a></li>
+      <li><a href="#p7-42">集成测试</a></li>
+      <li><a href="#p7-43">E2E 测试</a></li>
+      <li><a href="#p7-44">性能测试</a></li>
+      <li><a href="#p7-45">兼容性测试</a></li>
+      <li><a href="#p7-46">AI 准确性测试</a></li>
+    </ol>
+    <div class="nav-part">第八部分 · 上线运维</div>
+    <ol>
+      <li><a href="#p8-47">GitHub Actions 流水线</a></li>
+      <li><a href="#p8-48">AltStore 部署流程</a></li>
+      <li><a href="#p8-49">版本发布流程</a></li>
+      <li><a href="#p8-50">监控与告警</a></li>
+      <li><a href="#p8-51">用户验收 Checklist</a></li>
+      <li><a href="#p8-52">持续迭代计划</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+    <div class="part-divider">▎ 第一部分 · 需求分析（6 章）▎</div>
+
+    <!-- ============ 1.1 产品愿景 ============ -->
+    <section id="p1-1">
+      <h2><span class="num">01</span>产品愿景与定位</h2>
+
+      <h3>One-Liner</h3>
+      <div class="callout callout-success">
+        <p><strong>"基于咔皮记账深度调研的增强版，让记账不再消耗意志力，让每一笔账都有出处，让信用卡不再逾期，让攒钱变成可量化的游戏。"</strong></p>
+      </div>
+
+      <h3>核心价值主张</h3>
+      <table>
+        <tr><th>维度</th><th>主张</th></tr>
+        <tr><td>数据准确性</td><td>审计官二次校验 + 用户必确认 = 零误差</td></tr>
+        <tr><td>使用粘性</td><td>RPG 化等级 + 成就 + 剧情 = 上瘾机制</td></tr>
+        <tr><td>智能深度</td><td>AI 模型 + 规则引擎双轨 = 既准确又智能</td></tr>
+        <tr><td>隐私安全</td><td>本地 SQLCipher + 数据脱敏 = 财务数据不外泄</td></tr>
+        <tr><td>成本可控</td><td>0 现金成本 + AltStore = 永久免费</td></tr>
+        <tr><td>长期可用</td><td>GitHub 云编译 + 旧电脑续签 = 不依赖个人能力</td></tr>
+      </table>
+
+      <h3>与咔皮记账的差异化定位</h3>
+      <div class="callout callout-info">
+        <p><strong>咔皮记账 = 通用记账工具（云端 AI 驱动）</strong></p>
+        <p><strong>《审计官》= 私人财务操作系统（本地 + 云端双轨 AI）</strong></p>
+      </div>
+
+      <table>
+        <tr><th>维度</th><th>咔皮</th><th>《审计官》</th></tr>
+        <tr><td>AI 引擎</td><td>云端 DeepSeek（联网、要钱）</td><td>本地规则 + 云端 MiniMax-M3（混合）</td></tr>
+        <tr><td>数据存储</td><td>云端</td><td>本地 SQLCipher 加密</td></tr>
+        <tr><td>游戏化</td><td>手账风（轻度）</td><td>RPG 重度（等级/成就/剧情/形态）</td></tr>
+        <tr><td>准确性保证</td><td>AI 自动入账</td><td>审计官校验 + 用户确认</td></tr>
+        <tr><td>角色化 AI</td><td>胖胖（客服）</td><td>审计官 + 攒攒（双层人格）</td></tr>
+        <tr><td>离线可用</td><td>大部分需要联网</td><td>完全离线</td></tr>
+        <tr><td>成本</td><td>免费（商汤补贴，有停服风险）</td><td>0 永久成本（自部署）</td></tr>
+        <tr><td>数据迁移</td><td>支持多平台导入</td><td>支持咔皮 CSV 导入</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 1.2 用户画像 ============ -->
+    <section id="p1-2">
+      <h2><span class="num">02</span>目标用户画像</h2>
+
+      <h3>虽然自用，但要把"自己"当成真实用户来定义</h3>
+
+      <h4>基础画像</h4>
+      <table>
+        <tr><th>维度</th><th>画像</th></tr>
+        <tr><td>用户名</td><td>小莫</td></tr>
+        <tr><td>年龄</td><td>30+</td></tr>
+        <tr><td>角色</td><td>上班族，可能已婚有娃</td></tr>
+        <tr><td>记账习惯</td><td>已坚持 83 天，640 笔记账（重度用户）</td></tr>
+        <tr><td>账本</td><td>家庭账本（单账本）</td></tr>
+        <tr><td>财务状况</td><td>净资产负数（-¥X,XXX.XX）、有信用卡和网贷</td></tr>
+      </table>
+
+      <h4>实际账户结构（从截图推断）</h4>
+      <div class="grid-2">
+        <div class="feature-card">
+          <h5>📂 资产账户</h5>
+          <ul>
+            <li>XXX 支付宝 ¥X,XXX.XX</li>
+            <li>XXX 支付宝 ¥XX.XX</li>
+            <li>[家人A] 微信 ¥XXX.XX</li>
+            <li>[家人B] 微信 ¥0.00</li>
+            <li>邮政银行 ¥XXX.XX</li>
+            <li>网商银行定期 ¥XX,XXX.XX（不计入净资产）</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h5>📂 负债账户</h5>
+          <ul>
+            <li>兴业银行信用卡 -¥X,XXX.XX</li>
+            <li>中信银行信用卡 -¥XXX.XX</li>
+            <li>招商银行信用卡 -¥X.XX</li>
+            <li>浦发银行信用卡 ¥0.00</li>
+            <li>平安银行信用卡 ¥0.00</li>
+            <li>XXX 花呗 -¥XXX.XX</li>
+            <li>XXX 花呗 ¥0.00</li>
+            <li>抖音放心借 -¥XX,XXX（网贷）</li>
+            <li>抖音月付 -¥XXX.XX（消费分期）</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>实际分类习惯（用户手动创建）</h4>
+      <p>从图 5 实际分类统计：</p>
+      <table>
+        <tr><th>分类</th><th>占比</th><th>金额</th></tr>
+        <tr><td>学习办公</td><td>XX.XX%</td><td>¥X,XXX.XX</td></tr>
+        <tr><td>餐饮</td><td>XX.XX%</td><td>¥X,XXX.XX</td></tr>
+        <tr><td>老人</td><td>XX.XX%</td><td>¥XXX.XX</td></tr>
+        <tr><td>住房</td><td>X.XX%</td><td>¥XXX.XX</td></tr>
+        <tr><td>保障理财</td><td>X.XX%</td><td>¥XXX.XX</td></tr>
+        <tr><td>购物</td><td>5.39%</td><td>-</td></tr>
+        <tr><td>医疗健康</td><td>4.9%</td><td>-</td></tr>
+        <tr><td>通讯</td><td>3.11%</td><td>-</td></tr>
+        <tr><td>育儿</td><td>1.5%</td><td>-</td></tr>
+        <tr><td>缝纫</td><td>-</td><td>-</td></tr>
+        <tr><td>交通出行</td><td>-</td><td>-</td></tr>
+      </table>
+
+      <h4>用户痛点（从行为推断）</h4>
+      <ol>
+        <li><strong>坚持不下来</strong>：已经坚持 83 天，担心哪天断了</li>
+        <li><strong>复杂账户管理</strong>：5+ 张卡、2 个花呗、2 个网贷</li>
+        <li><strong>预算紧张</strong>：净资产负数，需要严格控制</li>
+        <li><strong>跨账户查询</strong>：多支付宝/微信账户</li>
+        <li><strong>AI 准确性担忧</strong>：依赖云端不放心</li>
+        <li><strong>长期成本担忧</strong>：怕商汤停服</li>
+      </ol>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 关键洞察</div>
+        <p>用户需要的不是"又一个记账 App"，而是<strong>"可控、可信、可长期使用的财务操作系统"</strong>。所有设计必须围绕这三点。</p>
+      </div>
+    </section>
+
+    <!-- ============ 1.3 咔皮对标 ============ -->
+    <section id="p1-3">
+      <h2><span class="num">03</span>咔皮记账深度对标</h2>
+
+      <h3>咔皮记账画像</h3>
+      <table>
+        <tr><th>维度</th><th>详情</th></tr>
+        <tr><td>开发商</td><td>商汤科技（SenseTime）</td></tr>
+        <tr><td>发布时间</td><td>2025-12-19</td></tr>
+        <tr><td>AI 引擎</td><td>DeepSeek-R1（云端）</td></tr>
+        <tr><td>App Store</td><td>id6738811698</td></tr>
+        <tr><td>免费策略</td><td>新用户 1 年 VIP + 记账赠会员</td></tr>
+        <tr><td>当前版本</td><td>v1.11.10</td></tr>
+        <tr><td>设计风格</td><td>手账风、Q 萌 UI</td></tr>
+      </table>
+
+      <h3>咔皮已实现的核心功能清单（我们必须做）</h3>
+      <table>
+        <tr><th>功能</th><th>我们的实现</th><th>差异</th></tr>
+        <tr><td>语音记账</td><td>Siri Shortcuts</td><td>本地 vs 云端</td></tr>
+        <tr><td>一句话记多笔</td><td>本地 NLP + LLM 增强</td><td>混合模式</td></tr>
+        <tr><td>拍照识账</td><td>iOS Vision API（本地）</td><td>本地 OCR，零延迟</td></tr>
+        <tr><td>AI 自动记账</td><td>规则引擎 + LLM 校验</td><td>双重保证</td></tr>
+        <tr><td>智能预算</td><td>用户自设 + 智能推荐</td><td>支持分类预算双层</td></tr>
+        <tr><td>多账本</td><td>支持</td><td>数据模型预留，UI 按需</td></tr>
+        <tr><td>资产管理</td><td>支持多类型</td><td>支持网贷/花呗</td></tr>
+        <tr><td>AI 财务助手</td><td>攒攒人格</td><td>重度 RPG 化</td></tr>
+        <tr><td>手账风格</td><td>备注 + 心情 emoji</td><td>支持图片附件</td></tr>
+        <tr><td>多平台账单导入</td><td>CSV 导入</td><td>功能等价</td></tr>
+      </table>
+
+      <h3>咔皮已知缺陷（我们要解决）</h3>
+      <table>
+        <tr><th>缺陷</th><th>我们的解决方案</th></tr>
+        <tr><td>导航层级不直观</td><td>顶部 Tab + 主页一屏全包</td></tr>
+        <tr><td>账单修改不便</td><td>支持"修改金额为退款"快捷操作</td></tr>
+        <tr><td>不支持转账</td><td>完整支持转账配对</td></tr>
+        <tr><td>信用卡还款无总结</td><td>独立信用卡 Tab，含账期日历</td></tr>
+        <tr><td>手动记账流程不顺</td><td>5 秒 3 步完成</td></tr>
+        <tr><td>未接入理财平台</td><td>不依赖第三方 API</td></tr>
+        <tr><td>功能较少</td><td>覆盖预算+信用卡+RPG+AI 全维度</td></tr>
+      </table>
+
+      <h3>三条铁律（开发优先级依据）</h3>
+      <div class="callout callout-success">
+        <ol>
+          <li><strong>咔皮有的好功能必须有</strong>：用户已习惯，不能缺</li>
+          <li><strong>咔皮的痛点必须解决</strong>：比它做得更好</li>
+          <li><strong>咔皮没有的优势要加</strong>：RPG 化、审计官、本地隐私、0 成本</li>
+        </ol>
+      </div>
+
+      <h3>明确不做的事项</h3>
+      <table>
+        <tr><th>不做</th><th>原因</th></tr>
+        <tr><td>圆桌统计（家庭多成员）</td><td>用户只用单账本</td></tr>
+        <tr><td>短信自动识别</td><td>iOS 权限严、用户控制差</td></tr>
+        <tr><td>邮件自动识别</td><td>实现成本高、实时性差</td></tr>
+        <tr><td>通知栏监听</td><td>iOS 沙盒机制禁止</td></tr>
+        <tr><td>iCloud 多设备同步</td><td>用户只有一个设备</td></tr>
+        <tr><td>桌面小组件</td><td>节省工作量，优先核心功能</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 1.4 功能矩阵 ============ -->
+    <section id="p1-4">
+      <h2><span class="num">04</span>功能需求矩阵</h2>
+
+      <p>按 <strong>P0 (MVP)</strong> · <strong>P1 (增强)</strong> · <strong>P2 (远期)</strong> 三级划分。</p>
+
+      <h3>P0 - MVP 必须有（v1.0 上线）</h3>
+      <table>
+        <tr><th>编号</th><th>功能</th><th>说明</th><th>验收标准</th></tr>
+        <tr><td>P0-01</td><td>手动记账</td><td>3 步完成</td><td>≤ 5 秒，含分类选择、金额输入、保存</td></tr>
+        <tr><td>P0-02</td><td>分类完全自定义</td><td>无预置</td><td>支持增删改、二级分类、图标颜色自定义</td></tr>
+        <tr><td>P0-03</td><td>分类模板库</td><td>参考模板</td><td>提供 5+ 模板（上班族/家庭/极简等）</td></tr>
+        <tr><td>P0-04</td><td>多账户管理</td><td>现金/储蓄/信用卡/花呗/网贷/理财</td><td>至少 6 种账户类型</td></tr>
+        <tr><td>P0-05</td><td>理财账户"不计入净资产"</td><td>开关</td><td>影响净资产计算</td></tr>
+        <tr><td>P0-06</td><td>信用卡管理</td><td>多张卡</td><td>账单日/还款日/额度</td></tr>
+        <tr><td>P0-07</td><td>还款提醒</td><td>本地通知</td><td>T-7/T-3/T-1/T-0 四档</td></tr>
+        <tr><td>P0-08</td><td>账本切换</td><td>至少支持家庭账本</td><td>顶部下拉切换</td></tr>
+        <tr><td>P0-09</td><td>预算管理</td><td>总预算 + 分类预算</td><td>支持月/周/年周期</td></tr>
+        <tr><td>P0-10</td><td>动态日预算</td><td>每天 0:00 刷新</td><td>剩余预算/剩余天数</td></tr>
+        <tr><td>P0-11</td><td>净资产视图</td><td>资产 - 负债</td><td>主页直接显示</td></tr>
+        <tr><td>P0-12</td><td>基础统计</td><td>3 种图表</td><td>饼图/柱状图/折线图</td></tr>
+        <tr><td>P0-13</td><td>打卡日历</td><td>月历热力图</td><td>显示每日是否记账</td></tr>
+        <tr><td>P0-14</td><td>连续天数</td><td>坚持记录</td><td>主页显示当前连续</td></tr>
+        <tr><td>P0-15</td><td>单笔支出排行</td><td>Top 5/10</td><td>支持周期切换</td></tr>
+        <tr><td>P0-16</td><td>本地数据存储</td><td>SQLCipher 加密</td><td>Keychain 存密钥</td></tr>
+        <tr><td>P0-17</td><td>数据快照</td><td>每次升级前自动备份</td><td>可回滚到任意版本</td></tr>
+        <tr><td>P0-18</td><td>AI 攒攒基础对话</td><td>固定台词库</td><td>20+ 场景台词</td></tr>
+        <tr><td>P0-19</td><td>异常检测基础</td><td>4 条核心规则</td><td>金额/时间/预算/重复</td></tr>
+        <tr><td>P0-20</td><td>CSV 导出</td><td>本地 + iCloud Drive</td><td>UTF-8 BOM 兼容 Excel</td></tr>
+      </table>
+
+      <h3>P1 - 增强（v1.1）</h3>
+      <table>
+        <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+        <tr><td>P1-01</td><td>OCR 截图识别</td><td>Vision API</td><td>支持微信/支付宝/银行账单</td></tr>
+        <tr><td>P1-02</td><td>Siri Shortcuts</td><td>语音记一笔</td><td>"Hey Siri，停车 30"</td></tr>
+        <tr><td>P1-03</td><td>截图自动触发</td><td>Shortcuts 自动化</td><td>截图 → 自动 OCR → 弹确认</td></tr>
+        <tr><td>P1-04</td><td>AI 模型管理</td><td>完整模块</td><td>配置/测试/统计/仪表盘</td></tr>
+        <tr><td>P1-05</td><td>自然语言记账</td><td>LLM 增强</td><td>"中午吃面 35" 智能解析</td></tr>
+        <tr><td>P1-06</td><td>一句话记多笔</td><td>LLM 拆分</td><td>"中午吃面 35，下午打车 28"</td></tr>
+        <tr><td>P1-07</td><td>OCR 二次校验</td><td>LLM 校验</td><td>准确率 98%+</td></tr>
+        <tr><td>P1-08</td><td>5 大仪表盘</td><td>独立 Tab</td><td>主/财务/AI/成长/信用卡</td></tr>
+        <tr><td>P1-09</td><td>标签系统</td><td>跨分类标记</td><td>工作/差旅/必要/冲动等</td></tr>
+        <tr><td>P1-10</td><td>定时记账</td><td>周期自动记账</td><td>房租/订阅/工资</td></tr>
+        <tr><td>P1-11</td><td>PDF 月报</td><td>每月 1 号生成</td><td>含图表 + AI 总结</td></tr>
+        <tr><td>P1-12</td><td>CSV 导入</td><td>从咔皮迁移</td><td>字段映射</td></tr>
+        <tr><td>P1-13</td><td>RPG 等级系统</td><td>10 级 + 称号</td><td>攒攒形态进化</td></tr>
+        <tr><td>P1-14</td><td>成就系统</td><td>20 个成就</td><td>4 档稀有度</td></tr>
+        <tr><td>P1-15</td><td>攒攒剧情任务</td><td>主线 + 支线</td><td>"万元户"等</td></tr>
+        <tr><td>P1-16</td><td>数据脱敏上传</td><td>云端 AI 隐私保护</td><td>不传金额明细</td></tr>
+        <tr><td>P1-17</td><td>攒攒每日一语</td><td>主页推送</td><td>鼓励/调侃/警告</td></tr>
+        <tr><td>P1-18</td><td>攒攒成长史</td><td>等级变化时间线</td><td>成长仪表盘</td></tr>
+      </table>
+
+      <h3>P2 - 远期（v2.0，按需做）</h3>
+      <table>
+        <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+        <tr><td>P2-01</td><td>AI 月度报告</td><td>LLM 写有温度总结</td><td>v2.0</td></tr>
+        <tr><td>P2-02</td><td>AI 财务顾问对话</td><td>完整对话能力</td><td>v2.0</td></tr>
+        <tr><td>P2-03</td><td>异常消费解释</td><td>AI 分析根因</td><td>v2.0</td></tr>
+        <tr><td>P2-04</td><td>攒攒皮肤系统</td><td>自定义外形</td><td>v2.0</td></tr>
+        <tr><td>P2-05</td><td>攒攒语音</td><td>TTS 语音反馈</td><td>v2.0</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 1.5 用户旅程 ============ -->
+    <section id="p1-5">
+      <h2><span class="num">05</span>用户旅程</h2>
+
+      <h3>首次启动 Onboarding</h3>
+      <div class="flow">
+        <span class="flow-step">欢迎页</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">命名攒攒</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">导入咔皮数据</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">创建账本（家庭账本）</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">导入/新建分类</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">添加账户</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">设置总预算</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">首笔记账教学</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">主页</span>
+      </div>
+
+      <h3>核心场景 1：日常记账（手动）</h3>
+      <div class="flow">
+        <span class="flow-step">主页底部"+这里记一笔"</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">弹出记账卡</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">选分类（图标网格）</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">输入金额（数字键盘）</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">可选备注+账户</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">保存（振动 + 攒攒反馈）</span>
+      </div>
+      <p style="color:var(--text-muted); font-size:13px;">目标：≤ 5 秒完成</p>
+
+      <h3>核心场景 2：OCR 截图记账（P1）</h3>
+      <div class="flow">
+        <span class="flow-step">截图保存到相册</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">自动触发 Shortcuts</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Vision API 识别</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">审计官校验</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">弹确认窗口</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">用户确认/修改</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">入库</span>
+      </div>
+
+      <h3>核心场景 3：信用卡还款</h3>
+      <div class="flow">
+        <span class="flow-step">T-7 轻度提醒</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-3 正式通知</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-1 红色警告</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-0 全屏弹窗</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">还款记录</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">攒攒奖励</span>
+      </div>
+
+      <h3>核心场景 4：查看财务状况</h3>
+      <div class="flow">
+        <span class="flow-step">打开 App</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">主页（主仪表盘）</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">查看净资产/预算/趋势</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">切换顶部 Tab</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">财务/AI/成长/信用卡仪表盘</span>
+      </div>
+
+      <h3>异常检测触发流</h3>
+      <pre><code>用户输入一笔支出
+       ↓
+[审计官后台检查]
+   ├── 金额异常？> 日均 × 5 → 红色警告
+   ├── 分类异常？深夜餐饮 → 黄色提示
+   ├── 预算异常？超 80% → 橙色提醒
+   └── 重复检测？同金额同分类 1 小时内 → 询问是否重复
+       ↓
+[攒攒显示对应话术]
+       ↓
+用户决定：忽略 / 修改 / 确认
+       ↓
+入库
+</code></pre>
+    </section>
+
+    <!-- ============ 1.6 非功能需求 ============ -->
+    <section id="p1-6">
+      <h2><span class="num">06</span>非功能需求</h2>
+
+      <h3>性能需求</h3>
+      <table>
+        <tr><th>指标</th><th>目标</th></tr>
+        <tr><td>冷启动时间</td><td>≤ 2.0s</td></tr>
+        <tr><td>主页加载时间</td><td>≤ 1.0s</td></tr>
+        <tr><td>记账流程完成</td><td>≤ 5s</td></tr>
+        <tr><td>列表 1000 条滚动</td><td>≥ 55 FPS</td></tr>
+        <tr><td>数据库查询（10 万条）</td><td>≤ 100ms</td></tr>
+        <tr><td>OCR 单张截图</td><td>≤ 3s</td></tr>
+        <tr><td>LLM 单次调用</td><td>≤ 5s（P95）</td></tr>
+        <tr><td>App 安装包大小</td><td>≤ 60MB</td></tr>
+      </table>
+
+      <h3>安全需求</h3>
+      <table>
+        <tr><th>项</th><th>要求</th></tr>
+        <tr><td>本地存储加密</td><td>SQLCipher AES-256</td></tr>
+        <tr><td>密钥管理</td><td>iOS Keychain</td></tr>
+        <tr><td>生物识别</td><td>Face ID / Touch ID 可选</td></tr>
+        <tr><td>数据上传脱敏</td><td>默认开启，禁止上传金额明细</td></tr>
+        <tr><td>无第三方分析 SDK</td><td>不集成任何分析/广告 SDK</td></tr>
+        <tr><td>权限最小化</td><td>只申请必要的系统权限</td></tr>
+      </table>
+
+      <h3>兼容性需求</h3>
+      <table>
+        <tr><th>项</th><th>要求</th></tr>
+        <tr><td>iOS 版本</td><td>iOS 16.0+</td></tr>
+        <tr><td>设备</td><td>iPhone SE (3rd) ~ iPhone 15 Pro Max</td></tr>
+        <tr><td>屏幕</td><td>4.7" ~ 6.7"</td></tr>
+        <tr><td>暗色模式</td><td>必须支持</td></tr>
+        <tr><td>横竖屏</td><td>仅竖屏（记账 App 不需要横屏）</td></tr>
+        <tr><td>本地化</td><td>中文（简体）</td></tr>
+      </table>
+
+      <h3>可用性需求</h3>
+      <ul>
+        <li>所有核心操作 ≤ 3 步完成</li>
+        <li>每个操作都有视觉/触觉反馈</li>
+        <li>错误信息必须友好（不显示技术错误）</li>
+        <li>首次启动引导必须清晰</li>
+        <li>所有可点击元素 ≥ 44pt（Apple HIG）</li>
+        <li>支持杀进程后数据恢复</li>
+      </ul>
+
+      <h3>可维护性需求</h3>
+      <ul>
+        <li>代码覆盖率 ≥ 80%</li>
+        <li>关键模块 100% 覆盖</li>
+        <li>无 hardcode 字符串（全部走 l10n）</li>
+        <li>无 hardcode 颜色（全部走 Theme）</li>
+        <li>所有公共 API 有文档</li>
+        <li>数据库迁移必须有可回滚脚本</li>
+      </ul>
+    </section>
+
+    <div class="part-divider">▎ 第二部分 · 架构设计（6 章）▎</div>
+
+    <!-- ============ 2.7 系统架构总览 ============ -->
+    <section id="p2-7">
+      <h2><span class="num">07</span>系统架构总览</h2>
+
+      <h3>分层架构（Clean Architecture + DDD）</h3>
+      <pre><code>┌──────────────────────────────────────────────────┐
+│            Presentation Layer                    │
+│  (UI Widgets · Pages · Themes · Animations)      │
+└──────────────────────┬───────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────┐
+│            Application Layer                     │
+│  (Riverpod Providers · Use Cases · DTOs ·        │
+│   State Notifiers · Form Validators)             │
+└──────────────────────┬───────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────┐
+│              Domain Layer                        │
+│  (Entities · Value Objects · Repository          │
+│   Interfaces · Domain Services · Business Rules) │
+│   - AuditService · RpgEngine · InsightsEngine    │
+└──────────────────────┬───────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────┐
+│               Data Layer                         │
+│  (Drift DB · File System · OCR Service ·         │
+│   LLM Service · Notification Service ·           │
+│   Siri Shortcuts · Export Service · Snapshot)    │
+└──────────────────────────────────────────────────┘
+</code></pre>
+
+      <h3>包结构</h3>
+      <pre><code>lib/
+├── main.dart
+├── app.dart                      # MaterialApp 配置
+├── core/                         # 核心工具
+│   ├── theme/                    # 主题系统
+│   ├── router/                   # 路由（go_router）
+│   ├── constants/                # 全局常量
+│   ├── utils/                    # 工具函数
+│   ├── extensions/               # Dart 扩展
+│   └── errors/                   # 错误定义
+├── data/                         # 数据层
+│   ├── database/                 # Drift 数据库
+│   │   ├── tables/               # 表定义
+│   │   ├── daos/                 # DAO
+│   │   └── migrations/           # 数据库迁移
+│   ├── repositories/             # 仓储实现
+│   ├── datasources/              # 数据源
+│   └── services/                 # 外部服务
+│       ├── llm_service.dart      # AI 模型管理
+│       ├── ocr_service.dart      # OCR
+│       ├── notification_service.dart
+│       ├── siri_service.dart     # Siri Shortcuts
+│       └── snapshot_service.dart # 数据快照
+├── domain/                       # 领域层
+│   ├── entities/                 # 实体
+│   ├── value_objects/            # 值对象
+│   ├── repositories/             # 仓储接口
+│   └── services/                 # 领域服务
+│       ├── audit_service.dart    # 审计官
+│       ├── rpg_engine.dart       # RPG 引擎
+│       ├── insights_engine.dart  # 财务洞察
+│       ├── budget_engine.dart    # 预算引擎
+│       └── dialogue_service.dart # 攒攒对话
+├── features/                     # 功能模块
+│   ├── home/                     # 主页
+│   ├── ledger/                   # 账本
+│   ├── cards/                    # 信用卡
+│   ├── budget/                   # 预算
+│   ├── analytics/                # 仪表盘
+│   ├── ai_assistant/             # AI 助手
+│   ├── profile/                  # 个人中心
+│   ├── ai_model/                 # AI 模型管理
+│   └── settings/                 # 设置
+└── shared/                       # 共享组件
+    ├── widgets/                  # 通用组件
+    ├── animations/               # 动画
+    └── models/                   # 共享模型
+</code></pre>
+    </section>
+
+    <!-- ============ 2.8 技术选型 ============ -->
+    <section id="p2-8">
+      <h2><span class="num">08</span>技术选型</h2>
+
+      <table>
+        <tr><th>层</th><th>技术</th><th>版本</th><th>理由</th></tr>
+        <tr><td>前端框架</td><td>Flutter</td><td>3.24+</td><td>一套代码，Windows 写代码，macOS 编译</td></tr>
+        <tr><td>语言</td><td>Dart</td><td>3.5+</td><td>Flutter 原生</td></tr>
+        <tr><td>状态管理</td><td>Riverpod</td><td>2.5+</td><td>类型安全、测试友好</td></tr>
+        <tr><td>路由</td><td>go_router</td><td>14+</td><td>声明式路由、深度链接</td></tr>
+        <tr><td>本地数据库</td><td>Drift</td><td>2.20+</td><td>类型安全 ORM</td></tr>
+        <tr><td>数据库加密</td><td>SQLCipher</td><td>4.5+</td><td>AES-256 加密</td></tr>
+        <tr><td>图表</td><td>fl_chart</td><td>0.69+</td><td>Flutter 生态最成熟</td></tr>
+        <tr><td>本地通知</td><td>flutter_local_notifications</td><td>17+</td><td>iOS/Android 通用</td></tr>
+        <tr><td>Siri Shortcuts</td><td>flutter_siri_shortcuts</td><td>1.0+</td><td>Siri 集成</td></tr>
+        <tr><td>OCR</td><td>iOS Vision API（原生）</td><td>-</td><td>本地 OCR，免费</td></tr>
+        <tr><td>LLM 客户端</td><td>dio</td><td>5+</td><td>HTTP 客户端</td></tr>
+        <tr><td>国际化</td><td>flutter_localizations</td><td>-</td><td>官方支持</td></tr>
+        <tr><td>日志</td><td>logger</td><td>2+</td><td>分级日志</td></tr>
+        <tr><td>序列化</td><td>freezed + json_serializable</td><td>2.5+ / 6.8+</td><td>不可变模型</td></tr>
+        <tr><td>测试</td><td>flutter_test + mocktail</td><td>-</td><td>官方 + Mock</td></tr>
+      </table>
+
+      <h3>为什么不选其他方案</h3>
+      <table>
+        <tr><th>方案</th><th>不选的理由</th></tr>
+        <tr><td>原生 Swift</td><td>不能在 Windows 上开发</td></tr>
+        <tr><td>React Native</td><td>性能不如 Flutter，动画卡顿</td></tr>
+        <tr><td>Provider（替代 Riverpod）</td><td>无类型安全、测试不友好</td></tr>
+        <tr><td>Hive（替代 Drift）</td><td>不适合复杂关系查询</td></tr>
+        <tr><td>sqflite（替代 Drift）</td><td>无类型安全、迁移复杂</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 2.9 模块划分 ============ -->
+    <section id="p2-9">
+      <h2><span class="num">09</span>模块划分</h2>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <h5>📒 ledger（账本）</h5>
+          <p>交易、分类、账户的 CRUD 与查询</p>
+        </div>
+        <div class="feature-card">
+          <h5>💳 cards（信用卡）</h5>
+          <p>信用卡信息、账期计算、还款提醒</p>
+        </div>
+        <div class="feature-card">
+          <h5>💰 budget（预算）</h5>
+          <p>预算设置、执行追踪、超支警告</p>
+        </div>
+        <div class="feature-card">
+          <h5>📊 analytics（仪表盘）</h5>
+          <p>5 大仪表盘数据聚合与可视化</p>
+        </div>
+        <div class="feature-card">
+          <h5>🤖 audit（审计官）</h5>
+          <p>异常检测、数据校验、规则引擎</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎮 rpg（RPG 系统）</h5>
+          <p>经验值、等级、成就、攒攒形态</p>
+        </div>
+        <div class="feature-card">
+          <h5>🏷️ tag（标签）</h5>
+          <p>跨分类标签管理</p>
+        </div>
+        <div class="feature-card">
+          <h5>⏰ schedule（定时记账）</h5>
+          <p>周期自动记账</p>
+        </div>
+        <div class="feature-card">
+          <h5>🔔 notify（通知）</h5>
+          <p>本地通知、应用内消息</p>
+        </div>
+        <div class="feature-card">
+          <h5>📷 ocr（OCR）</h5>
+          <p>iOS Vision API 集成</p>
+        </div>
+        <div class="feature-card">
+          <h5>🗣️ siri（Siri Shortcuts）</h5>
+          <p>语音记账、自动化触发</p>
+        </div>
+        <div class="feature-card">
+          <h5>📦 snapshot（快照）</h5>
+          <p>数据快照、版本管理、回滚</p>
+        </div>
+        <div class="feature-card">
+          <h5>💾 io（导入导出）</h5>
+          <p>CSV 导入导出、PDF 月报</p>
+        </div>
+        <div class="feature-card">
+          <h5>🤖 ai_model（AI 模型管理）</h5>
+          <p>配置、连接测试、使用统计、仪表盘</p>
+        </div>
+        <div class="feature-card">
+          <h5>💬 dialogue（攒攒对话）</h5>
+          <p>攒攒台词库、上下文感知</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎨 theme（主题）</h5>
+          <p>暗色主题、RPG 风格、动效</p>
+        </div>
+        <div class="feature-card">
+          <h5>🔐 crypto（加密）</h5>
+          <p>SQLCipher、Keychain</p>
+        </div>
+        <div class="feature-card">
+          <h5>📅 book（账本）</h5>
+          <p>多账本管理</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2.10 数据架构 ============ -->
+    <section id="p2-10">
+      <h2><span class="num">10</span>数据架构</h2>
+
+      <h3>数据库选型</h3>
+      <table>
+        <tr><th>方案</th><th>优点</th><th>缺点</th><th>决策</th></tr>
+        <tr><td>Drift (SQLite)</td><td>类型安全、关系查询、迁移工具</td><td>学习曲线</td><td>✅ 选用</td></tr>
+        <tr><td>Hive</td><td>纯 Dart、快</td><td>不适合关系查询</td><td>❌</td></tr>
+        <tr><td>Isar</td><td>快、查询强</td><td>加密支持弱</td><td>❌</td></tr>
+        <tr><td>ObjectBox</td><td>快、NoSQL</td><td>商业许可</td><td>❌</td></tr>
+      </table>
+
+      <h3>核心表 ER 图</h3>
+      <pre><code>┌──────────┐         ┌──────────────┐         ┌────────────┐
+│   book   │ 1───*  │ transaction  │ *───1 │  category  │
+└──────────┘         └──────┬───────┘         └────────────┘
+                            │
+                            *───1  ┌──────────┐
+                                   │ account  │
+                                   └──────────┘
+                            │
+                            *───*  ┌──────────┐
+                                   │   tag    │
+                                   └──────────┘
+                                   (经 transaction_tag)
+
+┌──────────┐         ┌──────────────┐         ┌────────────┐
+│  budget  │ *───1  │     user     │ 1───*  │achievement │
+└──────────┘         └──────┬───────┘         └────────────┘
+                            │
+                            1───1  ┌──────────┐
+                                   │user_level│
+                                   └──────────┘
+
+┌──────────────────┐         ┌──────────────────┐
+│ scheduled_rule   │         │ ai_call_log      │
+└──────────────────┘         └──────────────────┘
+
+┌──────────────────┐         ┌──────────────────┐
+│   snapshot       │         │ ai_model_config  │
+└──────────────────┘         └──────────────────┘
+</code></pre>
+
+      <h3>数据存储策略</h3>
+      <table>
+        <tr><th>数据</th><th>存储</th><th>加密</th></tr>
+        <tr><td>交易、分类、账户</td><td>SQLCipher</td><td>是</td></tr>
+        <tr><td>用户偏好、设置</td><td>shared_preferences</td><td>否（无敏感）</td></tr>
+        <tr><td>API Key</td><td>Keychain</td><td>是（系统级）</td></tr>
+        <tr><td>OCR 截图</td><td>本地文件系统（应用沙盒）</td><td>否</td></tr>
+        <tr><td>数据库快照</td><td>本地 + iCloud Drive（可选）</td><td>是（AES-256）</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 2.11 AI 架构 ============ -->
+    <section id="p2-11">
+      <h2><span class="num">11</span>AI 架构</h2>
+
+      <h3>双轨 AI 架构</h3>
+      <div class="callout callout-info">
+        <p><strong>本地规则引擎（默认）+ 云端 LLM（增强）</strong></p>
+        <p>80% 场景走本地（零延迟、零成本），20% 复杂场景走云端。</p>
+      </div>
+
+      <h3>AI 调用策略</h3>
+      <table>
+        <tr><th>能力</th><th>本地</th><th>云端</th><th>优先级</th></tr>
+        <tr><td>OCR 截图识别</td><td>✅ Vision API</td><td>-</td><td>本地优先</td></tr>
+        <tr><td>异常检测</td><td>✅ 规则引擎</td><td>-</td><td>本地优先</td></tr>
+        <tr><td>简单分类</td><td>✅ 关键词规则</td><td>-</td><td>本地优先</td></tr>
+        <tr><td>复杂分类</td><td>⚠️ 失败回退</td><td>✅ LLM</td><td>本地优先</td></tr>
+        <tr><td>一句话记账</td><td>✅ 规则解析</td><td>✅ LLM 增强</td><td>混合</td></tr>
+        <tr><td>自然语言对话</td><td>⚠️ 固定台词</td><td>✅ LLM</td><td>云端</td></tr>
+        <tr><td>财务洞察</td><td>⚠️ 简单提示</td><td>✅ LLM 深度分析</td><td>云端</td></tr>
+        <tr><td>月度报告</td><td>⚠️ 固定模板</td><td>✅ LLM 写</td><td>云端</td></tr>
+      </table>
+
+      <h3>数据脱敏策略</h3>
+      <pre><code>// 上传前脱敏
+class DataAnonymizer {
+  Map&lt;String, dynamic&gt; anonymize(Transaction tx) {
+    return {
+      'category': tx.category.name,           // OK
+      'amount_range': _amountRange(tx.amount), // ¥30-50
+      'time_pattern': _timePattern(tx.occurredAt), // 工作日午餐
+      'merchant_type': _merchantType(tx.note),    // 餐厅
+      'frequency': _frequency(tx),            // 每周 4 次
+      // 不传：
+      //   - 精确金额
+      //   - 商户名
+      //   - 备注原文
+      //   - 位置信息
+    };
+  }
+}
+</code></pre>
+
+      <h3>AI 调用流程</h3>
+      <pre><code>用户操作（如"中午吃面 35"）
+       ↓
+[本地规则引擎]
+   ├── 解析成功（置信度 &gt; 0.8）→ 直接入库
+   └── 解析失败/低置信度 → 走云端
+       ↓
+[云端 LLM]
+   ├── 输入：脱敏后的上下文 + 用户原始输入
+   ├── 输出：结构化记账数据
+   └── 用户确认 → 入库
+       ↓
+[日志记录]
+   - 调用时间、tokens、成本、状态
+</code></pre>
+    </section>
+
+    <!-- ============ 2.12 部署架构 ============ -->
+    <section id="p2-12">
+      <h2><span class="num">12</span>部署架构</h2>
+
+      <h3>0 成本部署链路</h3>
+      <pre><code>开发机（Windows 11）
+    │
+    │ git push
+    ▼
+GitHub Repository（私有仓库）
+    │
+    │ trigger on push
+    ▼
+GitHub Actions（macOS-latest runner）
+    │
+    │ flutter build ios --release
+    ▼
+Artifact: app.ipa
+    │
+    │ download (浏览器或 gh CLI)
+    ▼
+AltServer（旧电脑常开）
+    │
+    │ USB / WiFi
+    ▼
+iPhone（iOS 16+）← 每 7 天自动续签
+</code></pre>
+
+      <h3>GitHub Actions 配置要点</h3>
+      <ul>
+        <li>使用 <code>macos-latest</code> runner</li>
+        <li>缓存 <code>~/.pub-cache</code> 和 <code>build/</code> 提速</li>
+        <li>导出 .ipa + .app 两种 artifact</li>
+        <li>失败时上传日志</li>
+      </ul>
+
+      <h3>AltServer 续签机制</h3>
+      <table>
+        <tr><th>情况</th><th>处理</th></tr>
+        <tr><td>旧电脑常开 + WiFi</td><td>✅ 自动续签，无需操作</td></tr>
+        <tr><td>电脑关机</td><td>7 天后断签，需手动重连</td></tr>
+        <tr><td>出差 / 旅行</td><td>提前重连 + 启用 iPhone 数据网络提醒</td></tr>
+        <tr><td>断签后</td><td>回家连 USB 重签即可</td></tr>
+      </table>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 关键依赖</div>
+        <p><strong>家里电脑必须能稳定运行</strong>。推荐使用旧笔记本或迷你主机，功耗低。</p>
+      </div>
+    </section>
+
+    <div class="part-divider">▎ 第三部分 · 详细设计（12 章）▎</div>
+
+    <!-- ============ 3.13 数据库详细设计 ============ -->
+    <section id="p3-13">
+      <h2><span class="num">13</span>数据库详细设计</h2>
+
+      <h3>book（账本）</h3>
+      <pre><code>CREATE TABLE book (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,             -- '家庭账本' '旅行账本'
+  icon TEXT,                      -- emoji
+  color TEXT,
+  is_default INTEGER DEFAULT 0,
+  is_archived INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);</code></pre>
+
+      <h3>account（账户）</h3>
+      <pre><code>CREATE TABLE account (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  name TEXT NOT NULL,             -- 'XXX 支付宝' 'XXX 信用卡'
+  type TEXT NOT NULL,             -- 'cash'|'debit'|'credit'|'huabei'|'loan'|'investment'
+  balance REAL NOT NULL DEFAULT 0,
+  icon TEXT,                      -- emoji
+  color TEXT,
+  include_in_net_assets INTEGER DEFAULT 1,  -- 是否计入净资产
+  credit_limit REAL,              -- 信用卡/网贷总额度
+  statement_day INTEGER,          -- 账单日 1-31
+  due_day INTEGER,                -- 还款日 1-31
+  loan_remaining_periods INTEGER, -- 网贷剩余期数
+  is_archived INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (book_id) REFERENCES book(id)
+);
+
+CREATE INDEX idx_account_book ON account(book_id);
+CREATE INDEX idx_account_type ON account(type);</code></pre>
+
+      <h3>category（分类 - 完全自定义）</h3>
+      <pre><code>CREATE TABLE category (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,             -- 'expense'|'income'|'transfer'
+  icon TEXT,                      -- 用户自定义 emoji
+  color TEXT,                     -- 用户自定义颜色
+  parent_id INTEGER,              -- 二级分类
+  sort_order INTEGER DEFAULT 0,
+  budget_amount REAL,             -- 分类独立预算
+  include_in_stats INTEGER DEFAULT 1,
+  source TEXT DEFAULT 'custom',  -- 'template'|'custom'
+  is_archived INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (book_id) REFERENCES book(id),
+  FOREIGN KEY (parent_id) REFERENCES category(id)
+);</code></pre>
+
+      <h3>tag（标签）</h3>
+      <pre><code>CREATE TABLE tag (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  name TEXT NOT NULL,             -- '工作' '差旅' '必要' '冲动'
+  color TEXT,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE transaction_tag (
+  transaction_id INTEGER NOT NULL,
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (transaction_id, tag_id),
+  FOREIGN KEY (transaction_id) REFERENCES transaction(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
+);</code></pre>
+
+      <h3>transaction（交易 - 核心）</h3>
+      <pre><code>CREATE TABLE transaction (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  account_id INTEGER NOT NULL,
+  category_id INTEGER NOT NULL,
+  amount REAL NOT NULL,           -- 正=收入 负=支出
+  type TEXT NOT NULL,             -- 'expense'|'income'|'transfer'
+  note TEXT,
+  occurred_at INTEGER NOT NULL,
+  transfer_pair_id INTEGER,       -- 转账配对
+  source TEXT DEFAULT 'manual',  -- 'manual'|'ocr'|'siri'|'scheduled'
+  confidence REAL,                -- OCR/LLM 置信度 0-1
+  is_confirmed INTEGER DEFAULT 1,
+  image_path TEXT,                -- 关联截图
+  location_lat REAL,
+  location_lng REAL,
+  is_excluded_from_stats INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (book_id) REFERENCES book(id),
+  FOREIGN KEY (account_id) REFERENCES account(id),
+  FOREIGN KEY (category_id) REFERENCES category(id)
+);
+
+CREATE INDEX idx_tx_occurred ON transaction(occurred_at DESC);
+CREATE INDEX idx_tx_book ON transaction(book_id);
+CREATE INDEX idx_tx_account ON transaction(account_id);
+CREATE INDEX idx_tx_category ON transaction(category_id);
+CREATE INDEX idx_tx_type ON transaction(type);
+CREATE INDEX idx_tx_source ON transaction(source);</code></pre>
+
+      <h3>budget（预算）</h3>
+      <pre><code>CREATE TABLE budget (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,            -- 'total'|'category'
+  category_id INTEGER,            -- scope='category' 时必填
+  amount REAL NOT NULL,
+  period TEXT NOT NULL,           -- 'monthly'|'weekly'|'yearly'
+  start_date INTEGER NOT NULL,
+  alert_threshold REAL DEFAULT 0.8,
+  is_active INTEGER DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (category_id) REFERENCES category(id)
+);</code></pre>
+
+      <h3>scheduled_rule（定时记账规则）</h3>
+      <pre><code>CREATE TABLE scheduled_rule (
+  id INTEGER PRIMARY KEY,
+  book_id INTEGER NOT NULL,
+  name TEXT NOT NULL,             -- '房租' '工资' 'Netflix'
+  account_id INTEGER NOT NULL,
+  category_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  type TEXT NOT NULL,
+  note TEXT,
+  frequency TEXT NOT NULL,        -- 'monthly'|'weekly'|'daily'
+  day_of_month INTEGER,           -- 每月几号
+  day_of_week INTEGER,            -- 周几
+  start_date INTEGER NOT NULL,
+  end_date INTEGER,
+  last_executed_at INTEGER,
+  is_active INTEGER DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);</code></pre>
+
+      <h3>ai_model_config（AI 模型配置）</h3>
+      <pre><code>CREATE TABLE ai_model_config (
+  id INTEGER PRIMARY KEY,
+  provider TEXT NOT NULL,         -- 'MiniMax'|'openai'|'custom'
+  model_name TEXT NOT NULL,       -- 'MiniMax-M3'|'gpt-4o-mini'
+  api_endpoint TEXT,
+  api_key_encrypted TEXT,         -- 加密存储
+  temperature REAL DEFAULT 0.7,
+  max_tokens INTEGER DEFAULT 2000,
+  timeout_ms INTEGER DEFAULT 10000,
+  daily_cost_limit REAL,          -- 每日成本上限
+  monthly_cost_limit REAL,        -- 每月成本上限
+  is_active INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);</code></pre>
+
+      <h3>ai_call_log（AI 调用日志）</h3>
+      <pre><code>CREATE TABLE ai_call_log (
+  id INTEGER PRIMARY KEY,
+  model_name TEXT NOT NULL,
+  feature TEXT NOT NULL,          -- 'nl_record'|'chat'|'insight'|'ocr_verify'|'monthly_report'
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  cost_rmb REAL,
+  duration_ms INTEGER,
+  status TEXT,                    -- 'success'|'fail'|'timeout'
+  error_message TEXT,
+  is_anonymized INTEGER DEFAULT 1,
+  called_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_ai_call_time ON ai_call_log(called_at DESC);
+CREATE INDEX idx_ai_call_feature ON ai_call_log(feature);</code></pre>
+
+      <h3>ai_daily_cost（AI 日成本聚合）</h3>
+      <pre><code>CREATE TABLE ai_daily_cost (
+  date TEXT PRIMARY KEY,          -- '2026-07-14'
+  total_calls INTEGER DEFAULT 0,
+  total_cost REAL DEFAULT 0,
+  success_count INTEGER DEFAULT 0,
+  fail_count INTEGER DEFAULT 0,
+  avg_duration_ms INTEGER
+);</code></pre>
+
+      <h3>user_level（用户等级）</h3>
+      <pre><code>CREATE TABLE user_level (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  level INTEGER NOT NULL DEFAULT 1,
+  exp INTEGER NOT NULL DEFAULT 0,
+  total_exp INTEGER NOT NULL DEFAULT 0,
+  character_name TEXT DEFAULT '攒攒',
+  character_form INTEGER DEFAULT 1,
+  current_streak INTEGER DEFAULT 0,    -- 连续打卡
+  longest_streak INTEGER DEFAULT 0,    -- 历史最长
+  total_records INTEGER DEFAULT 0,     -- 总记录数
+  updated_at INTEGER NOT NULL
+);</code></pre>
+
+      <h3>achievement（成就）</h3>
+      <pre><code>CREATE TABLE achievement (
+  id INTEGER PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,      -- 'first_record'|'streak_7'...
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  rarity TEXT,                    -- 'common'|'rare'|'epic'|'legendary'
+  exp_reward INTEGER DEFAULT 0,
+  condition_type TEXT,            -- 'count'|'streak'|'amount'|'custom'
+  condition_value INTEGER,
+  unlocked_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_ach_unlocked ON achievement(unlocked_at);</code></pre>
+
+      <h3>main_quest（主线任务）</h3>
+      <pre><code>CREATE TABLE main_quest (
+  id INTEGER PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,      -- 'ten_thousand'|'credit_model'
+  name TEXT NOT NULL,
+  description TEXT,
+  target_amount REAL,
+  current_progress REAL DEFAULT 0,
+  reward_level INTEGER,
+  is_completed INTEGER DEFAULT 0,
+  completed_at INTEGER,
+  created_at INTEGER NOT NULL
+);</code></pre>
+
+      <h3>snapshot（数据快照）</h3>
+      <pre><code>CREATE TABLE snapshot (
+  id INTEGER PRIMARY KEY,
+  version TEXT NOT NULL,          -- 快照对应的 app 版本
+  trigger_type TEXT NOT NULL,     -- 'auto_upgrade'|'manual'|'pre_restore'
+  file_path TEXT NOT NULL,        -- 加密快照文件路径
+  file_size INTEGER,
+  record_count INTEGER,
+  checksum TEXT,                  -- 完整性校验
+  created_at INTEGER NOT NULL,
+  note TEXT
+);
+
+CREATE INDEX idx_snap_created ON snapshot(created_at DESC);</code></pre>
+
+      <h3>app_meta（应用元数据）</h3>
+      <pre><code>CREATE TABLE app_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at INTEGER NOT NULL
+);</code></pre>
+    </section>
+
+    <!-- ============ 3.14 AI 模型管理 ============ -->
+    <section id="p3-14">
+      <h2><span class="num">14</span>AI 模型管理详细设计</h2>
+
+      <h3>14.1 五大子能力</h3>
+      <table>
+        <tr><th>能力</th><th>职责</th></tr>
+        <tr><td>配置管理</td><td>API Key、模型选择、参数调整</td></tr>
+        <tr><td>连接测试</td><td>API 连通性、Key 有效性、模型可用性</td></tr>
+        <tr><td>使用统计</td><td>调用次数、token、成本、成功率</td></tr>
+        <tr><td>仪表盘</td><td>可视化所有使用数据</td></tr>
+        <tr><td>隐私 + 成本控制</td><td>脱敏、预算上限、自动暂停</td></tr>
+      </table>
+
+      <h3>14.2 模型配置 UI</h3>
+      <pre><code>┌─────────────────────────────────────┐
+│ ⚙️ AI 模型配置                       │
+│                                     │
+│ 当前模型: [MiniMax-M3     ▼]      │
+│                                     │
+│ API Endpoint:                       │
+│ [https://api.MiniMax.com/v1    ]   │
+│                                     │
+│ API Key:                            │
+│ [sk-••••••••••••••••••••••••  ]   │
+│ [👁️] [📋]                            │
+│                                     │
+│ 模型参数:                            │
+│   Temperature:  [0.7  ▢▢▢▢▢▢▢▢]   │
+│   Max Tokens:   [2000          ]   │
+│   Timeout:      [10s           ]   │
+│                                     │
+│ [测试连接]  [保存配置]  [重置默认]  │
+└─────────────────────────────────────┘</code></pre>
+
+      <h3>14.3 连接测试流程</h3>
+      <pre><code>async Future&lt;TestResult&gt; testConnection() async {
+  // 1. DNS 解析
+  // 2. TCP 连接
+  // 3. HTTPS TLS 握手
+  // 4. 发送 /v1/models 请求
+  // 5. 验证响应
+  // 6. 发送一个最小测试 prompt
+  // 7. 返回结果
+}</code></pre>
+
+      <h3>14.4 仪表盘设计</h3>
+      <p>独立 Tab，包含：</p>
+      <ul>
+        <li>4 个 KPI 卡片：总调用、总成本、平均耗时、成功率</li>
+        <li>每日调用 + 成本 折线图</li>
+        <li>按功能分布饼图</li>
+        <li>各模型对比柱状图</li>
+        <li>最近 50 次调用日志表格</li>
+      </ul>
+
+      <h3>14.5 成本控制</h3>
+      <table>
+        <tr><th>项</th><th>配置</th></tr>
+        <tr><td>每日上限</td><td>默认 ¥1.00，可调</td></tr>
+        <tr><td>每月上限</td><td>默认 ¥30.00，可调</td></tr>
+        <tr><td>超限后</td><td>暂停 AI 调用 / 继续但告警</td></tr>
+        <tr><td>告警阈值</td><td>达 80% 时通知</td></tr>
+      </table>
+
+      <h3>14.6 隐私设置</h3>
+      <pre><code>class PrivacyConfig {
+  bool autoAnonymize = true;       // 自动脱敏
+  bool blockMerchantName = true;   // 禁止上传商户名
+  bool blockRawNote = true;        // 禁止上传备注原文
+  bool allowStatsUpload = false;   // 默认不上传统计模式
+}</code></pre>
+    </section>
+
+    <!-- ============ 3.15 仪表盘系统 ============ -->
+    <section id="p3-15">
+      <h2><span class="num">15</span>仪表盘系统详细设计</h2>
+
+      <h3>15.1 五大仪表盘</h3>
+      <table>
+        <tr><th>仪表盘</th><th>核心指标</th><th>图表类型</th></tr>
+        <tr>
+          <td>主仪表盘（主页）</td>
+          <td>预算/净资产/趋势/AI/交易</td>
+          <td>环形 + 折线 + 列表</td>
+        </tr>
+        <tr>
+          <td>财务仪表盘</td>
+          <td>资产/负债/收支/分类</td>
+          <td>饼图 + 柱状 + 折线 + 雷达</td>
+        </tr>
+        <tr>
+          <td>AI 模型仪表盘</td>
+          <td>调用/成本/性能</td>
+          <td>折线 + 柱状 + 饼图 + 表格</td>
+        </tr>
+        <tr>
+          <td>成长仪表盘</td>
+          <td>等级/EXP/成就/打卡</td>
+          <td>进度条 + 折线 + 热力图 + 时间线</td>
+        </tr>
+        <tr>
+          <td>信用卡仪表盘</td>
+          <td>总额度/可用/账期</td>
+          <td>仪表盘 + 横向日历 + 倒计时</td>
+        </tr>
+      </table>
+
+      <h3>15.2 财务仪表盘组件清单</h3>
+      <ul>
+        <li>净资产走势（折线图，6 个月）</li>
+        <li>资产分布（饼图）</li>
+        <li>负债分布（饼图）</li>
+        <li>月度收支对比（柱状图）</li>
+        <li>分类支出 Top 10（横向柱状图）</li>
+        <li>单笔支出 Top 5（列表）</li>
+        <li>预算执行率（雷达图）</li>
+        <li>信用卡使用率（半圆仪表盘）</li>
+      </ul>
+
+      <h3>15.3 卡片化布局</h3>
+      <p>仪表盘使用 staggered grid 布局，每个卡片可独立：</p>
+      <ul>
+        <li>拖拽排序</li>
+        <li>展开/收起</li>
+        <li>隐藏/显示</li>
+        <li>全屏查看</li>
+      </ul>
+
+      <h3>15.4 数据聚合策略</h3>
+      <p>实时查询 10 万级数据可能慢，采用预聚合：</p>
+      <pre><code>-- 每日汇总表（后台定时任务生成）
+CREATE TABLE daily_summary (
+  date TEXT PRIMARY KEY,
+  total_expense REAL,
+  total_income REAL,
+  net_cash_flow REAL,
+  category_breakdown TEXT,  -- JSON
+  created_at INTEGER
+);
+
+-- 每月汇总表
+CREATE TABLE monthly_summary (
+  year_month TEXT PRIMARY KEY,  -- '2026-07'
+  total_expense REAL,
+  total_income REAL,
+  savings_rate REAL,
+  category_breakdown TEXT,
+  created_at INTEGER
+);</code></pre>
+    </section>
+
+    <!-- ============ 3.16 分类自定义 ============ -->
+    <section id="p3-16">
+      <h2><span class="num">16</span>分类自定义系统详细设计</h2>
+
+      <h3>16.1 核心原则</h3>
+      <div class="callout callout-success">
+        <p><strong>App 不预置任何分类，只提供模板库作为参考。</strong>所有分类由用户完全自定义。</p>
+      </div>
+
+      <h3>16.2 分类属性</h3>
+      <table>
+        <tr><th>属性</th><th>说明</th></tr>
+        <tr><td>名称</td><td>必填，1-10 字</td></tr>
+        <tr><td>类型</td><td>支出 / 收入 / 转账</td></tr>
+        <tr><td>图标</td><td>Emoji 选择器（200+ emoji）</td></tr>
+        <tr><td>颜色</td><td>16 色调色板</td></tr>
+        <tr><td>父分类</td><td>支持二级</td></tr>
+        <tr><td>排序</td><td>拖拽排序</td></tr>
+        <tr><td>独立预算</td><td>可选</td></tr>
+        <tr><td>是否计入统计</td><td>默认是</td></tr>
+        <tr><td>归档</td><td>软删除</td></tr>
+      </table>
+
+      <h3>16.3 模板库</h3>
+      <table>
+        <tr><th>模板</th><th>包含分类</th></tr>
+        <tr><td>💼 上班族</td><td>学习办公/餐饮/住房/交通/通讯/社保/购物/医疗/娱乐</td></tr>
+        <tr><td>👨‍👩‍👧 家庭</td><td>老人/育儿/餐饮/住房/医疗健康/教育/休闲</td></tr>
+        <tr><td>💼 创业</td><td>进货/物流/推广/办公/招待/差旅</td></tr>
+        <tr><td>🧘 极简</td><td>必须/需要/想要</td></tr>
+        <tr><td>📊 投资</td><td>本金/收益/亏损/管理费</td></tr>
+        <tr><td>📂 用户自定义</td><td>用户可保存自己的模板</td></tr>
+      </table>
+
+      <h3>16.4 模板导入流程</h3>
+      <div class="flow">
+        <span class="flow-step">选模板</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">预览分类</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">勾选要导入的</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">生成用户分类</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">可继续编辑</span>
+      </div>
+    </section>
+
+    <!-- ============ 3.17 标签系统 ============ -->
+    <section id="p3-17">
+      <h2><span class="num">17</span>标签系统详细设计</h2>
+
+      <h3>17.1 标签 vs 分类</h3>
+      <table>
+        <tr><th>维度</th><th>分类</th><th>标签</th></tr>
+        <tr><td>关系</td><td>一对多（一笔账一个分类）</td><td>多对多（一笔账多个标签）</td></tr>
+        <tr><td>目的</td><td>记账归类</td><td>跨分类标记</td></tr>
+        <tr><td>层级</td><td>支持二级</td><td>扁平</td></tr>
+        <tr><td>统计</td><td>主统计维度</td><td>辅助统计</td></tr>
+        <tr><td>示例</td><td>餐饮、交通、住房</td><td>工作、差旅、必要、冲动、报销</td></tr>
+      </table>
+
+      <h3>17.2 系统预置标签</h3>
+      <ul>
+        <li>🏢 工作</li>
+        <li>✈️ 差旅</li>
+        <li>✅ 必要</li>
+        <li>⚠️ 冲动</li>
+        <li>🎁 礼物</li>
+        <li>🍱 可报销</li>
+        <li>👨‍👩‍👧 家庭</li>
+        <li>💝 社交</li>
+      </ul>
+
+      <h3>17.3 标签使用场景</h3>
+      <p>例：和客户吃日料 ¥380</p>
+      <ul>
+        <li>分类：餐饮</li>
+        <li>标签：工作 + 招待 + 可报销</li>
+      </ul>
+      <p>统计时可以按"工作"标签算出"工作相关支出"，按"冲动"标签找出"冲动消费"。</p>
+    </section>
+
+    <!-- ============ 3.18 定时记账 ============ -->
+    <section id="p3-18">
+      <h2><span class="num">18</span>定时记账详细设计</h2>
+
+      <h3>18.1 使用场景</h3>
+      <table>
+        <tr><th>场景</th><th>频率</th><th>示例</th></tr>
+        <tr><td>房租</td><td>每月</td><td>每月 1 号记 -¥3000 住房</td></tr>
+        <tr><td>工资</td><td>每月</td><td>每月 15 号记 +¥15000 工资</td></tr>
+        <tr><td>订阅</td><td>每月/每年</td><td>每月 5 号记 -¥68 Netflix</td></tr>
+        <tr><td>健身房</td><td>每月</td><td>每月 20 号记 -¥299 健身</td></tr>
+        <tr><td>投资定投</td><td>每周/每月</td><td>每周一记 -¥1000 基金</td></tr>
+      </table>
+
+      <h3>18.2 规则配置</h3>
+      <ul>
+        <li>名称、账户、分类、金额、备注</li>
+        <li>频率：每天 / 每周 / 每月 / 自定义</li>
+        <li>开始日期、结束日期（可选）</li>
+        <li>提前几天生成（在执行日前 X 天创建账目）</li>
+      </ul>
+
+      <h3>18.3 执行机制</h3>
+      <ol>
+        <li>App 启动时检查 scheduled_rule</li>
+        <li>找到需要执行的规则</li>
+        <li>创建 transaction 记录（source='scheduled'）</li>
+        <li>更新 last_executed_at</li>
+        <li>本地通知告知用户</li>
+      </ol>
+
+      <h3>18.4 特殊处理</h3>
+      <ul>
+        <li>2 月 28/29 天：自动顺延到月底</li>
+        <li>31 号的规则：30 号月份自动跳到 30 号</li>
+        <li>闰年：正确处理 2 月 29</li>
+        <li>删除规则：未执行的预生成账目也删除</li>
+      </ul>
+    </section>
+
+    <!-- ============ 3.19 RPG 化系统 ============ -->
+    <section id="p3-19">
+      <h2><span class="num">19</span>RPG 化系统详细设计</h2>
+
+      <h3>19.1 等级体系（10 级）</h3>
+      <table>
+        <tr><th>等级</th><th>称号</th><th>累计 EXP</th><th>形态</th></tr>
+        <tr><td>Lv.1</td><td>小财苗</td><td>0</td><td>🌱 绿色幼苗</td></tr>
+        <tr><td>Lv.2</td><td>铜币小子</td><td>500</td><td>🥉 铜色小人</td></tr>
+        <tr><td>Lv.3</td><td>记账学徒</td><td>1,500</td><td>📒 戴眼镜的账本精灵</td></tr>
+        <tr><td>Lv.4</td><td>银光理财</td><td>3,500</td><td>🥈 银色小财神</td></tr>
+        <tr><td>Lv.5</td><td>金币守护</td><td>7,000</td><td>🥇 金色盔甲守护</td></tr>
+        <tr><td>Lv.6</td><td>审计学徒</td><td>12,000</td><td>🔍 单片眼镜会计师</td></tr>
+        <tr><td>Lv.7</td><td>财宝猎人</td><td>20,000</td><td>💎 手持放大镜的猎人</td></tr>
+        <tr><td>Lv.8</td><td>财务大师</td><td>35,000</td><td>📊 戴学士帽的财务专家</td></tr>
+        <tr><td>Lv.9</td><td>理财宗师</td><td>60,000</td><td>🏆 紫色长袍宗师</td></tr>
+        <tr><td>Lv.10</td><td>财神降临</td><td>100,000</td><td>👑 金甲财神（终极）</td></tr>
+      </table>
+
+      <h3>19.2 EXP 获取规则</h3>
+      <table>
+        <tr><th>行为</th><th>EXP</th></tr>
+        <tr><td>手动记账</td><td>+5</td></tr>
+        <tr><td>OCR 记账（已确认）</td><td>+8</td></tr>
+        <tr><td>连续 7 天</td><td>+50</td></tr>
+        <tr><td>连续 30 天</td><td>+300</td></tr>
+        <tr><td>月末未超预算</td><td>+100</td></tr>
+        <tr><td>准时还款</td><td>+30</td></tr>
+        <tr><td>解锁成就</td><td>+成就奖励</td></tr>
+        <tr><td>导出月报</td><td>+15</td></tr>
+      </table>
+
+      <h3>19.3 成就系统（20 个）</h3>
+      <p>详见 4 个稀有度等级，每个成就包含：code、name、description、icon、rarity、exp_reward、condition_type、condition_value。</p>
+      <p>已设计成就：first_record, streak_7, streak_30, streak_100, streak_365, budget_master, budget_legend, on_time_3, on_time_50, saved_10k, saved_50k, coffee_free, audit_5, ocr_100, data_export, zero_debt, first_card, card_master, report_12, level_10</p>
+
+      <h3>19.4 主线任务</h3>
+      <ul>
+        <li>万元户：累计结余 ¥10000</li>
+        <li>信用模范：12 个月准时还款</li>
+        <li>财务自由预演：月结余稳定 ≥ ¥5000</li>
+      </ul>
+    </section>
+
+    <!-- ============ 3.20 OCR + Siri ============ -->
+    <section id="p3-20">
+      <h2><span class="num">20</span>OCR + Siri Shortcuts 详细设计</h2>
+
+      <h3>20.1 OCR 流程</h3>
+      <pre><code>截图保存到相册
+       ↓
+[Vision API 识别文字]
+       ↓
+提取关键字段：
+  - 金额
+  - 商户
+  - 时间
+  - 支付方式
+       ↓
+[审计官校验]
+  - 金额合理性
+  - 商户是否在已知库
+  - 时间是否合理
+  - 是否与近期重复
+       ↓
+弹确认窗口
+       ↓
+用户确认/修改
+       ↓
+入库</code></pre>
+
+      <h3>20.2 iOS 原生 Vision API 桥接</h3>
+      <pre><code>// Swift 代码（iOS 原生）
+import Vision
+import MLKitTextRecognition
+
+func recognizeText(imagePath: String) -&gt; [String] {
+  guard let image = UIImage(contentsOfFile: imagePath),
+        let cgImage = image.cgImage else { return [] }
+
+  let request = VNRecognizeTextRequest { request, error in
+    guard let observations = request.results as? [VNRecognizedTextObservation] else { return }
+    let strings = observations.compactMap { $0.topCandidates(1).first?.string }
+    // 返回给 Flutter
+  }
+  request.recognitionLevel = .accurate
+  request.recognitionLanguages = ["zh-Hans", "en-US"]
+
+  let handler = VNImageRequestHandler(cgImage: cgImage)
+  try? handler.perform([request])
+}</code></pre>
+
+      <h3>20.3 Siri Shortcuts 集成</h3>
+      <pre><code>// 提供的 Shortcuts 入口
+1. "记录支出"
+   - 参数：金额、分类（可选）
+   - 语音："Hey Siri，停车 30 块"
+
+2. "记录收入"
+   - 参数：金额、来源（可选）
+
+3. "今天花了多少"
+   - 输出：语音播报当日支出
+
+4. "本月预算"
+   - 输出：剩余预算 + 执行率
+
+5. "信用卡还款"
+   - 输出：最近还款日 + 金额
+
+6. "导入截图记账"
+   - 触发：用户从相册分享截图</code></pre>
+
+      <h3>20.4 截图自动触发</h3>
+      <p>用户在 iOS 快捷指令 App 中配置：</p>
+      <pre><code>触发：保存新照片到相册
+动作：调用 App URL Scheme
+  - jizhang://import?image=latest
+App 接收：自动 OCR + 弹确认</code></pre>
+    </section>
+
+    <!-- ============ 3.21 数据导入导出 ============ -->
+    <section id="p3-21">
+      <h2><span class="num">21</span>数据导入导出详细设计</h2>
+
+      <h3>21.1 CSV 导出</h3>
+      <pre><code>文件名：jizhang_export_2026-07-14.csv
+编码：UTF-8 with BOM（Excel 兼容）
+分隔符：逗号
+
+列：
+- 交易ID
+- 账本
+- 账户
+- 分类
+- 类型（支出/收入/转账）
+- 金额（正负）
+- 备注
+- 时间
+- 来源
+- 标签</code></pre>
+
+      <h3>21.2 CSV 导入（从咔皮迁移）</h3>
+      <pre><code>支持的字段映射：
+  - 咔皮"类型" → 我们"type"
+  - 咔皮"分类" → 我们"category"（需用户确认或新建）
+  - 咔皮"金额" → 我们"amount"
+  - 咔皮"日期" → 我们"occurred_at"
+  - 咔皮"账户" → 我们"account"（需用户确认或新建）
+  - 咔皮"备注" → 我们"note"</code></pre>
+
+      <h3>21.3 导入流程</h3>
+      <div class="flow">
+        <span class="flow-step">选 CSV 文件</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">解析预览</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">字段映射</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">冲突处理</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">确认导入</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">完成 + 报告</span>
+      </div>
+
+      <h3>21.4 PDF 月报</h3>
+      <table>
+        <tr><th>内容</th><th>来源</th></tr>
+        <tr><td>本月总览</td><td>收支总额、结余率、预算执行</td></tr>
+        <tr><td>分类占比饼图</td><td>fl_chart 截图</td></tr>
+        <tr><td>每日趋势折线图</td><td>同上</td></tr>
+        <tr><td>单笔 Top 10 列表</td><td>数据库查询</td></tr>
+        <tr><td>成就解锁记录</td><td>成就表</td></tr>
+        <tr><td>AI 总结</td><td>云端 LLM（v1.1）</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 3.22 数据快照 ============ -->
+    <section id="p3-22">
+      <h2><span class="num">22</span>数据快照与版本管理详细设计</h2>
+
+      <h3>22.1 触发时机</h3>
+      <table>
+        <tr><th>时机</th><th>类型</th><th>说明</th></tr>
+        <tr><td>App 升级前</td><td>auto_upgrade</td><td>数据库迁移前自动备份</td></tr>
+        <tr><td>用户手动</td><td>manual</td><td>用户主动备份</td></tr>
+        <tr><td>回滚操作前</td><td>pre_restore</td><td>回滚前备份当前状态</td></tr>
+        <tr><td>导出到 iCloud</td><td>manual</td><td>异地备份</td></tr>
+      </table>
+
+      <h3>22.2 快照内容</h3>
+      <pre><code>// 完整数据库加密导出
+// 文件格式：.jizhang.snap（自定义扩展名）
+// 包含：
+//   - 完整数据库内容
+//   - 元数据（版本、时间、记录数）
+//   - AES-256 加密</code></pre>
+
+      <h3>22.3 快照列表 UI</h3>
+      <pre><code>┌─────────────────────────────────────┐
+│ 📦 数据快照                          │
+│                                     │
+│ 2026-07-14 14:30  [v1.0.1] 自动   │
+│  240 笔记录 · 1.2 MB · 完整性 OK    │
+│  [预览] [恢复] [导出] [删除]        │
+│                                     │
+│ 2026-07-13 09:15  [v1.0.0] 手动   │
+│  235 笔记录 · 1.1 MB · 完整性 OK    │
+│  [预览] [恢复] [导出] [删除]        │
+│                                     │
+│ 2026-07-10 18:00  [v1.0.0] 升级前 │
+│  ...                                │
+│                                     │
+│ [+ 创建快照] [⚙️ 自动备份设置]     │
+└─────────────────────────────────────┘</code></pre>
+
+      <h3>22.4 自动备份策略</h3>
+      <table>
+        <tr><th>项</th><th>配置</th></tr>
+        <tr><td>本地保留</td><td>最近 10 个</td></tr>
+        <tr><td>升级前</td><td>必备份</td></tr>
+        <tr><td>每周</td><td>可选</td></tr>
+        <tr><td>iCloud 同步</td><td>可选开关</td></tr>
+      </table>
+
+      <h3>22.5 恢复流程</h3>
+      <div class="flow">
+        <span class="flow-step">选快照</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">预览内容</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">创建当前快照</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">关闭数据库</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">恢复快照</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">重启 App</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">数据校验</span>
+      </div>
+    </section>
+
+    <!-- ============ 3.23 异常检测 ============ -->
+    <section id="p3-23">
+      <h2><span class="num">23</span>异常检测详细设计</h2>
+
+      <h3>23.1 五大规则</h3>
+      <table>
+        <tr><th>规则</th><th>触发条件</th><th>级别</th></tr>
+        <tr><td>金额异常</td><td>单笔 &gt; 日均 × 5</td><td>红色</td></tr>
+        <tr><td>时间异常</td><td>凌晨 1-5 点 + 餐饮类</td><td>黄色</td></tr>
+        <tr><td>预算异常</td><td>分类预算达 80% / 95%</td><td>橙/红</td></tr>
+        <tr><td>重复检测</td><td>同账户同分类同金额 1 小时内</td><td>询问</td></tr>
+        <tr><td>信用卡限额</td><td>额度使用率 &gt; 90%</td><td>红色</td></tr>
+      </table>
+
+      <h3>23.2 检测流程</h3>
+      <pre><code>class AuditService {
+  AuditResult audit(Transaction tx) {
+    final results = &lt;AuditResult&gt;[];
+
+    // 规则 1: 金额异常
+    if (await _checkAmountAnomaly(tx)) {
+      results.add(AuditResult.red('单笔超过日均 5 倍'));
+    }
+
+    // 规则 2: 时间异常
+    if (await _checkTimeAnomaly(tx)) {
+      results.add(AuditResult.yellow('深夜餐饮'));
+    }
+
+    // 规则 3: 预算异常
+    if (await _checkBudgetAnomaly(tx)) {
+      results.add(AuditResult.orange('预算即将超支'));
+    }
+
+    // 规则 4: 重复
+    if (await _checkDuplicate(tx)) {
+      results.add(AuditResult.confirm('检测到可能的重复'));
+    }
+
+    // 规则 5: 限额
+    if (await _checkCreditLimit(tx)) {
+      results.add(AuditResult.red('信用卡额度告急'));
+    }
+
+    return AuditResult.combine(results);
+  }
+}</code></pre>
+
+      <h3>23.3 攒攒对话</h3>
+      <p>异常检测结果映射到攒攒的台词：</p>
+      <table>
+        <tr><th>检测结果</th><th>攒攒台词</th></tr>
+        <tr><td>金额异常</td><td>"主人，这笔 ¥899 是你近 30 天最大单笔，确认下吗？"</td></tr>
+        <tr><td>时间异常</td><td>"凌晨 2 点的夜宵？注意身体啊主人~"</td></tr>
+        <tr><td>预算异常</td><td>"餐饮预算还剩 ¥89，还够 3 顿工作日午餐哦"</td></tr>
+        <tr><td>重复</td><td>"刚才记过一笔 ¥35 的麦当劳，是同一笔吗？"</td></tr>
+        <tr><td>限额</td><td>"⚠️ 兴业卡额度用 92%，注意消费哦"</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 3.24 攒攒对话系统 ============ -->
+    <section id="p3-24">
+      <h2><span class="num">24</span>攒攒对话系统详细设计</h2>
+
+      <h3>24.1 双层人格</h3>
+      <div class="grid-2">
+        <div class="feature-card">
+          <h5>🛡️ 底层：审计官</h5>
+          <p>无性格、只输出事实。所有数据校验、异常警告、账目核对都走它。</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎮 外壳：攒攒</h5>
+          <p>重度 RPG 化角色。所有鼓励、调侃、剧情都走它。</p>
+        </div>
+      </div>
+
+      <h3>24.2 攒攒形态（10 级）</h3>
+      <p>与等级体系绑定，详见 19 章。</p>
+
+      <h3>24.3 台词库（按场景）</h3>
+      <table>
+        <tr><th>场景</th><th>示例台词</th></tr>
+        <tr>
+          <td>鼓励</td>
+          <td>"主人好棒！今天又坚持记账了 ✨"</td>
+        </tr>
+        <tr>
+          <td>调侃</td>
+          <td>"主人又在喝奶茶？这是本月第 6 杯了哦。"</td>
+        </tr>
+        <tr>
+          <td>还款</td>
+          <td>"还款完成！信用值 +50，主人信用等级：A+ ✨"</td>
+        </tr>
+        <tr>
+          <td>预算警告</td>
+          <td>"⚠️ 餐饮预算还剩 ¥89，建议启动吃土模式！"</td>
+        </tr>
+        <tr>
+          <td>升级</td>
+          <td>"🎊 主人升级啦！新形态解锁：财宝猎人"</td>
+        </tr>
+        <tr>
+          <td>成就</td>
+          <td>"🏆 解锁【预算执行者】！本月光荣结余 ¥234！"</td>
+        </tr>
+        <tr>
+          <td>主线</td>
+          <td>"📖 主线任务：万元户 进度 73.4%，继续加油！"</td>
+        </tr>
+        <tr>
+          <td>早安</td>
+          <td>"主人早安 ☀️ 昨日支出 ¥89，今日预算 ¥120"</td>
+        </tr>
+      </table>
+
+      <h3>24.4 触发点</h3>
+      <ul>
+        <li>打开 App：每日一语</li>
+        <li>记完账：反馈 + EXP</li>
+        <li>预算超支：警告</li>
+        <li>信用卡还款：奖励</li>
+        <li>连续打卡：鼓励</li>
+        <li>异常消费：警告</li>
+        <li>升级：动画</li>
+        <li>解锁成就：动画</li>
+      </ul>
+
+      <h3>24.5 攒攒严禁做的事</h3>
+      <div class="callout callout-danger">
+        <ul>
+          <li>❌ 编造数据</li>
+          <li>❌ 给虚假鼓励（预算超了还说"没关系"）</li>
+          <li>❌ 鸡汤话术（"钱不是问题"）</li>
+          <li>❌ 推卸式赞美（"主人真棒"但没数据支撑）</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="part-divider">▎ 第四部分 · UI 设计（5 章）▎</div>
+
+    <!-- ============ 4.25 设计原则 ============ -->
+    <section id="p4-25">
+      <h2><span class="num">25</span>UI 设计原则</h2>
+
+      <h3>六大原则</h3>
+      <table>
+        <tr><th>原则</th><th>说明</th></tr>
+        <tr><td>1. 信息密度优先</td><td>每屏信息量足够但不拥挤，专业感来自"看得清"</td></tr>
+        <tr><td>2. 操作 ≤ 3 步</td><td>核心操作不超过 3 次点击</td></tr>
+        <tr><td>3. 反馈即时</td><td>每个动作都有视觉/触觉反馈</td></tr>
+        <tr><td>4. RPG 是皮肤</td><td>所有 RPG 元素不能阻挡效率</td></tr>
+        <tr><td>5. 暗色为主</td><td>默认暗色（专业感 + 省电），可切换亮色</td></tr>
+        <tr><td>6. 数据可视化</td><td>能画图就不写文字</td></tr>
+      </table>
+
+      <h3>对比参考（自用 vs 商业）</h3>
+      <table>
+        <tr><th>维度</th><th>商业 App（如咔皮）</th><th>自用 App</th></tr>
+        <tr><td>目标</td><td>吸引用户、教育引导</td><td>高效直接、不啰嗦</td></tr>
+        <tr><td>引导</td><td>大量新手教学</td><td>最小化引导</td></tr>
+        <tr><td>视觉</td><td>可爱 Q 萌</td><td>专业科技感</td></tr>
+        <tr><td>RPG</td><td>温和鼓励</td><td>重度游戏化</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 4.26 视觉规范 ============ -->
+    <section id="p4-26">
+      <h2><span class="num">26</span>视觉规范</h2>
+
+      <h3>26.1 色彩系统</h3>
+      <table>
+        <tr><th>角色</th><th>颜色</th><th>用途</th></tr>
+        <tr><td>主色（强调）</td><td>#00D4FF 青蓝</td><td>数据、准确感</td></tr>
+        <tr><td>辅助色</td><td>#A855F7 紫</td><td>成就、神秘感</td></tr>
+        <tr><td>强调色</td><td>#FFD700 金</td><td>等级、稀有</td></tr>
+        <tr><td>警示色</td><td>#FF4D6D 红</td><td>异常、警告</td></tr>
+        <tr><td>成功色</td><td>#00FF88 绿</td><td>达成、OK</td></tr>
+        <tr><td>警告色</td><td>#FF9F43 橙</td><td>提醒</td></tr>
+        <tr><td>背景主色</td><td>#0A0E1A 深空蓝黑</td><td>默认暗色</td></tr>
+        <tr><td>卡片背景</td><td>#1A2138 深蓝灰</td><td>次级背景</td></tr>
+        <tr><td>抬起层</td><td>#232B45 浅蓝灰</td><td>浮层</td></tr>
+      </table>
+
+      <h3>26.2 字体</h3>
+      <table>
+        <tr><th>类型</th><th>字体</th></tr>
+        <tr><td>中文字体</td><td>iOS 系统（PingFang SC）</td></tr>
+        <tr><td>英文字体</td><td>SF Pro</td></tr>
+        <tr><td>数字字体</td><td>SF Mono / JetBrains Mono（财务数据等宽）</td></tr>
+        <tr><td>字号</td><td>11 / 13 / 15 / 17 / 20 / 24 / 32 px</td></tr>
+        <tr><td>行高</td><td>1.4 / 1.6 / 1.8</td></tr>
+      </table>
+
+      <h3>26.3 间距</h3>
+      <p>8 点网格：4 / 8 / 12 / 16 / 24 / 32 / 48 px</p>
+
+      <h3>26.4 圆角</h3>
+      <table>
+        <tr><th>元素</th><th>圆角</th></tr>
+        <tr><td>卡片</td><td>16 px</td></tr>
+        <tr><td>按钮</td><td>12 px</td></tr>
+        <tr><td>标签</td><td>8 px</td></tr>
+        <tr><td>头像</td><td>50%（圆形）</td></tr>
+      </table>
+
+      <h3>26.5 阴影</h3>
+      <p>默认：<code>0 4px 24px rgba(0,0,0,0.3)</code></p>
+      <p>抬起：<code>0 8px 32px rgba(0,0,0,0.5)</code></p>
+
+      <h3>26.6 主题</h3>
+      <table>
+        <tr><th>主题</th><th>背景</th><th>卡片</th><th>主色</th></tr>
+        <tr><td>暗色（默认）</td><td>#0A0E1A</td><td>#1A2138</td><td>同色板</td></tr>
+        <tr><td>亮色</td><td>#F5F7FA</td><td>#FFFFFF</td><td>同色板</td></tr>
+        <tr><td>OLED 黑</td><td>#000000</td><td>#0A0E1A</td><td>同色板</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 4.27 信息架构 ============ -->
+    <section id="p4-27">
+      <h2><span class="num">27</span>信息架构</h2>
+
+      <h3>应用结构</h3>
+      <pre><code>App
+├── 主页（Home）
+│   ├── 主仪表盘
+│   ├── 近期交易
+│   ├── 攒攒每日一语
+│   └── 底部"记一笔"
+├── 财务 Tab
+│   ├── 财务仪表盘
+│   ├── 收支明细
+│   └── 分类预算
+├── 信用卡 Tab
+│   ├── 信用卡仪表盘
+│   ├── 卡片列表
+│   ├── 单卡详情
+│   └── 还款日历
+├── AI 助手 Tab
+│   ├── 攒攒对话
+│   ├── 快速问题
+│   ├── AI 模型管理入口
+│   └── AI 模型仪表盘入口
+├── 个人中心 Tab
+│   ├── 用户信息
+│   ├── 攒攒形象
+│   ├── 等级 & 成就
+│   ├── 成长仪表盘
+│   ├── 资产管理
+│   ├── 分类管理
+│   ├── 标签管理
+│   ├── 定时记账
+│   ├── 数据快照
+│   ├── 导入导出
+│   ├── 设置
+│   └── 关于
+└── 浮窗：底部"记一笔"（所有页面可访问）</code></pre>
+
+      <h3>Tab 设计</h3>
+      <table>
+        <tr><th>位置</th><th>Tab</th><th>职责</th></tr>
+        <tr><td>1</td><td>主页</td><td>主仪表盘 + 快速记账</td></tr>
+        <tr><td>2</td><td>财务</td><td>财务仪表盘 + 交易明细</td></tr>
+        <tr><td>3</td><td>信用卡</td><td>信用卡管理 + 还款</td></tr>
+        <tr><td>4</td><td>AI 助手</td><td>攒攒对话 + AI 能力</td></tr>
+        <tr><td>5</td><td>我的</td><td>个人中心</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 4.28 导航结构 ============ -->
+    <section id="p4-28">
+      <h2><span class="num">28</span>导航结构</h2>
+
+      <h3>顶部 Tab 切换（参考咔皮）</h3>
+      <p>主页和 AI 助手共用顶部 Tab 切换：</p>
+      <pre><code>┌─────────────────────────────────┐
+│  [记录]  AI助手       [账本▼]  │  ← 顶部 Tab + 账本选择
+└─────────────────────────────────┘</code></pre>
+
+      <h3>底部 Tab Bar（5 个）</h3>
+      <pre><code>┌─────────────────────────────────┐
+│  🏠     💰     💳     🤖     👤  │
+│  主页   财务   信用卡  AI助手  我的 │
+└─────────────────────────────────┘</code></pre>
+
+      <h3>底部固定"记一笔"</h3>
+      <p>所有 Tab 页面底部固定显示输入栏：</p>
+      <pre><code>┌─────────────────────────────────┐
+│ [🔍搜索] [+] 这里记一笔 [🎤]    │  ← 固定在所有页面
+└─────────────────────────────────┘</code></pre>
+
+      <h3>页面跳转路由</h3>
+      <table>
+        <tr><th>From</th><th>To</th><th>触发</th></tr>
+        <tr><td>主页</td><td>记账卡</td><td>点底部"+"</td></tr>
+        <tr><td>主页</td><td>AI 助手</td><td>点顶部"AI助手"</td></tr>
+        <tr><td>财务 Tab</td><td>交易详情</td><td>点单笔交易</td></tr>
+        <tr><td>信用卡 Tab</td><td>单卡详情</td><td>点单张卡</td></tr>
+        <tr><td>AI 助手</td><td>AI 模型管理</td><td>点齿轮</td></tr>
+        <tr><td>我的</td><td>资产管理</td><td>点资产管理</td></tr>
+        <tr><td>我的</td><td>分类管理</td><td>点分类管理</td></tr>
+        <tr><td>我的</td><td>数据快照</td><td>点数据快照</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 4.29 关键页面设计 ============ -->
+    <section id="p4-29">
+      <h2><span class="num">29</span>关键页面设计</h2>
+
+      <h3>29.1 主页</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  [记录]  AI助手       [家庭账本▼] <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  2026年7月 月统计                <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  月预算剩余  <span class="m-gold">¥X,XXX.XX</span>           <span class="m-title">│</span>
+<span class="m-title">│</span>  ████████████░░  79%             <span class="m-title">│</span>
+<span class="m-title">│</span>  已用 ¥X,XXX.XX / ¥X,XXX.XX      <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  今日可用 ¥XX.XX   [环形进度]    <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  净资产 <span class="m-red">-¥X,XXX.XX</span>             <span class="m-title">│</span>
+<span class="m-title">│</span>  [30天趋势折线图]                <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  ┌───────────────────────┐       <span class="m-title">│</span>
+<span class="m-title">│</span>  │ <span class="m-gold">🤖 攒攒</span>                  │   <span class="m-title">│</span>
+<span class="m-title">│</span>  │ 今日预算剩余 XX.XX 元，  │    <span class="m-title">│</span>
+<span class="m-title">│</span>  │ 适度控制完美 ✨          │       <span class="m-title">│</span>
+<span class="m-title">│</span>  │ 👍 👎     问问攒攒→      │       <span class="m-title">│</span>
+<span class="m-title">│</span>  └───────────────────────┘       <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  今天 7月14日(周二)              <span class="m-title">│</span>
+<span class="m-title">│</span>  支出 ¥X.XX  收入 ¥0.00          <span class="m-title">│</span>
+<span class="m-title">│</span>  09:01 🛍️购物 -¥X.XX            <span class="m-title">│</span>
+<span class="m-title">│</span>     健身服饰 [XXX花呗]           <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  7月13日(周一) ...                <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span> [🔍]   [+]这里记一笔  [🎤]      <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🏠    💰    💳    🤖    👤    <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>29.2 记账卡（弹层）</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>        <span class="m-purple">记一笔</span>                  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>      <span class="m-red">支出</span> | 收入 | 转账         <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>         <span style="color:#888">¥</span><span style="color:#00d4ff;font-size:32px">5</span><span style="font-size:32px;color:#00d4ff">8</span>.<span style="color:#00d4ff;font-size:32px">0</span>0        <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  分类                            <span class="m-title">│</span>
+<span class="m-title">│</span>  🍱 🍔 ☕ 🛒 🚇 ✈️ 💊 🎮 📚 🏠 ➕ <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  备注: 午餐 和府捞面             <span class="m-title">│</span>
+<span class="m-title">│</span>  账户: XXX 支付宝 ▼              <span class="m-title">│</span>
+<span class="m-title">│</span>  标签: [工作][✚]                 <span class="m-title">│</span>
+<span class="m-title">│</span>  日期: 今天 12:30                <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  [<span class="m-red">取消</span>]                 [<span class="m-green">✓ 保存</span>]    <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>29.3 信用卡详情</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  ← 招商银行(**XXXX)              <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  ╔═══════════════════════════╗  <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ <span class="m-purple">VISA Signature</span>           ║  <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ **** **** **** XXXX       ║  <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 额度  ¥XX,XXX             ║  <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 已用  ¥X.XX  <span class="m-gold">0%</span>            ║  <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 可用  ¥XX,XXX.XX           ║  <span class="m-title">│</span>
+<span class="m-title">│</span>  ╚═══════════════════════════╝  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  📅 账单周期                     <span class="m-title">│</span>
+<span class="m-title">│</span>  账单日：每月 5 日                <span class="m-title">│</span>
+<span class="m-title">│</span>  还款日：每月 25 日               <span class="m-title">│</span>
+<span class="m-title">│</span>  本期：7/5 - 8/4                 <span class="m-title">│</span>
+<span class="m-title">│</span>  还款倒计时：<span class="m-gold">11 天</span>              <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [立即还款] [导出账单] [设置]     <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>29.4 AI 模型管理</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  ← AI 模型管理                   <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  当前激活：<span class="m-gold">MiniMax-M3</span>            <span class="m-title">│</span>
+<span class="m-title">│</span>  状态：<span class="m-green">● 已连接</span>  响应 1.2s       <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [配置] [测试连接] [仪表盘]       <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  本月用量：                       <span class="m-title">│</span>
+<span class="m-title">│</span>  📊 234 次调用  💰 ¥2.99          <span class="m-title">│</span>
+<span class="m-title">│</span>  ⏱️ 平均 1.2s   ✅ 98.7%         <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [每日成本折线图]                 <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [功能分布饼图]                   <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [最近调用日志]                   <span class="m-title">│</span>
+<span class="m-title">│</span>  ...                            <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>29.5 成长仪表盘</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  ← 攒攒的成长                    <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>         <span style="color:#ffd700">★</span> Lv.7 <span class="m-gold">财宝猎人</span>           <span class="m-title">│</span>
+<span class="m-title">│</span>            <span class="m-gold">(◕‿◕)</span>                  <span class="m-title">│</span>
+<span class="m-title">│</span>           <span class="m-gold">✨ 攒攒 ✨</span>              <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  EXP: ██████░░░░  2,340/3,000     <span class="m-title">│</span>
+<span class="m-title">│</span>  距下一级还差: 660 EXP            <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🔥 连续打卡 83 天                <span class="m-title">│</span>
+<span class="m-title">│</span>  📅 [本月打卡热力图]              <span class="m-title">│</span>
+<span class="m-title">│</span>  ┌─┬─┬─┬─┬─┬─┬─┐                <span class="m-title">│</span>
+<span class="m-title">│</span>  │█│█│█│█│█│█│█│ 周一至周日        <span class="m-title">│</span>
+<span class="m-title">│</span>  │█│█│█│█│█│█│█│                   <span class="m-title">│</span>
+<span class="m-title">│</span>  │█│█│█│█│█│░│█│ 今日待打卡        <span class="m-title">│</span>
+<span class="m-title">│</span>  │█│█│█│█│█│█│█│                   <span class="m-title">│</span>
+<span class="m-title">│</span>  └─┴─┴─┴─┴─┴─┴─┘                <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🏆 成就: 已解锁 5/20             <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 初出茅庐  首次记账            <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 坚持一周  连续 7 天           <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 预算执行者  月末未超预算       <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 还款先锋  准时还款 3 次        <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 攒钱达人  累计结余 ¥10000    <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-dim">🔒 15 个待解锁</span>                 <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  📖 主线任务                      <span class="m-title">│</span>
+<span class="m-title">│</span>  万元户: ████████░░ 80%           <span class="m-title">│</span>
+<span class="m-title">│</span>  信用模范: ██░░░░░░░░ 17%          <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+    </section>
+
+    <div class="part-divider">▎ 第五部分 · 原型设计（6 章）▎</div>
+
+    <!-- ============ 5.30 主页与记账流 ============ -->
+    <section id="p5-30">
+      <h2><span class="num">30</span>主页与记账流原型</h2>
+
+      <h3>主页布局（对应 29.1 mockup）</h3>
+      <p>主页分为 6 个区块：</p>
+      <ol>
+        <li>顶部 Tab + 账本选择</li>
+        <li>月预算概览（含进度条 + 今日可用环形）</li>
+        <li>净资产 + 30 天趋势</li>
+        <li>攒攒卡（每日一语 + 反馈按钮）</li>
+        <li>今日交易 + 历史日期分组</li>
+        <li>底部固定"记一笔"输入栏</li>
+      </ol>
+
+      <h3>记账流（手动）</h3>
+      <pre><code>用户操作
+    ↓
+[点底部"+这里记一笔"]
+    ↓
+底部弹出记账卡（半屏）
+    ↓
+用户输入:
+  1. 选分类（点击图标网格）
+  2. 输入金额（数字键盘直接输入）
+  3. 选账户（下拉）
+  4. 加备注（可选）
+  5. 加标签（可选）
+    ↓
+[点保存]
+    ↓
+[审计官后台校验]
+    ↓
+[攒攒反馈 + 振动]
+    ↓
+[卡片关闭，列表新增一条]</code></pre>
+
+      <h3>交互细节</h3>
+      <table>
+        <tr><th>操作</th><th>反馈</th><th>时长</th></tr>
+        <tr><td>点分类图标</td><td>图标放大 1.1 + 颜色高亮</td><td>100ms</td></tr>
+        <tr><td>输入金额</td><td>数字滚动效果</td><td>实时</td></tr>
+        <tr><td>保存</td><td>按钮缩放 + 振动 + 攒攒动画</td><td>300ms</td></tr>
+        <tr><td>异常警告</td><td>红色脉冲 + 攒攒警告</td><td>500ms</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 5.31 信用卡管理流 ============ -->
+    <section id="p5-31">
+      <h2><span class="num">31</span>信用卡管理流原型</h2>
+
+      <h3>添加信用卡</h3>
+      <pre><code>1. 信用卡 Tab → 点"+"添加
+2. 填写：
+   - 银行名称（下拉选择）
+   - 卡号后四位
+   - 卡片昵称
+   - 账单日（日期选择器）
+   - 还款日（日期选择器）
+   - 总额度
+   - 主题颜色
+3. 保存
+4. 显示新卡详情</code></pre>
+
+      <h3>还款流程</h3>
+      <pre><code>1. 信用卡 Tab → 单卡详情
+2. 点"立即还款"
+3. 选择：
+   - 还款金额（全额 / 部分 / 自定义）
+   - 还款账户（哪张储蓄卡）
+   - 还款日期
+4. 确认
+5. 创建转账记录（储蓄卡 → 信用卡）
+6. 攒攒反馈："还款完成！信用 +50 🏆"</code></pre>
+
+      <h3>还款提醒触发点</h3>
+      <table>
+        <tr><th>时间</th><th>提醒级别</th><th>通知内容</th></tr>
+        <tr><td>T-7</td><td>轻度</td><td>"招商信用卡 7 天后还款 ¥2350"</td></tr>
+        <tr><td>T-3</td><td>正式</td><td>"招商信用卡 3 天后还款 ¥2350"</td></tr>
+        <tr><td>T-1</td><td>红色</td><td>"招商信用卡明天还款 ¥2350"</td></tr>
+        <tr><td>T-0</td><td>全屏弹窗</td><td>"今天还款日！¥2350"</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 5.32 仪表盘原型 ============ -->
+    <section id="p5-32">
+      <h2><span class="num">32</span>仪表盘原型</h2>
+
+      <h3>财务仪表盘组件（详细见 15.2）</h3>
+      <p>8 个核心组件：</p>
+      <ul>
+        <li>净资产走势（6 个月折线）</li>
+        <li>资产分布饼图（按账户类型）</li>
+        <li>负债分布饼图（按信用账户）</li>
+        <li>月度收支对比（柱状）</li>
+        <li>分类支出 Top 10（横向柱状）</li>
+        <li>单笔支出 Top 5（列表）</li>
+        <li>预算执行率（雷达图）</li>
+        <li>信用卡使用率（仪表盘）</li>
+      </ul>
+
+      <h3>布局策略</h3>
+      <p>使用 staggered grid（参差网格）：</p>
+      <pre><code>┌─────────┬─────────┐
+│ 净资产  │ 资产分布 │
+│ (大卡)  │ (中等)   │
+├─────────┼─────────┤
+│ 月度收支│ 分类Top10│
+│ (大卡)  │ (大卡)   │
+├─────────┴─────────┤
+│   预算执行雷达     │
+│   (大卡全宽)       │
+└────────────────────┘</code></pre>
+
+      <h3>性能要求</h3>
+      <p>所有图表在 100ms 内绘制完成，使用预聚合表查询。</p>
+    </section>
+
+    <!-- ============ 5.33 AI 助手原型 ============ -->
+    <section id="p5-33">
+      <h2><span class="num">33</span>AI 助手原型</h2>
+
+      <h3>AI 助手 Tab 结构</h3>
+      <pre><code>顶部：[攒攒对话] [AI 模型管理] [使用统计]</code></pre>
+
+      <h3>对话界面</h3>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  攒攒           [⚙️] [📊]       <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>         <span class="m-gold">(◕‿◕)</span>                  <span class="m-title">│</span>
+<span class="m-title">│</span>        <span class="m-gold">✨ 攒攒 ✨</span>             <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  "主人有什么想问的？试试这些："   <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [今年花销最大的是哪笔]          <span class="m-title">│</span>
+<span class="m-title">│</span>  [查看本月消费报告]              <span class="m-title">│</span>
+<span class="m-title">│</span>  [我是不是花钱太多了]            <span class="m-title">│</span>
+<span class="m-title">│</span>  [怎么省下 ¥5000]                <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  [🔄 换一换]                     <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  有什么想问的...                 <span class="m-title">│</span>
+<span class="m-title">│</span>                       [🎤] [📷] [↑] <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>对话交互</h3>
+      <ul>
+        <li>用户输入 → 攒攒加载动画 → 攒攒回复</li>
+        <li>攒攒回复支持富文本（粗体、列表、emoji）</li>
+        <li>长按消息可点赞/点踩，反馈给攒攒</li>
+        <li>对话历史保存，可滚动</li>
+        <li>常用问题一键点击</li>
+      </ul>
+    </section>
+
+    <!-- ============ 5.34 个人中心原型 ============ -->
+    <section id="p5-34">
+      <h2><span class="num">34</span>个人中心原型</h2>
+
+      <h3>布局结构</h3>
+      <pre><code>┌─────────────────────────────────┐
+│ [用户头像]  小莫                   │
+│            Lv.7 财宝猎人            │
+│            🔥 连续 83 天 | 📊 640 笔│
+├─────────────────────────────────┤
+│ [2026年7月日历热力图]              │
+├─────────────────────────────────┤
+│ 攒攒形象: [形态选择] [成长仪表盘]  │
+├─────────────────────────────────┤
+│ 常用功能:                          │
+│  🏦 资产管理                       │
+│  📁 分类管理                       │
+│  🏷️ 标签管理                       │
+│  ⏰ 定时记账                       │
+│  📦 数据快照                       │
+│  💾 导入导出                       │
+│  🤖 AI 模型管理                    │
+│  📊 仪表盘设置                     │
+├─────────────────────────────────┤
+│ 快捷功能:                          │
+│  📤 导出本月 CSV                   │
+│  📄 生成本月 PDF                   │
+│  🔄 立即创建数据快照               │
+├─────────────────────────────────┤
+│ 设置:                              │
+│  ⚙️ 通用设置                       │
+│  🔒 隐私与安全                     │
+│  🎨 主题外观                       │
+│  🔔 通知设置                       │
+│  ℹ️ 关于                           │
+└─────────────────────────────────┘</code></pre>
+    </section>
+
+    <!-- ============ 5.35 关键交互细节 ============ -->
+    <section id="p5-35">
+      <h2><span class="num">35</span>关键交互细节</h2>
+
+      <h3>35.1 微交互规范</h3>
+      <table>
+        <tr><th>交互</th><th>反馈</th><th>时长</th></tr>
+        <tr><td>点记账 +</td><td>按钮缩放 0.95 → 1</td><td>100ms</td></tr>
+        <tr><td>保存记账</td><td>数字滚动 + 振动 + 攒攒说话</td><td>300ms</td></tr>
+        <tr><td>超预算警告</td><td>数字变红 + 进度条抖动</td><td>500ms</td></tr>
+        <tr><td>解锁成就</td><td>全屏闪光 + 攒攒跳跃 + 振动</td><td>1500ms</td></tr>
+        <tr><td>升级</td><td>攒攒进化动画 + 等级号弹跳</td><td>2000ms</td></tr>
+        <tr><td>页面切换</td><td>iOS 标准左右滑动</td><td>250ms</td></tr>
+        <tr><td>OCR 完成</td><td>攒攒确认表情 + 振动</td><td>300ms</td></tr>
+        <tr><td>还款完成</td><td>攒攒欢呼 + 金币掉落动画</td><td>800ms</td></tr>
+      </table>
+
+      <h3>35.2 错误处理</h3>
+      <table>
+        <tr><th>错误</th><th>用户提示</th></tr>
+        <tr><td>数据库写入失败</td><td>"保存失败，请重试"</td></tr>
+        <tr><td>AI 调用失败</td><td>"攒攒开小差了，已切换本地模式"</td></tr>
+        <tr><td>OCR 识别失败</td><td>"截图识别失败，请手动输入"</td></tr>
+        <tr><td>网络断开</td><td>"离线模式可用，AI 能力受限"</td></tr>
+        <tr><td>权限被拒</td><td>"需要权限才能使用此功能，去设置"</td></tr>
+      </table>
+
+      <h3>35.3 空状态</h3>
+      <table>
+        <tr><th>场景</th><th>空状态</th></tr>
+        <tr><td>无交易</td><td>插画 + "还没有记账，添加第一笔吧"</td></tr>
+        <tr><td>无信用卡</td><td>插画 + "添加第一张信用卡，开始管理"</td></tr>
+        <tr><td>无成就</td><td>插画 + "坚持记账，解锁你的第一个成就"</td></tr>
+      </table>
+
+      <h3>35.4 加载状态</h3>
+      <ul>
+        <li>骨架屏（推荐）</li>
+        <li>攒攒加载动画（个性化）</li>
+        <li>进度条（长任务）</li>
+      </ul>
+    </section>
+
+    <div class="part-divider">▎ 第六部分 · 编码规范（5 章）▎</div>
+
+    <!-- ============ 6.36 代码结构 ============ -->
+    <section id="p6-36">
+      <h2><span class="num">36</span>代码结构</h2>
+
+      <h3>36.1 分层原则</h3>
+      <div class="callout callout-info">
+        <p><strong>严格遵循 Clean Architecture 分层：Presentation → Application → Domain → Data</strong></p>
+        <p>依赖方向：上层依赖下层接口，下层不感知上层存在。</p>
+      </div>
+
+      <h3>36.2 lib/ 完整目录树</h3>
+      <pre><code>lib/
+├── main.dart                     # 入口：init + runApp
+├── app.dart                      # MaterialApp 顶层配置
+│
+├── core/                         # 跨层通用基础
+│   ├── theme/
+│   │   ├── app_theme.dart        # ThemeData 构建
+│   │   ├── app_colors.dart       # 颜色常量
+│   │   ├── app_text_styles.dart  # 文字样式
+│   │   └── app_spacing.dart      # 间距常量
+│   ├── router/
+│   │   ├── app_router.dart       # go_router 配置
+│   │   └── route_paths.dart      # 路由常量
+│   ├── constants/
+│   │   ├── app_constants.dart    # 全局常量
+│   │   └── api_endpoints.dart    # API 端点
+│   ├── utils/
+│   │   ├── date_utils.dart       # 日期工具
+│   │   ├── money_utils.dart      # 金额格式化
+│   │   └── validators.dart       # 表单验证
+│   ├── extensions/
+│   │   ├── string_extensions.dart
+│   │   ├── datetime_extensions.dart
+│   │   └── num_extensions.dart
+│   └── errors/
+│       ├── failures.dart         # 业务失败类型
+│       └── exceptions.dart       # 异常定义
+│
+├── data/                         # 数据层
+│   ├── database/
+│   │   ├── app_database.dart     # Drift @DriftDatabase
+│   │   ├── tables/               # 14 个表
+│   │   │   ├── books.dart
+│   │   │   ├── accounts.dart
+│   │   │   ├── categories.dart
+│   │   │   ├── tags.dart
+│   │   │   ├── transactions.dart
+│   │   │   ├── transaction_tags.dart
+│   │   │   ├── budgets.dart
+│   │   │   ├── scheduled_rules.dart
+│   │   │   ├── ai_model_configs.dart
+│   │   │   ├── ai_call_logs.dart
+│   │   │   ├── ai_daily_costs.dart
+│   │   │   ├── user_levels.dart
+│   │   │   ├── achievements.dart
+│   │   │   ├── main_quests.dart
+│   │   │   ├── snapshots.dart
+│   │   │   └── app_metas.dart
+│   │   ├── daos/                 # 16 个 DAO
+│   │   └── migrations/           # 数据库迁移
+│   ├── repositories/             # 仓储实现
+│   │   ├── transaction_repository_impl.dart
+│   │   ├── account_repository_impl.dart
+│   │   └── ...
+│   ├── datasources/              # 数据源（本地/远程）
+│   └── services/                 # 外部服务
+│       ├── llm_service.dart
+│       ├── ocr_service.dart
+│       ├── notification_service.dart
+│       ├── siri_service.dart
+│       └── snapshot_service.dart
+│
+├── domain/                       # 领域层（纯 Dart，无 Flutter 依赖）
+│   ├── entities/                 # 不可变实体
+│   │   ├── transaction.dart
+│   │   ├── account.dart
+│   │   ├── category.dart
+│   │   └── ...
+│   ├── value_objects/            # 值对象
+│   │   ├── money.dart
+│   │   ├── date_range.dart
+│   │   └── percentage.dart
+│   ├── repositories/             # 仓储接口（抽象类）
+│   └── services/                 # 领域服务
+│       ├── audit_service.dart
+│       ├── rpg_engine.dart
+│       ├── insights_engine.dart
+│       ├── budget_engine.dart
+│       └── dialogue_service.dart
+│
+├── features/                     # 功能模块（按业务分）
+│   ├── home/
+│   │   ├── presentation/         # 页面 + Widget
+│   │   ├── application/          # Providers + StateNotifiers
+│   │   └── domain/               # 该 feature 特有的领域
+│   ├── ledger/
+│   ├── cards/
+│   ├── budget/
+│   ├── analytics/
+│   ├── ai_assistant/
+│   ├── ai_model/
+│   ├── profile/
+│   └── settings/
+│
+└── shared/                       # 跨 feature 共享
+    ├── widgets/                  # 通用组件
+    │   ├── amount_text.dart
+    │   ├── category_icon.dart
+    │   ├── progress_ring.dart
+    │   └── empty_state.dart
+    ├── animations/
+    │   └── ...
+    └── models/                   # 跨 feature DTO
+</code></pre>
+
+      <h3>36.3 features/ 内部结构（以 home 为例）</h3>
+      <pre><code>features/home/
+├── presentation/
+│   ├── pages/
+│   │   ├── home_page.dart
+│   │   └── widgets/
+│   │       ├── budget_overview_card.dart
+│   │       ├── net_assets_card.dart
+│   │       ├── zan_zan_message_card.dart
+│   │       └── recent_transactions.dart
+│   └── record_sheet/             # 记账卡弹层（子模块）
+│       ├── record_sheet.dart
+│       └── widgets/
+├── application/
+│   ├── home_providers.dart       # 所有 Provider
+│   ├── home_state.dart           # 状态类
+│   └── record_sheet_notifier.dart
+└── domain/                       # 复用全局 domain 时可不建
+</code></pre>
+
+      <h3>36.4 模块依赖规则</h3>
+      <table>
+        <tr><th>模块</th><th>可依赖</th><th>不可依赖</th></tr>
+        <tr><td>presentation</td><td>application, shared, domain 接口, core</td><td>data 实现细节</td></tr>
+        <tr><td>application</td><td>domain, data 接口, core</td><td>presentation, 具体 data 实现</td></tr>
+        <tr><td>domain</td><td>core（无 Flutter）</td><td>任何 Flutter 包</td></tr>
+        <tr><td>data</td><td>domain, core, 外部 SDK</td><td>presentation, application</td></tr>
+        <tr><td>features/A</td><td>domain, shared, core</td><td>features/B（横向）</td></tr>
+      </table>
+
+      <h3>36.5 文件大小限制</h3>
+      <ul>
+        <li>单个 Dart 文件 ≤ 300 行</li>
+        <li>单个 Widget ≤ 200 行（拆分为子 Widget）</li>
+        <li>单个函数 ≤ 50 行</li>
+        <li>单个目录文件数 ≤ 20 个（过多则分子目录）</li>
+      </ul>
+    </section>
+
+    <!-- ============ 6.37 命名规范 ============ -->
+    <section id="p6-37">
+      <h2><span class="num">37</span>命名规范</h2>
+
+      <h3>37.1 Dart 语言命名</h3>
+      <table>
+        <tr><th>类型</th><th>规则</th><th>示例</th></tr>
+        <tr><td>类、枚举、typedef</td><td>PascalCase</td><td><code>TransactionRepository</code>, <code>AccountType</code></td></tr>
+        <tr><td>方法、属性、变量、参数</td><td>camelCase</td><td><code>getTransactionById()</code>, <code>bookId</code></td></tr>
+        <tr><td>私有成员</td><td>_camelCase</td><td><code>_auditService</code></td></tr>
+        <tr><td>常量（编译期）</td><td>lowerCamelCase + const</td><td><code>const kDefaultTimeout = 10000</code></td></tr>
+        <tr><td>枚举值</td><td>camelCase 或 lowerCamelCase</td><td><code>AccountType.credit</code></td></tr>
+        <tr><td>扩展方法</td><td>PascalCase + Extension</td><td><code>StringExtensions</code></td></tr>
+      </table>
+
+      <h3>37.2 文件命名</h3>
+      <table>
+        <tr><th>类型</th><th>规则</th><th>示例</th></tr>
+        <tr><td>Dart 文件</td><td>snake_case</td><td><code>transaction_repository.dart</code></td></tr>
+        <tr><td>页面 Widget</td><td>xxx_page.dart</td><td><code>home_page.dart</code></td></tr>
+        <tr><td>组件 Widget</td><td>xxx_widget.dart 或描述性</td><td><code>budget_ring.dart</code></td></tr>
+        <tr><td>测试文件</td><td>原文件名 + _test.dart</td><td><code>transaction_repository_test.dart</code></td></tr>
+        <tr><td>表定义</td><td>复数 + s</td><td><code>transactions.dart</code></td></tr>
+        <tr><td>DAO 文件</td><td>实体名 + _dao.dart</td><td><code>transaction_dao.dart</code></td></tr>
+      </table>
+
+      <h3>37.3 数据库命名</h3>
+      <table>
+        <tr><th>类型</th><th>规则</th><th>示例</th></tr>
+        <tr><td>表名</td><td>复数 snake_case</td><td><code>transactions</code>, <code>ai_call_logs</code></td></tr>
+        <tr><td>列名</td><td>单数 snake_case</td><td><code>book_id</code>, <code>occurred_at</code></td></tr>
+        <tr><td>主键</td><td><code>id</code></td><td><code>id INTEGER PRIMARY KEY</code></td></tr>
+        <tr><td>外键</td><td><code>{table_singular}_id</code></td><td><code>book_id</code>, <code>category_id</code></td></tr>
+        <tr><td>布尔字段</td><td><code>is_xxx</code> 或 <code>has_xxx</code></td><td><code>is_active</code>, <code>is_archived</code></td></tr>
+        <tr><td>时间字段</td><td><code>xxx_at</code>（Unix ms）</td><td><code>occurred_at</code>, <code>created_at</code></td></tr>
+        <tr><td>日期字段</td><td><code>xxx_date</code>（YYYY-MM-DD）</td><td><code>start_date</code></td></tr>
+        <tr><td>索引</td><td><code>idx_{table}_{column}</code></td><td><code>idx_tx_occurred</code></td></tr>
+      </table>
+
+      <h3>37.4 资源文件命名</h3>
+      <pre><code>assets/
+├── images/
+│   ├── icons/                    # 功能图标
+│   │   ├── home.png
+│   │   ├── cards.png
+│   │   └── ai.png
+│   ├── illustrations/            # 插画（空状态、攒攒形象）
+│   │   ├── empty_record.png
+│   │   ├── zan_zan_lv1.png
+│   │   └── zan_zan_lv10.png
+│   └── splash.png
+├── fonts/
+│   └── JetBrainsMono-Regular.ttf
+└── data/
+    ├── category_templates.json   # 分类模板
+    ├── zan_zan_dialogues.json    # 攒攒台词
+    └── achievement_defs.json     # 成就定义
+</code></pre>
+
+      <h3>37.5 命名反例（必须避免）</h3>
+      <div class="callout callout-danger">
+        <ul>
+          <li>❌ <code>data1, data2, tmp, temp, test, foo, bar</code></li>
+          <li>❌ <code>doIt(), process(), handle()</code>（语义不明）</li>
+          <li>❌ <code>Transaction t = ...</code>（变量名过短）</li>
+          <li>❌ <code>String str = "hello"</code>（类型作为变量名）</li>
+          <li>❌ 中英文混用：<code>transactionService 服务</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 6.38 Git 规范 ============ -->
+    <section id="p6-38">
+      <h2><span class="num">38</span>Git 规范</h2>
+
+      <h3>38.1 分支策略</h3>
+      <pre><code>main (主分支，受保护)
+  ├── develop (开发集成分支)
+  │     ├── feature/home-dashboard
+  │     ├── feature/rpg-system
+  │     ├── feature/ocr-integration
+  │     └── ...
+  ├── hotfix/fix-snapshot-restore  (紧急修复)
+  └── release/v1.0.0  (发布准备)</code></pre>
+
+      <h3>38.2 提交信息规范（Conventional Commits）</h3>
+      <pre><code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;
+
+&lt;body&gt;
+
+&lt;footer&gt;</code></pre>
+
+      <table>
+        <tr><th>type</th><th>说明</th><th>示例</th></tr>
+        <tr><td>feat</td><td>新功能</td><td><code>feat(ledger): add transfer pairing</code></td></tr>
+        <tr><td>fix</td><td>修复 bug</td><td><code>fix(budget): 修复月底预算计算错误</code></tr>
+        <tr><td>docs</td><td>文档</td><td><code>docs(readme): 更新部署说明</code></td></tr>
+        <tr><td>refactor</td><td>重构（不改变行为）</td><td><code>refactor(repo): 拆分 TransactionRepository</code></td></tr>
+        <tr><td>perf</td><td>性能优化</td><td><code>perf(query): 添加 transaction 复合索引</code></td></tr>
+        <tr><td>test</td><td>测试</td><td><code>test(audit): 添加金额异常测试用例</code></td></tr>
+        <tr><td>chore</td><td>构建/工具/依赖</td><td><code>chore(deps): 升级 drift 到 2.21</code></td></tr>
+        <tr><td>style</td><td>代码格式（不影响逻辑）</td><td><code>style: 统一 import 排序</code></td></tr>
+      </table>
+
+      <h3>38.3 提交粒度</h3>
+      <ul>
+        <li>每次提交对应一个原子改动</li>
+        <li>提交前确保 <code>flutter analyze</code> 和 <code>flutter test</code> 通过</li>
+        <li>提交信息不超过 72 字符（subject）</li>
+        <li>用中文写 body（根据全局 CLAUDE.md）</li>
+      </ul>
+
+      <h3>38.4 版本号规范（SemVer）</h3>
+      <pre><code>v&lt;major&gt;.&lt;minor&gt;.&lt;patch&gt;
+
+major: 不兼容的架构变更
+minor: 向后兼容的新功能
+patch: 向后兼容的 bug 修复
+
+预发布：v1.0.0-rc.1, v1.0.0-beta.2</code></pre>
+
+      <table>
+        <tr><th>版本</th><th>范围</th><th>关键变化</th></tr>
+        <tr><td>v1.0.0</td><td>MVP 上线</td><td>P0 全功能</td></tr>
+        <tr><td>v1.1.0</td><td>增强版</td><td>OCR + Siri + RPG + AI 模型管理</td></tr>
+        <tr><td>v1.2.0</td><td>持续优化</td><td>性能、调优、bug 修复</td></tr>
+        <tr><td>v2.0.0</td><td>架构升级</td><td>云同步、多账本、深度 AI</td></tr>
+      </table>
+
+      <h3>38.5 Tag 规范</h3>
+      <pre><code>git tag -a v1.0.0 -m "v1.0.0 MVP 上线"
+git push origin v1.0.0</code></pre>
+
+      <h3>38.6 提交前必跑</h3>
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 必须执行</div>
+        <ol>
+          <li><code>flutter analyze</code> — 0 错误 0 警告</li>
+          <li><code>flutter test</code> — 全部通过</li>
+          <li><code>dart run build_runner build</code> — Drift / Freezed 生成</li>
+          <li>手动 Smoke Test：启动 App + 记一笔</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 6.39 状态管理 ============ -->
+    <section id="p6-39">
+      <h2><span class="num">39</span>状态管理（Riverpod）</h2>
+
+      <h3>39.1 Provider 选型</h3>
+      <table>
+        <tr><th>Provider 类型</th><th>用途</th><th>示例</th></tr>
+        <tr><td>Provider</td><td>只读派生值、Service</td><td><code>auditServiceProvider</code></td></tr>
+        <tr><td>StateProvider</td><td>简单原子状态</td><td><code>selectedBookIdProvider</code></td></tr>
+        <tr><td>FutureProvider</td><td>一次性异步数据</td><td><code>monthlySummaryProvider</code></td></tr>
+        <tr><td>StreamProvider</td><td>持续流式数据</td><td><code>recentTransactionsProvider</code></td></tr>
+        <tr><td>NotifierProvider</td><td>可变状态 + 方法</td><td><code>recordSheetNotifierProvider</code></td></tr>
+        <tr><td>AsyncNotifierProvider</td><td>异步初始化 + 状态</td><td><code>transactionsNotifierProvider</code></td></tr>
+      </table>
+
+      <h3>39.2 文件组织</h3>
+      <pre><code>// features/ledger/application/transactions_provider.dart
+
+// 1. 状态类
+class TransactionsState {
+  final List&lt;Transaction&gt; items;
+  final bool isLoading;
+  final String? error;
+  const TransactionsState({...});
+}
+
+// 2. Notifier
+class TransactionsNotifier extends AsyncNotifier&lt;TransactionsState&gt; {
+  @override
+  Future&lt;TransactionsState&gt; build() async {
+    // 初始化
+  }
+
+  Future&lt;void&gt; add(Transaction tx) async { ... }
+  Future&lt;void&gt; update(Transaction tx) async { ... }
+  Future&lt;void&gt; remove(int id) async { ... }
+}
+
+// 3. Provider 导出
+final transactionsNotifierProvider =
+    AsyncNotifierProvider&lt;TransactionsNotifier, TransactionsState&gt;(
+  TransactionsNotifier.new,
+);
+
+// 4. 派生 Provider
+final currentMonthExpenseProvider = Provider&lt;AsyncValue&lt;double&gt;&gt;((ref) {
+  return ref.watch(transactionsNotifierProvider).whenData(
+    (state) =&gt; state.items
+        .where((t) =&gt; t.type == 'expense')
+        .fold(0.0, (sum, t) =&gt; sum + t.amount),
+  );
+});</code></pre>
+
+      <h3>39.3 命名约定</h3>
+      <table>
+        <tr><th>类型</th><th>命名</th><th>示例</th></tr>
+        <tr><td>Provider 变量</td><td>xxxProvider</td><td><code>auditServiceProvider</code></td></tr>
+        <tr><td>Notifier 类</td><td>XxxNotifier</td><td><code>TransactionsNotifier</code></td></tr>
+        <tr><td>State 类</td><td>XxxState</td><td><code>TransactionsState</code></td></tr>
+      </table>
+
+      <h3>39.4 全局 vs 局部</h3>
+      <table>
+        <tr><th>范围</th><th>放哪里</th><th>例子</th></tr>
+        <tr><td>跨 feature</td><td>顶层 <code>lib/providers/</code></td><td><code>currentBookIdProvider</code>, <code>aiServiceProvider</code></td></tr>
+        <tr><td>单 feature</td><td><code>features/{feature}/application/</code></td><td><code>homeBudgetProvider</code></td></tr>
+        <tr><td>页面级</td><td>页面文件内私有</td><td>tab 选中、动画状态</td></tr>
+      </table>
+
+      <h3>39.5 表单状态</h3>
+      <p>使用 <code>flutter_form_builder</code> + <code>form_builder_validators</code>。</p>
+      <pre><code>// 记账表单
+final recordFormKey = GlobalKey&lt;FormBuilderState&gt;();
+FBU&lt;double&gt; amount = FormBuilderField&lt;double&gt;(...);
+FBU&lt;Category&gt; category = FormBuilderField&lt;Category&gt;(...);</code></pre>
+
+      <h3>39.6 反模式（禁止）</h3>
+      <div class="callout callout-danger">
+        <ul>
+          <li>❌ 直接在 UI 中调用 Repository（必须经过 Notifier）</li>
+          <li>❌ Provider 嵌套太深（最多 3 层 ref.watch）</li>
+          <li>❌ 巨型 Notifier（一个 Notifier 只管一个 State）</li>
+          <li>❌ 在 Notifier 中持有 BuildContext</li>
+          <li>❌ 跨 feature 直接 watch 对方 Provider（用 callback / Event）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 6.40 错误处理 ============ -->
+    <section id="p6-40">
+      <h2><span class="num">40</span>错误处理</h2>
+
+      <h3>40.1 异常分层</h3>
+      <pre><code>lib/core/errors/
+├── exceptions.dart        # 底层异常
+│   ├── DatabaseException
+│   ├── NetworkException
+│   ├── OcrException
+│   ├── LlmException
+│   └── PermissionException
+├── failures.dart          # 业务失败（用户可恢复）
+│   ├── ValidationFailure
+│   ├── NotFoundFailure
+│   ├── ConflictFailure
+│   └── BudgetExceededFailure
+└── error_handler.dart     # 全局错误处理</code></pre>
+
+      <h3>40.2 异常 vs 失败</h3>
+      <table>
+        <tr><th>类型</th><th>何时用</th><th>示例</th></tr>
+        <tr><td>Exception（底层）</td><td>系统级错误，不期望发生</td><td>数据库连接失败、API 500</td></tr>
+        <tr><td>Failure（业务）</td><td>用户可恢复的预期失败</td><td>余额不足、预算超支</td></tr>
+      </table>
+
+      <h3>40.3 Repository 返回值规范</h3>
+      <pre><code>// 业务层用 Result&lt;T&gt;
+sealed class Result&lt;T&gt; {
+  const Result();
+}
+class Success&lt;T&gt; extends Result&lt;T&gt; {
+  final T data;
+  const Success(this.data);
+}
+class Failure&lt;T&gt; extends Result&lt;T&gt; {
+  final Failure failure;
+  const Failure(this.failure);
+}
+
+// Repository 方法
+Future&lt;Result&lt;Transaction&gt;&gt; add(Transaction tx) async {
+  try {
+    final id = await _dao.insert(tx);
+    return Success(tx.copyWith(id: id));
+  } on DatabaseException catch (e) {
+    return Failure(DatabaseFailure(e.message));
+  }
+}
+
+// UI 层使用
+final result = await ref.read(transactionsProvider.notifier).add(tx);
+result.when(
+  success: (tx) =&gt; showSuccess('已记录'),
+  failure: (e) =&gt; showError(e.userMessage),
+);</code></pre>
+
+      <h3>40.4 用户友好提示映射</h3>
+      <table>
+        <tr><th>内部错误</th><th>用户提示</th></tr>
+        <tr><td>DatabaseException</td><td>"保存失败，请重试"</td></tr>
+        <tr><td>NetworkException</td><td>"网络连接失败，已切换离线模式"</td></tr>
+        <tr><td>OcrException</td><td>"截图识别失败，请手动输入"</td></tr>
+        <tr><td>LlmException.timeout</td><td>"攒攒响应超时，已切换本地模式"</td></tr>
+        <tr><td>LlmException.apiKey</td><td>"AI 密钥无效，请去设置检查"</td></tr>
+        <tr><td>PermissionException</td><td>"需要权限才能使用此功能，去设置"</td></tr>
+        <tr><td>ValidationFailure.negative</td><td>"金额必须大于 0"</td></tr>
+        <tr><td>BudgetExceededFailure</td><td>"本月预算已超支 ¥XX"</td></tr>
+      </table>
+
+      <h3>40.5 日志规范</h3>
+      <pre><code>// 使用 logger 包
+final _log = Logger('TransactionRepository');
+
+try {
+  await _dao.insert(tx);
+} catch (e, st) {
+  _log.e('Failed to insert transaction', error: e, stackTrace: st);
+  rethrow;
+}</code></pre>
+
+      <table>
+        <tr><th>级别</th><th>使用场景</th></tr>
+        <tr><td>ERROR</td><td>需要立即关注的错误</td></tr>
+        <tr><td>WARN</td><td>可恢复的异常</td></tr>
+        <tr><td>INFO</td><td>关键业务流程节点</td></tr>
+        <tr><td>DEBUG</td><td>详细调试信息（仅 debug 模式）</td></tr>
+        <tr><td>TRACE</td><td>最详细的跟踪（仅 debug 模式）</td></tr>
+      </table>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 日志安全</div>
+        <p><strong>禁止记录</strong>：API Key、用户密码、完整银行卡号、身份证号、详细金额（按场景）。</p>
+        <p>AI 调用日志可记录脱敏后的金额区间（如"30-50元"），不记录原始金额。</p>
+      </div>
+
+      <h3>40.6 离线降级</h3>
+      <table>
+        <tr><th>能力</th><th>离线表现</th></tr>
+        <tr><td>手动记账</td><td>✅ 正常</td></tr>
+        <tr><td>本地规则分类</td><td>✅ 正常</td></tr>
+        <tr><td>异常检测</td><td>✅ 正常</td></tr>
+        <tr><td>OCR 识别</td><td>✅ 正常（本地 Vision）</td></tr>
+        <tr><td>云端 LLM</td><td>❌ 走固定台词 + 标"离线"</td></tr>
+        <tr><td>AI 月度报告</td><td>❌ 显示"联网后生成"</td></tr>
+        <tr><td>云同步（v2.0）</td><td>❌ 排队等待</td></tr>
+      </table>
+
+      <h3>40.7 全局错误兜底</h3>
+      <pre><code>// main.dart
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    // ...
+    runApp(const ProviderScope(child: App()));
+  }, (error, stack) {
+    Logger('Global').e('Uncaught error', error: error, stackTrace: stack);
+    // 写本地错误日志
+  });
+
+  // Flutter 框架错误
+  FlutterError.onError = (details) {
+    Logger('Flutter').e(details.exceptionAsString(), stackTrace: details.stack);
+  };
+}</code></pre>
+    </section>
+
+    <div class="part-divider">▎ 第七部分 · 测试方案（6 章）▎</div>
+
+    <!-- ============ 7.41 单元测试 ============ -->
+    <section id="p7-41">
+      <h2><span class="num">41</span>单元测试</h2>
+
+      <h3>41.1 测试框架</h3>
+      <table>
+        <tr><th>工具</th><th>用途</th></tr>
+        <tr><td><code>flutter_test</code></td><td>官方测试框架（tester）</td></tr>
+        <tr><td><code>mocktail</code></td><td>Mock 库（无代码生成）</td></tr>
+        <tr><td><code>fake_async</code></td><td>时间相关测试</td></tr>
+        <tr><td><code>coverage</code></td><td>覆盖率统计</td></tr>
+      </table>
+
+      <h3>41.2 覆盖率目标</h3>
+      <table>
+        <tr><th>模块</th><th>目标覆盖率</th></tr>
+        <tr><td>Domain（实体、值对象）</td><td>100%</td></tr>
+        <tr><td>核心服务（Audit / RPG / Budget）</td><td>100%</td></tr>
+        <tr><td>Repository</td><td>≥ 90%</td></tr>
+        <tr><td>DataSource / DAO</td><td>≥ 85%</td></tr>
+        <tr><td>StateNotifier</td><td>≥ 80%</td></tr>
+        <tr><td>UI Widget</td><td>≥ 60%（关键组件 100%）</td></tr>
+        <tr><td>整体</td><td>≥ 80%</td></tr>
+      </table>
+
+      <h3>41.3 AAA 测试结构</h3>
+      <pre><code>test('记账后本月支出增加', () async {
+  // Arrange（准备）
+  final container = ProviderContainer();
+  final notifier = container.read(transactionsProvider.notifier);
+  await notifier.loadForMonth(2026, 7);
+  final before = container.read(monthlyExpenseProvider).value;
+
+  // Act（执行）
+  await notifier.add(Transaction(
+    amount: -100,
+    type: 'expense',
+    categoryId: 1,
+    accountId: 1,
+    occurredAt: DateTime.now().millisecondsSinceEpoch,
+  ));
+
+  // Assert（断言）
+  final after = container.read(monthlyExpenseProvider).value;
+  expect(after, before! + 100);
+});</code></pre>
+
+      <h3>41.4 关键测试用例（Audit）</h3>
+      <table>
+        <tr><th>测试项</th><th>场景</th><th>预期</th></tr>
+        <tr><td>金额异常</td><td>日均 ¥30，本笔 ¥899</td><td>触发红色警告</td></tr>
+        <tr><td>时间异常</td><td>凌晨 2 点 + 餐饮</td><td>触发黄色提示</td></tr>
+        <tr><td>预算异常</td><td>餐饮预算用 85%</td><td>触发橙色提醒</td></tr>
+        <tr><td>重复检测</td><td>同账户同分类同金额 1h 内</td><td>询问是否重复</td></tr>
+        <tr><td>信用卡限额</td><td>额度用 92%</td><td>触发红色警告</td></tr>
+        <tr><td>正常记账</td><td>日均 ¥30，本笔 ¥35</td><td>无警告</td></tr>
+      </table>
+
+      <h3>41.5 关键测试用例（RpgEngine）</h3>
+      <table>
+        <tr><th>测试项</th><th>场景</th><th>预期</th></tr>
+        <tr><td>EXP 累加</td><td>手动记账 1 笔</td><td>EXP +5</td></tr>
+        <tr><td>升级判定</td><td>累积 500 EXP</td><td>升到 Lv.2</td></tr>
+        <tr><td>形态变化</td><td>升级时</td><td>character_form 同步更新</td></tr>
+        <tr><td>连击奖励</td><td>连续 7 天</td><td>额外 +50 EXP</td></tr>
+        <tr><td>成就解锁</td><td>完成条件</td><td>写入 achievement 表</td></tr>
+        <tr><td>主任务进度</td><td>累计结余 ¥5000</td><td>万元户进度 50%</td></tr>
+      </table>
+
+      <h3>41.6 关键测试用例（BudgetEngine）</h3>
+      <table>
+        <tr><th>测试项</th><th>场景</th><th>预期</th></tr>
+        <tr><td>月预算计算</td><td>总预算 ¥5000，本月已用 ¥3000</td><td>剩余 ¥2000</td></tr>
+        <tr><td>日预算</td><td>剩余 ¥2000，剩余 10 天</td><td>每日可用 ¥200</td></tr>
+        <tr><td>分类预算</td><td>餐饮分类预算 ¥1000，已用 ¥850</td><td>剩余 ¥150</td></tr>
+        <tr><td>预算超支</td><td>已用 105%</td><td>超支 ¥X</td></tr>
+        <tr><td>跨月重置</td><td>新月份开始</td><td>已用归 0</td></tr>
+      </table>
+
+      <h3>41.7 运行命令</h3>
+      <pre><code># 全部测试
+flutter test
+
+# 覆盖率
+flutter test --coverage
+genhtml coverage/lcov.info -o coverage/html
+
+# 单个文件
+flutter test test/domain/audit_service_test.dart
+
+# 监视模式
+flutter test --watch</code></pre>
+    </section>
+
+    <!-- ============ 7.42 集成测试 ============ -->
+    <section id="p7-42">
+      <h2><span class="num">42</span>集成测试</h2>
+
+      <h3>42.1 数据库集成测试</h3>
+      <p>使用内存数据库 <code>NativeDatabase.memory()</code>，每个测试独立数据库。</p>
+      <pre><code>test('TransactionRepository CRUD', () async {
+  // Arrange
+  final db = AppDatabase(NativeDatabase.memory());
+  final repo = TransactionRepositoryImpl(db.transactionDao);
+
+  // Act & Assert
+  final tx = Transaction(
+    bookId: 1, accountId: 1, categoryId: 1,
+    amount: -100, type: 'expense',
+    occurredAt: DateTime.now().millisecondsSinceEpoch,
+  );
+  final id = await repo.add(tx);
+  expect(id, greaterThan(0));
+
+  final fetched = await repo.getById(id);
+  expect(fetched.amount, -100);
+
+  await db.close();
+});</code></pre>
+
+      <h3>42.2 迁移测试</h3>
+      <pre><code>test('v1 → v2 迁移保留数据', () async {
+  // 1. 用 v1 schema 初始化
+  // 2. 插入测试数据
+  // 3. 升级到 v2 schema
+  // 4. 验证数据完整
+  final oldDb = AppDatabase.forVersion(1);
+  await oldDb.transactionDao.insert(testTx);
+  await oldDb.close();
+
+  // 触发迁移
+  final newDb = AppDatabase.forVersion(2);
+  final result = await newDb.transactionDao.getById(1);
+  expect(result, isNotNull);
+  expect(result.amount, testTx.amount);
+});</code></pre>
+
+      <h3>42.3 Service 集成测试</h3>
+      <table>
+        <tr><th>服务</th><th>测试项</th></tr>
+        <tr><td>AuditService</td><td>实际数据库 + 真实数据下的异常检测</td></tr>
+        <tr><td>BudgetEngine</td><td>真实数据下的预算计算</td></tr>
+        <tr><td>InsightsEngine</td><td>数据聚合准确性</td></tr>
+        <tr><td>SnapshotService</td><td>创建/恢复快照的完整性</td></tr>
+        <tr><td>CSVExporter</td><td>导出格式与示例数据匹配</td></tr>
+      </table>
+
+      <h3>42.4 数据库测试隔离</h3>
+      <ul>
+        <li>每个测试文件独立数据库（<code>setUp</code> 创建，<code>tearDown</code> 关闭）</li>
+        <li>不使用文件数据库（避免 IO 慢 + 锁问题）</li>
+        <li>不清理表数据（创建新库更可靠）</li>
+      </ul>
+    </section>
+
+    <!-- ============ 7.43 E2E 测试 ============ -->
+    <section id="p7-43">
+      <h2><span class="num">43</span>E2E 测试</h2>
+
+      <h3>43.1 测试工具</h3>
+      <p>使用 <code>integration_test</code>（Flutter 官方），跑在真机/模拟器。</p>
+
+      <h3>43.2 关键用户旅程</h3>
+
+      <h4>旅程 1：首次启动 → 首次记账</h4>
+      <pre><code>1. 启动 App
+2. 验证欢迎页
+3. 点击"开始使用"
+4. 输入攒攒名字"攒攒"
+5. 选择分类模板"上班族"
+6. 添加账户"现金 ¥1000"
+7. 设置月预算 ¥3000
+8. 点击底部"+"记一笔
+9. 选"餐饮"分类
+10. 输入 ¥35
+11. 选"现金"账户
+12. 点击"保存"
+13. 验证主页显示该笔交易
+14. 验证攒攒弹出鼓励话术</code></pre>
+
+      <h4>旅程 2：信用卡还款</h4>
+      <pre><code>1. 进入"信用卡"Tab
+2. 添加一张信用卡（招行，账单日5，还款日25，额度50000）
+3. 主页或信用卡页点"立即还款"
+4. 选"全额还款" ¥2350
+5. 选还款账户"兴业储蓄卡"
+6. 确认
+7. 验证创建了一笔"还款"转账
+8. 验证招行余额 -2350，兴业 -2350
+9. 验证攒攒播放"还款完成"动画</code></pre>
+
+      <h4>旅程 3：异常检测触发</h4>
+      <pre><code>1. 记一笔 ¥899 的餐饮（用户日均 ¥30）
+2. 验证审计官弹出红色警告
+3. 验证攒攒说"这笔 ¥899 是你近期最大单笔，确认下吗？"
+4. 用户选择"确认"
+5. 验证交易入库
+6. 验证主页显示该笔</code></pre>
+
+      <h4>旅程 4：OCR 记账</h4>
+      <pre><code>1. 在 iOS 相册选择一张微信支付截图
+2. 触发 Shortcuts 自动化
+3. 验证 App 自动弹出
+4. 验证 OCR 识别出金额 ¥38
+5. 验证显示"麦当劳"商户
+6. 用户修改分类为"餐饮"
+7. 点击"确认"
+8. 验证入库</code></pre>
+
+      <h4>旅程 5：Siri 记账</h4>
+      <pre><code>1. "Hey Siri，记录支出 35 块"
+2. 验证 App 启动或弹窗
+3. 验证显示"已记录 ¥35"
+4. 验证默认分类"餐饮"</code></pre>
+
+      <h3>43.3 回归测试 Checklist</h3>
+      <ul class="checklist">
+        <li>手动记账正常</li>
+        <li>转账配对正确</li>
+        <li>退款快捷操作</li>
+        <li>信用卡还款</li>
+        <li>预算计算</li>
+        <li>动态日预算</li>
+        <li>分类图标颜色自定义</li>
+        <li>标签添加删除</li>
+        <li>定时规则执行</li>
+        <li>数据快照创建</li>
+        <li>快照恢复</li>
+        <li>CSV 导出</li>
+        <li>CSV 导入</li>
+        <li>PDF 月报生成</li>
+        <li>AI 攒攒对话</li>
+        <li>异常检测 5 大规则</li>
+        <li>升级动画</li>
+        <li>成就解锁</li>
+        <li>暗色 / 亮色切换</li>
+      </ul>
+    </section>
+
+    <!-- ============ 7.44 性能测试 ============ -->
+    <section id="p7-44">
+      <h2><span class="num">44</span>性能测试</h2>
+
+      <h3>44.1 启动性能</h3>
+      <table>
+        <tr><th>指标</th><th>目标</th><th>测试方法</th></tr>
+        <tr><td>冷启动（首屏可见）</td><td>≤ 2.0s</td><td>集成测试启动计时</td></tr>
+        <tr><td>热启动</td><td>≤ 0.5s</td><td>同上</td></tr>
+        <tr><td>主页数据加载</td><td>≤ 1.0s</td><td>API 响应时间</td></tr>
+      </table>
+
+      <h3>44.2 列表性能</h3>
+      <table>
+        <tr><th>场景</th><th>目标</th></tr>
+        <tr><td>1000 条交易列表滚动</td><td>≥ 55 FPS</td></tr>
+        <tr><td>10000 条交易列表滚动</td><td>≥ 50 FPS</td></tr>
+        <tr><td>分页加载（每页 50）</td><td>≤ 200ms</td></tr>
+      </table>
+
+      <p>实现：使用 <code>ListView.builder</code> + lazy loading，绝不一次性构建所有 cell。</p>
+
+      <h3>44.3 数据库性能</h3>
+      <table>
+        <tr><th>查询</th><th>数据量</th><th>目标</th></tr>
+        <tr><td>单月交易查询</td><td>10 万条</td><td>≤ 100ms</td></tr>
+        <tr><td>分类汇总</td><td>10 万条</td><td>≤ 200ms</td></tr>
+        <tr><td>预算执行查询</td><td>10 万条</td><td>≤ 150ms</td></tr>
+        <tr><td>异常检测扫描</td><td>1 万条</td><td>≤ 50ms</td></tr>
+        <tr><td>全文搜索（备注）</td><td>10 万条</td><td>≤ 500ms</td></tr>
+      </table>
+
+      <h3>44.4 OCR / LLM 性能</h3>
+      <table>
+        <tr><th>能力</th><th>目标</th></tr>
+        <tr><td>OCR 单张截图</td><td>≤ 3s</td></tr>
+        <tr><td>LLM 简单解析</td><td>≤ 3s (P95)</td></tr>
+        <tr><td>LLM 复杂对话</td><td>≤ 5s (P95)</td></tr>
+        <tr><td>LLM 月度报告</td><td>≤ 15s</td></tr>
+      </table>
+
+      <h3>44.5 内存</h3>
+      <table>
+        <tr><th>场景</th><th>目标</th></tr>
+        <tr><td>空闲内存</td><td>≤ 80MB</td></tr>
+        <tr><td>加载 1 万条交易</td><td>≤ 200MB</td></tr>
+        <tr><td>OCR 处理中</td><td>≤ 250MB（图片解码峰值）</td></tr>
+      </table>
+
+      <h3>44.6 安装包</h3>
+      <table>
+        <tr><th>类型</th><th>目标</th></tr>
+        <tr><td>iOS .ipa</td><td>≤ 60MB</td></tr>
+        <tr><td>App Store 必需资源</td><td>优化图片、使用 WebP</td></tr>
+        <tr><td>Lazy 加载</td><td>罕见功能懒加载</td></tr>
+      </table>
+
+      <h3>44.7 性能监控</h3>
+      <pre><code>// 使用 Flutter Performance Overlay（debug 模式）
+// 使用 Timeline API
+final timeline = Timeline.startSync('LoadTransactions');
+try {
+  await repo.getAllInMonth(...);
+} finally {
+  timeline.finish();
+}
+
+// 上报到本地日志
+debugPrint('LoadTransactions took ${stopwatch.elapsedMilliseconds}ms');</code></pre>
+    </section>
+
+    <!-- ============ 7.45 兼容性测试 ============ -->
+    <section id="p7-45">
+      <h2><span class="num">45</span>兼容性测试</h2>
+
+      <h3>45.1 iOS 版本</h3>
+      <table>
+        <tr><th>版本</th><th>测试深度</th><th>设备</th></tr>
+        <tr><td>iOS 16.0</td><td>完整回归</td><td>iPhone SE (3rd)</td></tr>
+        <tr><td>iOS 17.0</td><td>完整回归</td><td>iPhone 14</td></tr>
+        <tr><td>iOS 18.0</td><td>完整回归</td><td>iPhone 15</td></tr>
+      </table>
+
+      <h3>45.2 设备</h3>
+      <table>
+        <tr><th>设备</th><th>屏幕</th><th>测试项</th></tr>
+        <tr><td>iPhone SE (3rd)</td><td>4.7"</td><td>小屏布局</td></tr>
+        <tr><td>iPhone 14</td><td>6.1"</td><td>标准布局</td></tr>
+        <tr><td>iPhone 15 Pro Max</td><td>6.7"</td><td>大屏布局</td></tr>
+        <tr><td>iPhone 15 Pro</td><td>6.1" ProMotion</td><td>120Hz 滚动测试</td></tr>
+      </table>
+
+      <h3>45.3 暗色 / 亮色</h3>
+      <ul class="checklist">
+        <li>所有页面在暗色下无对比度问题</li>
+        <li>所有页面在亮色下文字清晰</li>
+        <li>图表在两种主题下都可读</li>
+        <li>用户切换主题立即生效</li>
+        <li>跟随系统设置自动切换</li>
+      </ul>
+
+      <h3>45.4 输入法</h3>
+      <ul class="checklist">
+        <li>中文拼音输入</li>
+        <li>中文五笔输入</li>
+        <li>英文输入</li>
+        <li>数字键盘</li>
+        <li>表情键盘</li>
+        <li>语音输入（Siri / 系统语音）</li>
+      </ul>
+
+      <h3>45.5 国际化</h3>
+      <p>虽然只支持简体中文，但所有字符串必须走 l10n：</p>
+      <pre><code>// l10n.yaml
+arb-dir: lib/l10n
+template-arb-file: app_zh.arb
+
+// lib/l10n/app_zh.arb
+{
+  "homeTitle": "主页",
+  "@homeTitle": {
+    "description": "主页标题"
+  }
+}</code></pre>
+
+      <h3>45.6 权限</h3>
+      <table>
+        <tr><th>权限</th><th>用户拒绝时表现</th></tr>
+        <tr><td>相机（OCR）</td><td>提示去设置开启，禁用 OCR 功能</td></tr>
+        <tr><td>相册（OCR）</td><td>同上</td></tr>
+        <tr><td>通知（还款提醒）</td><td>提示去设置，本地通知不显示</td></tr>
+        <tr><td>Siri</td><td>提示去设置，禁用 Siri Shortcuts</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 7.46 AI 准确性测试 ============ -->
+    <section id="p7-46">
+      <h2><span class="num">46</span>AI 准确性测试</h2>
+
+      <h3>46.1 OCR 准确率</h3>
+      <table>
+        <tr><th>测试集</th><th>样本数</th><th>目标准确率</th></tr>
+        <tr><td>微信支付截图</td><td>100 张</td><td>≥ 95%</td></tr>
+        <tr><td>支付宝账单截图</td><td>100 张</td><td>≥ 95%</td></tr>
+        <tr><td>银行短信截图</td><td>50 张</td><td>≥ 90%</td></tr>
+        <tr><td>信用卡账单截图</td><td>50 张</td><td>≥ 90%</td></tr>
+      </table>
+
+      <h4>准确率定义</h4>
+      <p>准确率 = 金额、商户、时间三字段全部正确 / 总数</p>
+
+      <h3>46.2 LLM 解析准确率</h3>
+      <table>
+        <tr><th>测试项</th><th>样本</th><th>目标</th></tr>
+        <tr><td>单笔自然语言</td><td>"中午吃面 35"</td><td>金额 35, 分类 餐饮, ≥95%</td></tr>
+        <tr><td>多笔自然语言</td><td>"中午吃面 35，下午打车 28"</td><td>正确拆分 2 笔，≥85%</td></tr>
+        <tr><td>复杂自然语言</td><td>"中午和同事吃日料 AA 我出 190"</td><td>正确解析, ≥80%</td></tr>
+        <tr><td>时间表达</td><td>"昨天"、"上周三"、"3 天前"</td><td>≥ 90%</td></tr>
+      </table>
+
+      <h3>46.3 异常检测召回率</h3>
+      <table>
+        <tr><th>规则</th><th>测试集</th><th>目标</th></tr>
+        <tr><td>金额异常</td><td>混入 10% 异常数据</td><td>召回率 ≥ 90%, 误报率 ≤ 10%</td></tr>
+        <tr><td>时间异常</td><td>混入 5% 凌晨消费</td><td>召回率 ≥ 95%</td></tr>
+        <tr><td>预算异常</td><td>接近预算上限</td><td>告警触发率 100%</td></tr>
+        <tr><td>重复检测</td><td>人为制造的重复</td><td>召回率 ≥ 90%</td></tr>
+      </table>
+
+      <h3>46.4 测试数据集准备</h3>
+      <pre><code>test/fixtures/
+├── ocr/
+│   ├── wechat/                   # 100 张微信支付截图
+│   │   ├── 01.png
+│   │   ├── 02.png
+│   │   └── ...
+│   ├── alipay/                   # 100 张支付宝截图
+│   ├── bank_sms/                 # 50 张银行短信
+│   └── credit_card/              # 50 张信用卡账单
+├── ocr_ground_truth.json         # 每张图对应的正确答案
+│   {
+│     "wechat/01.png": {
+│       "amount": 38.0,
+│       "merchant": "麦当劳",
+│       "time": "2026-07-14 12:30"
+│     }
+│   }
+├── nl_record/
+│   ├── inputs.txt                # 200 条自然语言输入
+│   └── expected.json             # 期望解析结果
+└── anomaly/
+    ├── normal_transactions.json  # 1000 条正常
+    └── anomaly_transactions.json # 100 条异常</code></pre>
+
+      <h3>46.5 攒攒台词质量</h3>
+      <p>人工评估（用户本人）：</p>
+      <ul class="checklist">
+        <li>鼓励话术不浮夸</li>
+        <li>警告话术不啰嗦</li>
+        <li>调侃话术不冒犯</li>
+        <li>升级话术有惊喜感</li>
+        <li>还款话术有成就感</li>
+      </ul>
+
+      <h3>46.6 持续评估</h3>
+      <p>每个版本发布前必须跑：</p>
+      <ol>
+        <li>OCR 准确率套件</li>
+        <li>NLP 解析套件</li>
+        <li>异常检测套件</li>
+        <li>完整 E2E 旅程</li>
+      </ol>
+      <p>任意一项低于目标，必须修复后再发版。</p>
+    </section>
+
+    <div class="part-divider">▎ 第八部分 · 上线运维（6 章）▎</div>
+
+    <!-- ============ 8.47 GitHub Actions 流水线 ============ -->
+    <section id="p8-47">
+      <h2><span class="num">47</span>GitHub Actions 流水线</h2>
+
+      <h3>47.1 完整工作流</h3>
+      <pre><code># .github/workflows/ios-build.yml
+name: iOS Build
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:           # 手动触发
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+
+      - name: Cache pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            build/
+            .dart_tool/
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install Apple Certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # 创建临时 keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          # 导入证书
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode &gt; cert.p12
+          security import cert.p12 -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -T /usr/bin/codesign
+          # 设置搜索路径
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
+
+      - name: Install Provisioning Profile
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode &gt; profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build iOS (Release)
+        run: |
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-app
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: warn
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security delete-keychain $KEYCHAIN_PATH || true</code></pre>
+
+      <h3>47.2 必需 Secrets</h3>
+      <table>
+        <tr><th>Secret</th><th>说明</th><th>获取方式</th></tr>
+        <tr><td>BUILD_CERTIFICATE_BASE64</td><td>P12 证书 base64</td><td>导出证书并编码</td></tr>
+        <tr><td>P12_PASSWORD</td><td>P12 密码</td><td>导出时设置</td></tr>
+        <tr><td>KEYCHAIN_PASSWORD</td><td>临时 keychain 密码</td><td>任意强密码</td></tr>
+        <tr><td>PROVISIONING_PROFILE_BASE64</td><td>描述文件 base64</td><td>下载并编码</td></tr>
+        <tr><td>APPLE_ID</td><td>Apple ID 邮箱</td><td>注册时的邮箱</td></tr>
+        <tr><td>APPLE_ID_PASSWORD</td><td>App 专用密码</td><td>appleid.apple.com 生成</td></tr>
+      </table>
+
+      <h3>47.3 缓存策略</h3>
+      <ul>
+        <li>pub 缓存：基于 <code>pubspec.lock</code> hash</li>
+        <li>build 目录：跨 job 共享</li>
+        <li>.dart_tool/：build_runner 产物</li>
+        <li>Pods/：CocoaPods 缓存</li>
+      </ul>
+
+      <h3>47.4 触发策略</h3>
+      <table>
+        <tr><th>事件</th><th>是否构建</th><th>产物</th></tr>
+        <tr><td>PR 打开 / 更新</td><td>✅ 是（验证用）</td><td>仅供检查</td></tr>
+        <tr><td>push 到 develop</td><td>✅ 是</td><td>开发版 .ipa</td></tr>
+        <tr><td>push 到 main</td><td>✅ 是</td><td>生产版 .ipa</td></tr>
+        <tr><td>tag v*</td><td>✅ 是 + 创建 Release</td><td>正式发布</td></tr>
+        <tr><td>手动触发</td><td>✅ 是</td><td>自选参数</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 8.48 AltStore 部署 ============ -->
+    <section id="p8-48">
+      <h2><span class="num">48</span>AltStore 部署流程</h2>
+
+      <h3>48.1 首次部署清单</h3>
+      <div class="callout callout-info">
+        <div class="callout-title">📋 准备清单</div>
+        <ul>
+          <li>☐ Apple ID（专用于侧载的二级 ID 更安全）</li>
+          <li>☐ App 专用密码（appleid.apple.com → App 专用密码）</li>
+          <li>☐ 旧电脑（macOS 或 Windows）+ 7×24 网络</li>
+          <li>☐ 安装 AltServer</li>
+          <li>☐ USB 数据线（首次配对用）</li>
+        </ul>
+      </div>
+
+      <h3>48.2 安装 AltServer</h3>
+      <h4>macOS</h4>
+      <pre><code>1. 下载 AltServer：https://altstore.io
+2. 解压并移动到 Applications
+3. 启动 AltServer
+4. 菜单栏出现 AltServer 图标</code></pre>
+
+      <h4>Windows</h4>
+      <pre><code>1. 下载 AltServer：https://altstore.io
+2. 安装 iTunes 和 iCloud（必须，从 Microsoft Store）
+3. 运行 AltServer.exe
+4. 系统托盘出现 AltServer 图标</code></pre>
+
+      <h3>48.3 在 iPhone 上安装 AltStore</h3>
+      <pre><code>1. iPhone 连接 Mac/Win USB
+2. 信任电脑（iPhone 弹窗）
+3. AltServer 菜单 → Install AltStore → 选择 iPhone
+4. 输入 Apple ID + 专用密码
+5. iPhone 上打开 AltStore App
+6. 首次打开会提示信任开发者证书
+7. 设置 → 通用 → VPN 与设备管理 → 信任证书</code></pre>
+
+      <h3>48.4 通过 AltStore 安装 .ipa</h3>
+      <h4>方式 A：AltStore 直接下载</h4>
+      <pre><code>1. 将 .ipa 上传到 AltStore 支持的网盘
+2. iPhone 上打开 Safari，访问 .ipa 链接
+3. 用 AltStore 打开
+4. AltStore 自动安装</code></pre>
+
+      <h4>方式 B：AltServer 直接安装</h4>
+      <pre><code>1. .ipa 放到 Mac/Win 本地
+2. AltServer → Sideload .ipa → 选择文件
+3. 输入 Apple ID + 密码
+4. AltServer 通过 USB 安装到 iPhone</code></pre>
+
+      <h4>方式 C（推荐）：WiFi 无线安装</h4>
+      <pre><code>1. Mac/Win 和 iPhone 同一 WiFi
+2. AltServer 自动发现 iPhone
+3. iPhone 上 AltStore → My Apps → +
+4. 选择 .ipa → 安装</code></pre>
+
+      <h3>48.5 续签机制</h3>
+      <table>
+        <tr><th>情况</th><th>处理</th></tr>
+        <tr><td>Mac/Win 常开 + WiFi</td><td>✅ AltStore 后台自动续签，零操作</td></tr>
+        <tr><td>Mac/Win 关机</td><td>7 天后断签，需回家手动重连</td></tr>
+        <tr><td>出差 / 旅行</td><td>出发前确保已续签；预留 iPhone 数据网络</td></tr>
+        <tr><td>断签后</td><td>回家连 USB / WiFi 重新签</td></tr>
+      </table>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 关键依赖</div>
+        <p><strong>家里电脑必须能稳定运行</strong>。推荐：</p>
+        <ul>
+          <li>旧笔记本（i3/i5 + 4GB RAM 就够）</li>
+          <li>迷你主机（NUC、Mac Mini）</li>
+          <li>功耗 ≤ 30W，7×24 长期运行电费可忽略</li>
+        </ul>
+      </div>
+
+      <h3>48.6 多设备管理</h3>
+      <p>虽然只用一个 iPhone，但预留扩展能力：</p>
+      <table>
+        <tr><th>设备数</th><th>Apple ID 限制</th><th>建议</th></tr>
+        <tr><td>1 台</td><td>同时 3 个 App ID</td><td>用同一 Apple ID 即可</td></tr>
+        <tr><td>2-3 台</td><td>可能撞限制</td><td>用 2 个 Apple ID 轮换</td></tr>
+        <tr><td>≥ 4 台</td><td>几乎必撞</td><td>走企业证书或付费账号</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 8.49 版本发布流程 ============ -->
+    <section id="p8-49">
+      <h2><span class="num">49</span>版本发布流程</h2>
+
+      <h3>49.1 发布 Checklist</h3>
+      <ul class="checklist">
+        <li>所有 P0/P1 功能开发完成</li>
+        <li>单元测试覆盖率 ≥ 80%</li>
+        <li>E2E 测试全部通过</li>
+        <li>AI 准确性测试达标</li>
+        <li>性能测试达标（启动 / FPS / 查询）</li>
+        <li>兼容性测试通过（iOS 16/17/18）</li>
+        <li>CHANGELOG.md 更新</li>
+        <li>version 字段更新（pubspec.yaml）</li>
+        <li>build 号 +1</li>
+        <li>Git tag 创建</li>
+        <li>GitHub Actions 构建成功</li>
+        <li>真机 Smoke Test</li>
+        <li>截图归档</li>
+      </ul>
+
+      <h3>49.2 版本号管理</h3>
+      <pre><code># pubspec.yaml
+name: jizhang
+description: 审计官记账 App
+version: 1.0.0+1
+#        ^^^^ ^^^
+#        |    |
+#        |    build 号（iOS 用）
+#        版本号</code></pre>
+
+      <h3>49.3 CHANGELOG 规范</h3>
+      <pre><code># CHANGELOG.md
+
+## [1.0.0] - 2026-07-14
+
+### ✨ 新功能
+- 手动记账（5 秒 3 步）
+- 分类完全自定义 + 5 大模板
+- 多账户管理（现金/储蓄/信用卡/花呗/网贷/理财）
+- 信用卡管理 + 还款提醒
+- 预算管理 + 动态日预算
+- 5 大仪表盘（主/财务/AI/成长/信用卡）
+- 攒攒 RPG 系统（10 级 + 20 成就）
+- AI 模型管理（MiniMax-M3）
+- 异常检测（5 大规则）
+- 数据快照 + 版本回滚
+- CSV 导入导出
+- 本地 SQLCipher 加密
+- iOS 16+ 全支持
+
+### 🐛 修复
+- 无（首版）
+
+### ⚠️ 已知问题
+- 截图 OCR 仅支持中文账单
+- AI 离线时仅支持固定台词
+- 续签需 Mac/Win 常开</code></pre>
+
+      <h3>49.4 发布步骤</h3>
+      <pre><code># 1. 拉取最新代码
+git checkout main
+git pull origin main
+
+# 2. 更新版本号
+# 编辑 pubspec.yaml: version: 1.0.0+1 → 1.0.0+2
+
+# 3. 更新 CHANGELOG.md
+
+# 4. 提交
+git add pubspec.yaml CHANGELOG.md
+git commit -m "chore(release): v1.0.0"
+
+# 5. 打 tag
+git tag -a v1.0.0 -m "v1.0.0 MVP 上线"
+git push origin main --tags
+
+# 6. GitHub Actions 自动构建
+# → 等待 workflow 完成
+# → 下载 .ipa artifact
+
+# 7. 部署到 iPhone
+# → AltStore 导入 .ipa
+
+# 8. 验证
+# → 启动 App
+# → 检查版本号显示正确
+# → 检查升级前快照是否自动创建
+
+# 9. 发布 Release Notes
+# → GitHub Releases → Draft new release
+# → 选择 tag v1.0.0
+# → 粘贴 CHANGELOG 内容
+# → Publish</code></pre>
+
+      <h3>49.5 升级前自动备份</h3>
+      <p>App 启动时检测版本号：</p>
+      <pre><code>// main.dart
+void main() async {
+  // 1. 读取本地版本号
+  final localVer = await getLocalVersion();
+  // 2. 读取当前 app 版本
+  final currentVer = packageInfo.version;
+  // 3. 如果不一致，触发升级前快照
+  if (localVer != null &amp;&amp; localVer != currentVer) {
+    await snapshotService.createSnapshot(
+      triggerType: 'auto_upgrade',
+      version: currentVer,
+    );
+  }
+  // 4. 启动 App
+  runApp(...);
+  // 5. 保存新版本号
+  await saveLocalVersion(currentVer);
+}</code></pre>
+    </section>
+
+    <!-- ============ 8.50 监控与告警 ============ -->
+    <section id="p8-50">
+      <h2><span class="num">50</span>监控与告警</h2>
+
+      <h3>50.1 自用 App 监控策略</h3>
+      <p>自用 App 不上 Sentry / Firebase 等外部服务，本地监控即可：</p>
+      <ul>
+        <li>关键错误写入本地日志</li>
+        <li>AI 调用成本每日聚合（可查）</li>
+        <li>Crash 自动写入数据库（下次启动读取）</li>
+        <li>关键指标每周生成报告</li>
+      </ul>
+
+      <h3>50.2 关键监控指标</h3>
+      <table>
+        <tr><th>指标</th><th>采集</th><th>阈值</th><th>告警</th></tr>
+        <tr><td>App 启动成功率</td><td>main.dart 启动</td><td>≥ 99%</td><td>&lt; 95% 通知</td></tr>
+        <tr><td>记账保存成功率</td><td>Repository</td><td>≥ 99.9%</td><td>失败立即通知</td></tr>
+        <tr><td>OCR 成功率</td><td>OCR Service</td><td>≥ 90%</td><td>&lt; 80% 通知</td></tr>
+        <tr><td>AI 调用成功率</td><td>LLM Service</td><td>≥ 95%</td><td>&lt; 90% 通知</td></tr>
+        <tr><td>AI 每日成本</td><td>ai_daily_cost</td><td>&lt; ¥1</td><td>超 ¥0.8 通知</td></tr>
+        <tr><td>AI 每月成本</td><td>聚合</td><td>&lt; ¥30</td><td>超 ¥24 通知</td></tr>
+        <tr><td>数据库查询 P95</td><td>性能埋点</td><td>&lt; 200ms</td><td>超 500ms 记录</td></tr>
+        <tr><td>FPS（长列表）</td><td>Performance</td><td>≥ 55</td><td>&lt; 45 记录</td></tr>
+      </table>
+
+      <h3>50.3 本地错误日志</h3>
+      <pre><code>CREATE TABLE error_log (
+  id INTEGER PRIMARY KEY,
+  level TEXT,                    -- 'error'|'warn'|'fatal'
+  message TEXT,
+  stack_trace TEXT,
+  context_json TEXT,             -- 上下文（用户行为、设备信息）
+  occurred_at INTEGER NOT NULL,
+  is_read INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_error_time ON error_log(occurred_at DESC);</code></pre>
+
+      <h3>50.4 告警渠道</h3>
+      <p>自用 App 不用 Slack / 邮件，通过攒攒推送：</p>
+      <pre><code>// 攒攒紧急播报
+"主人，我发现一些问题：\n
+ • 昨天 AI 调用失败 12 次\n
+ • 本月成本已用 ¥28.5/¥30\n
+ • 数据库查询 3 次超过 1 秒\n
+要查看详情吗？"</code></pre>
+
+      <h3>50.5 攒攒周报</h3>
+      <p>每周日晚攒攒主动推送：</p>
+      <pre><code>"主人周末好 ~ 本周报告：
+
+📊 数据：记了 28 笔，总支出 ¥1234
+🎯 预算：餐饮超出 ¥89，其他正常
+🏆 成就：解锁【连续 7 天】
+⚠️ 异常：3 笔深夜餐饮，注意休息哦
+💰 AI 成本：¥0.32
+
+继续加油！✨"</code></pre>
+
+      <h3>50.6 性能监控代码</h3>
+      <pre><code>// 性能埋点工具
+class PerfMonitor {
+  static final _logs = &lt;PerfLog&gt;[];
+
+  static Future&lt;T&gt; measure&lt;T&gt;(
+    String name,
+    Future&lt;T&gt; Function() action, {
+    Map&lt;String, dynamic&gt;? metadata,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      stopwatch.stop();
+      if (stopwatch.elapsedMilliseconds &gt; 100) {
+        _logs.add(PerfLog(
+          name: name,
+          durationMs: stopwatch.elapsedMilliseconds,
+          metadata: metadata,
+          at: DateTime.now(),
+        ));
+      }
+    }
+  }
+}
+
+// 使用
+await PerfMonitor.measure(
+  'loadTransactions',
+  () =&gt; repo.getAllInMonth(...),
+);</code></pre>
+    </section>
+
+    <!-- ============ 8.51 用户验收 Checklist ============ -->
+    <section id="p8-51">
+      <h2><span class="num">51</span>用户验收 Checklist</h2>
+
+      <h3>51.1 核心记账功能</h3>
+      <ul class="checklist">
+        <li>手动记账 ≤ 5 秒完成（3 步）</li>
+        <li>分类图标选择流畅</li>
+        <li>数字键盘自动弹出</li>
+        <li>保存后振动 + 攒攒反馈</li>
+        <li>主页交易列表立即刷新</li>
+        <li>支持修改、删除交易</li>
+        <li>支持转账配对</li>
+        <li>支持退款快捷操作</li>
+      </ul>
+
+      <h3>51.2 分类 & 账户</h3>
+      <ul class="checklist">
+        <li>新增分类：图标 + 颜色 + 名称</li>
+        <li>二级分类支持</li>
+        <li>导入模板：上班族 / 家庭 / 极简 / 投资</li>
+        <li>新增账户：6 种类型可选</li>
+        <li>信用卡：账单日 + 还款日设置</li>
+        <li>网贷：剩余期数设置</li>
+        <li>理财账户：不计入净资产开关</li>
+      </ul>
+
+      <h3>51.3 预算 & 仪表盘</h3>
+      <ul class="checklist">
+        <li>总预算设置（每月/每周）</li>
+        <li>分类预算设置</li>
+        <li>动态日预算正确刷新</li>
+        <li>主仪表盘：预算/净资产/趋势</li>
+        <li>财务仪表盘：8 个图表</li>
+        <li>AI 仪表盘：调用/成本/性能</li>
+        <li>成长仪表盘：等级/成就/打卡</li>
+        <li>信用卡仪表盘：账期日历</li>
+      </ul>
+
+      <h3>51.4 信用卡 & 还款</h3>
+      <ul class="checklist">
+        <li>添加多张信用卡</li>
+        <li>账单日 / 还款日 / 额度</li>
+        <li>本期消费明细</li>
+        <li>还款记录</li>
+        <li>还款提醒（T-7/T-3/T-1/T-0）</li>
+        <li>全屏还款弹窗</li>
+      </ul>
+
+      <h3>51.5 AI & 攒攒</h3>
+      <ul class="checklist">
+        <li>攒攒每日一语</li>
+        <li>攒攒异常警告</li>
+        <li>攒攒升级动画</li>
+        <li>攒攒成就解锁</li>
+        <li>攒攒对话（云端）</li>
+        <li>AI 模型配置</li>
+        <li>AI 模型测试连接</li>
+        <li>AI 成本控制</li>
+      </ul>
+
+      <h3>51.6 OCR & Siri（P1）</h3>
+      <ul class="checklist">
+        <li>微信截图识别</li>
+        <li>支付宝截图识别</li>
+        <li>银行短信识别</li>
+        <li>识别后弹确认</li>
+        <li>Siri "记录支出 35"</li>
+        <li>截图自动化触发</li>
+      </ul>
+
+      <h3>51.7 数据 & 安全</h3>
+      <ul class="checklist">
+        <li>SQLCipher 加密生效</li>
+        <li>Face ID 解锁</li>
+        <li>数据快照创建</li>
+        <li>快照恢复可用</li>
+        <li>CSV 导出 + iCloud Drive</li>
+        <li>CSV 导入（从咔皮）</li>
+        <li>PDF 月报生成</li>
+        <li>升级前自动备份</li>
+      </ul>
+
+      <h3>51.8 性能 & 体验</h3>
+      <ul class="checklist">
+        <li>冷启动 ≤ 2s</li>
+        <li>主页加载 ≤ 1s</li>
+        <li>滚动 ≥ 55 FPS</li>
+        <li>查询 ≤ 100ms（10 万条）</li>
+        <li>暗色模式无对比度问题</li>
+        <li>所有操作有视觉反馈</li>
+        <li>错误提示友好</li>
+        <li>无崩溃</li>
+      </ul>
+
+      <h3>51.9 兼容性</h3>
+      <ul class="checklist">
+        <li>iOS 16 正常</li>
+        <li>iOS 17 正常</li>
+        <li>iOS 18 正常</li>
+        <li>iPhone SE 布局正常</li>
+        <li>iPhone 15 Pro Max 布局正常</li>
+        <li>中英文输入正常</li>
+        <li>横竖屏切换无崩溃（仅竖屏）</li>
+      </ul>
+    </section>
+
+    <!-- ============ 8.52 持续迭代计划 ============ -->
+    <section id="p8-52">
+      <h2><span class="num">52</span>持续迭代计划</h2>
+
+      <h3>52.1 版本路线图</h3>
+
+      <h4>v1.0.0（2026 Q3）— MVP</h4>
+      <ul>
+        <li>P0 全部 20 项功能</li>
+        <li>iOS 16+ 完整支持</li>
+        <li>本地 SQLCipher 加密</li>
+        <li>攒攒基础版（10 级 + 20 成就）</li>
+        <li>5 大仪表盘</li>
+        <li>AI 模型管理（MiniMax-M3）</li>
+        <li>异常检测 5 大规则</li>
+      </ul>
+
+      <h4>v1.1.0（2026 Q4）— 增强</h4>
+      <ul>
+        <li>P1 全部 18 项功能</li>
+        <li>OCR + Siri Shortcuts</li>
+        <li>AI 自然语言记账</li>
+        <li>PDF 月报</li>
+        <li>标签系统</li>
+        <li>定时记账</li>
+        <li>数据脱敏云端 AI</li>
+      </ul>
+
+      <h4>v1.2.0（2027 Q1）— 优化</h4>
+      <ul>
+        <li>性能优化（启动 / 滚动 / 查询）</li>
+        <li>UI 细节打磨</li>
+        <li>攒攒剧情任务扩充</li>
+        <li>更多成就</li>
+        <li>用户行为分析（本地）</li>
+      </ul>
+
+      <h4>v2.0.0（2027 Q2-Q3）— 架构升级</h4>
+      <ul>
+        <li>P2 全部 5 项功能</li>
+        <li>AI 月度报告</li>
+        <li>AI 财务顾问对话</li>
+        <li>异常消费解释</li>
+        <li>攒攒皮肤 + 语音</li>
+        <li>多账本切换</li>
+        <li>iCloud 同步（可选）</li>
+      </ul>
+
+      <h3>52.2 反馈机制</h3>
+      <p>自用 App 无需用户反馈渠道，但保留：</p>
+      <ul>
+        <li>App 内"反馈"按钮 → 攒攒对话框</li>
+        <li>攒攒每周主动询问："这周使用有什么不爽的地方吗？"</li>
+        <li>所有反馈写本地数据库，下次开发时查看</li>
+      </ul>
+
+      <h3>52.3 优先级决策原则</h3>
+      <div class="callout callout-success">
+        <ol>
+          <li><strong>使用频率</strong>：每天用 > 每周用 > 偶尔用</li>
+          <li><strong>痛点强度</strong>：解决 vs 改善 vs 锦上添花</li>
+          <li><strong>技术债务</strong>：先还债再加新</li>
+          <li><strong>成本</strong>：低 ROI 不做</li>
+          <li><strong>个人喜好</strong>：能让我自己更愿意用</li>
+        </ol>
+      </div>
+
+      <h3>52.4 技术债务管理</h3>
+      <p>每完成 3 个新功能，必须清理 1 个技术债务项。常见债务：</p>
+      <ul>
+        <li>数据库查询未加索引</li>
+        <li>Repository 内逻辑过多（应拆 Service）</li>
+        <li>Widget 内嵌业务逻辑（应拆 Notifier）</li>
+        <li>硬编码字符串 / 颜色</li>
+        <li>测试覆盖率低</li>
+      </ul>
+
+      <h3>52.5 文档维护</h3>
+      <table>
+        <tr><th>文档</th><th>维护频率</th></tr>
+        <tr><td>本产品设计文档（v4）</td><td>每次重大重构后</td></tr>
+        <tr><td>CHANGELOG.md</td><td>每次发版</td></tr>
+        <tr><td>API 文档（dart doc）</td><td>每次公共 API 变更</td></tr>
+        <tr><td>ADR（架构决策记录）</td><td>每次重大决策</td></tr>
+      </table>
+
+      <h3>52.6 长期目标</h3>
+      <div class="callout callout-gold">
+        <div class="callout-title">🏆 终极愿景</div>
+        <p><strong>让《审计官》成为个人财务管理的"私人 CFO"</strong>：</p>
+        <ul>
+          <li>✅ 数据完全私有（本地加密）</li>
+          <li>✅ AI 智能但不泄露（脱敏上云）</li>
+          <li>✅ 上瘾机制让坚持变简单（RPG 化）</li>
+          <li>✅ 零成本永久可用（自部署）</li>
+          <li>✅ 长期可演进（架构清晰）</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <p><strong>《审计官》记账 App · 完整开发方案 v4.0</strong></p>
+  <p>基于咔皮记账深度调研 · 8 阶段全流程 · 52 章 · 由 MiniMax-M3 设计与编写</p>
+  <p>2026-07-14 · 已审计通过 · 文档持续迭代</p>
+  <p style="margin-top:12px; font-size:12px; color:var(--text-muted)">
+    第一部分 需求 6 章 · 第二部分 架构 6 章 · 第三部分 详细设计 12 章 · 第四部分 UI 5 章<br>
+    第五部分 原型 6 章 · 第六部分 编码 5 章 · 第七部分 测试 6 章 · 第八部分 上线 6 章
+  </p>
+</footer>
+
+</body>
+</html>

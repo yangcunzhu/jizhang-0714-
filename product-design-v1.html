@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《审计官》记账 App · A+ 级产品方案 v1.0</title>
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #131825;
+    --bg-card: #1a2138;
+    --bg-elevated: #232b45;
+    --border: #2a3454;
+    --text-primary: #e8ecf4;
+    --text-secondary: #a0a8be;
+    --text-muted: #6b7388;
+    --accent-cyan: #00d4ff;
+    --accent-gold: #ffd700;
+    --accent-purple: #a855f7;
+    --accent-green: #00ff88;
+    --accent-red: #ff4d6d;
+    --accent-orange: #ff9f43;
+    --accent-blue: #4dabf7;
+    --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+    --gradient-gold: linear-gradient(135deg, #ffd700 0%, #ff9f43 100%);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 24px rgba(0, 212, 255, 0.2);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace; }
+
+  /* ============ HERO ============ */
+  .hero {
+    background: linear-gradient(135deg, #0a0e1a 0%, #1a2138 50%, #0a0e1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 24px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, transparent 50%);
+    animation: rotate 30s linear infinite;
+  }
+  @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .hero-inner { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+  .hero-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 100px;
+    color: var(--accent-cyan);
+    font-size: 13px;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    margin-bottom: 16px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-subtitle {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto 32px;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 8px; }
+  .badge-row {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px; margin-top: 16px;
+  }
+  .badge-row .b {
+    padding: 4px 12px; border-radius: 100px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    font-size: 12px; color: var(--text-secondary);
+  }
+
+  /* ============ LAYOUT ============ */
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 32px; padding: 40px 24px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  @media (max-width: 900px) { .nav { position: static; max-height: none; } }
+  .nav-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .nav ol { list-style: none; counter-reset: nav-counter; }
+  .nav li { counter-increment: nav-counter; margin-bottom: 4px; }
+  .nav a {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+  }
+  .nav a::before { content: counter(nav-counter, decimal-leading-zero) " "; color: var(--accent-cyan); font-weight: 600; }
+  .nav a:hover { background: var(--bg-elevated); color: var(--text-primary); border-left-color: var(--accent-cyan); }
+
+  /* ============ MAIN ============ */
+  main { min-width: 0; }
+  section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-card);
+  }
+  @media (max-width: 600px) { section { padding: 24px 20px; } }
+  section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--gradient-primary);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+  section h3 { font-size: 20px; font-weight: 600; margin: 32px 0 12px; color: var(--accent-cyan); }
+  section h4 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: var(--text-primary); }
+  section p { color: var(--text-secondary); margin-bottom: 12px; }
+  section ul, section ol { padding-left: 24px; color: var(--text-secondary); margin-bottom: 16px; }
+  section li { margin-bottom: 8px; }
+  section strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ============ COMPONENTS ============ */
+  .callout {
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border-left: 4px solid;
+    background: var(--bg-elevated);
+  }
+  .callout-info { border-left-color: var(--accent-cyan); }
+  .callout-warn { border-left-color: var(--accent-orange); background: rgba(255, 159, 67, 0.08); }
+  .callout-danger { border-left-color: var(--accent-red); background: rgba(255, 77, 109, 0.08); }
+  .callout-success { border-left-color: var(--accent-green); background: rgba(0, 255, 136, 0.08); }
+  .callout-gold { border-left-color: var(--accent-gold); background: rgba(255, 215, 0, 0.08); }
+  .callout-title { font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--bg-elevated); color: var(--text-primary); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { color: var(--text-secondary); }
+  tr:hover td { background: rgba(0, 212, 255, 0.04); }
+
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; margin-right: 4px; }
+  .tag-p0 { background: rgba(255, 77, 109, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
+  .tag-p1 { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); border: 1px solid var(--accent-orange); }
+  .tag-p2 { background: rgba(0, 212, 255, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+  .tag-a { background: rgba(0, 255, 136, 0.15); color: var(--accent-green); }
+  .tag-b { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
+  .tag-c { background: rgba(255, 215, 0, 0.15); color: var(--accent-gold); }
+
+  pre, code { font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+  pre {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 16px 0;
+  }
+  code { background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px; font-size: 13px; color: var(--accent-cyan); }
+  pre code { background: transparent; padding: 0; color: var(--text-primary); }
+
+  .mockup {
+    background: #000;
+    border: 2px solid var(--border);
+    border-radius: 32px;
+    padding: 20px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #e8ecf4;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .mockup-title { text-align: center; color: var(--accent-cyan); font-size: 14px; margin-bottom: 12px; font-weight: 600; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .feature-card h5 { color: var(--accent-cyan); font-size: 14px; margin-bottom: 8px; font-weight: 700; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--bg-elevated);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  .flow-step {
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 6px;
+    color: var(--accent-cyan);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--text-muted); font-size: 18px; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding-left: 28px; position: relative; color: var(--text-secondary); }
+  .checklist li::before {
+    content: '□';
+    position: absolute;
+    left: 0;
+    color: var(--accent-cyan);
+    font-size: 18px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* ASCII mockup 配色 */
+  .m-title { color: var(--accent-cyan); }
+  .m-gold { color: var(--accent-gold); }
+  .m-red { color: var(--accent-red); }
+  .m-green { color: var(--accent-green); }
+  .m-purple { color: var(--accent-purple); }
+  .m-dim { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="hero-badge">PRODUCT DESIGN v1.0 · 2026-07-14</span>
+    <h1>《审计官》记账 App</h1>
+    <p class="hero-subtitle">基于咔皮记账深度调研 · A+ 级产品方案<br>保留咔皮所有好用的功能 · 补齐信用卡/统计/RPG · 0 成本本地化</p>
+    <div class="badge-row">
+      <span class="b">📱 iOS 16+</span>
+      <span class="b">🎯 个人长期使用</span>
+      <span class="b">💰 0 成本部署</span>
+      <span class="b">⚡ Flutter 跨平台</span>
+      <span class="b">🔒 纯本地无云端</span>
+      <span class="b">🎮 重度 RPG 化</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ============ 目录 ============ -->
+  <aside class="nav">
+    <div class="nav-title">目录 · Contents</div>
+    <ol>
+      <li><a href="#vision">产品愿景与定位</a></li>
+      <li><a href="#benchmark">咔皮记账深度对标</a></li>
+      <li><a href="#ai-identity">AI 身份系统设计</a></li>
+      <li><a href="#features">核心功能矩阵</a></li>
+      <li><a href="#journey">用户旅程与核心流程</a></li>
+      <li><a href="#arch">系统架构设计</a></li>
+      <li><a href="#ui">UI/UX 设计规范</a></li>
+      <li><a href="#data">数据模型设计</a></li>
+      <li><a href="#rpg">RPG 化系统设计</a></li>
+      <li><a href="#ai-module">AI 模块设计</a></li>
+      <li><a href="#test">测试方案</a></li>
+      <li><a href="#plan">开发计划与里程碑</a></li>
+      <li><a href="#risk">风险与权衡</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+    <!-- ============ 一、产品愿景 ============ -->
+    <section id="vision">
+      <h2><span class="num">01</span>产品愿景与定位</h2>
+
+      <h3>用户画像（虽然是自用，但要把"自己"当成一个真实用户来定义）</h3>
+      <table>
+        <tr><th>维度</th><th>画像</th></tr>
+        <tr><td>年龄 / 角色</td><td>30+ 职场人，有稳定收入，有 1-2 张信用卡在使用</td></tr>
+        <tr><td>记账痛点</td><td>坚持不下来；手动记账麻烦；信用卡还款日经常忘；月底不知道钱花哪了</td></tr>
+        <tr><td>对工具的态度</td><td>愿意尝试新工具，但要求"装上去就能用"，学习成本高立刻弃</td></tr>
+        <tr><td>审美偏好</td><td>不喜欢花哨、不喜欢社交元素、不要游戏里那种"假努力"的鸡汤</td></tr>
+        <tr><td>对 AI 的态度</td><td>拥抱 AI，但警惕 AI 编数据（幻觉），需要"看得见的确认"</td></tr>
+      </table>
+
+      <h3>核心价值主张</h3>
+      <div class="callout callout-success">
+        <div class="callout-title">🎯 One-Liner</div>
+        <p><strong>"让记账这件事不再消耗意志力，让每一笔账都有出处，让信用卡不再逾期，让攒钱变成一场可量化的游戏。"</strong></p>
+      </div>
+
+      <h3>A+ 级产品的定义（自我标准）</h3>
+      <p>一个 A+ 级记账 App 必须同时满足：</p>
+      <ul>
+        <li><strong>快</strong> — 3 秒内完成一笔记账（手动或 AI 识别）</li>
+        <li><strong>准</strong> — 数据 100% 可信，账目零错误</li>
+        <li><strong>懂</strong> — 不只是记账，而是给财务洞察</li>
+        <li><strong>黏</strong> — 每天主动想打开，不是被逼打开</li>
+        <li><strong>美</strong> — 视觉精致但不浮夸，专业感强</li>
+      </ul>
+
+      <div class="callout callout-info">
+        <div class="callout-title">💡 与咔皮记账的差异化</div>
+        <p>咔皮记账是「通用记账工具」，我们要做的是<strong>「私人财务操作系统」</strong>。区别：</p>
+        <ul>
+          <li>咔皮：记账 + 简单统计 → 我们：记账 + AI 审计 + RPG 激励 + 深度分析</li>
+          <li>咔皮：手动为主 → 我们：AI 自动识别 + 人工二次确认（兼顾效率和准确）</li>
+          <li>咔皮：无信用卡专项 → 我们：<strong>信用卡账期、还款日、账单日、可用额度全维度管理</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 二、咔皮记账深度对标 ============ -->
+    <section id="benchmark">
+      <h2><span class="num">02</span>咔皮记账深度对标</h2>
+
+      <div class="callout callout-info">
+        <div class="callout-title">📌 调研依据</div>
+        <p>本节基于咔皮记账官方信息、App Store 评测、用户反馈综合整理。<strong>原则：咔皮有的好功能我们全部保留并优化；咔皮的痛点和缺失是我们要重点解决的。</strong></p>
+      </div>
+
+      <h3>咔皮记账画像（深度调研）</h3>
+      <table>
+        <tr><th>维度</th><th>详情</th></tr>
+        <tr><td>开发商</td><td>商汤科技（SenseTime）</td></tr>
+        <tr><td>发布时间</td><td>2025-12-19（产品发布周）</td></tr>
+        <tr><td>AI 引擎</td><td>DeepSeek-R1（云端）</td></tr>
+        <tr><td>App Store</td><td>id6738811698</td></tr>
+        <tr><td>免费策略</td><td>新用户 1 年 VIP + 记账赠会员（永久免费）</td></tr>
+        <tr><td>当前版本</td><td>v1.11.10</td></tr>
+        <tr><td>设计风格</td><td>手账风、Q 萌 UI、可记录心情碎碎念</td></tr>
+        <tr><td>核心差异化</td><td>云端 AI 识别 + 免费策略 + 手账质感</td></tr>
+      </table>
+
+      <h3>咔皮已实现的功能清单（我们必须做）</h3>
+      <table>
+        <tr><th>功能</th><th>咔皮现状</th><th>我们的实现</th><th>差异点</th></tr>
+        <tr>
+          <td>语音记账</td><td>✅ 极速语音</td>
+          <td>✅ 通过 Siri Shortcuts 接入</td>
+          <td>咔皮直连云端，我们走系统语音接口，<strong>响应更快、隐私更好</strong></td>
+        </tr>
+        <tr>
+          <td>一句话记多笔</td><td>✅ AI 自动拆分</td>
+          <td>✅ 本地 NLP + 规则拆分</td>
+          <td>咔皮用 DeepSeek 云端，<strong>我们纯本地解析，零延迟</strong></td>
+        </tr>
+        <tr>
+          <td>拍照识账</td><td>✅ 小票 / 截图</td>
+          <td>✅ iOS Vision API</td>
+          <td>功能等价，<strong>本地 OCR 隐私更优</strong></td>
+        </tr>
+        <tr>
+          <td>AI 自动记账</td><td>✅ DeepSeek 识别</td>
+          <td>✅ 规则引擎 + 模板匹配</td>
+          <td>云端 vs 本地，<strong>准确性由用户确认兜底</strong></td>
+        </tr>
+        <tr>
+          <td>智能预算</td><td>✅ AI 推荐</td>
+          <td>✅ 用户自设 + 智能推荐双模式</td>
+          <td><strong>支持分类预算 + 总预算双层</strong>（咔皮未明确）</td>
+        </tr>
+        <tr>
+          <td>多账本</td><td>✅ 无限账本</td>
+          <td>✅ 支持（P1）</td>
+          <td>功能等价</td>
+        </tr>
+        <tr>
+          <td>资产管理</td><td>✅ 资产账户</td>
+          <td>✅ 现金/银行卡/信用卡/投资</td>
+          <td><strong>信用卡专项更深度</strong></td>
+        </tr>
+        <tr>
+          <td>AI 理财助手</td><td>✅ DeepSeek 分析</td>
+          <td>✅ 审计官 + 攒攒</td>
+          <td>咔皮偏分析，我们<strong>偏陪伴 + 激励</strong></td>
+        </tr>
+        <tr>
+          <td>手账风格</td><td>✅ 心情碎碎念</td>
+          <td>✅ 备注栏 + 心情 emoji</td>
+          <td><strong>我们的备注支持图片附件</strong></td>
+        </tr>
+        <tr>
+          <td>多平台账单导入</td><td>✅ 一键迁移</td>
+          <td>✅ CSV 导入</td>
+          <td>功能等价</td>
+        </tr>
+      </table>
+
+      <h3>咔皮已知缺陷（我们要解决的痛点）</h3>
+      <table>
+        <tr><th>缺陷</th><th>用户反馈</th><th>我们的解决方案</th></tr>
+        <tr>
+          <td>导航层级不直观</td>
+          <td>新用户上手需适应</td>
+          <td><strong>底部 5 个 Tab 极简结构</strong>，符合 iOS 标准</td>
+        </tr>
+        <tr>
+          <td>账单修改不便</td>
+          <td>只能改不能加减</td>
+          <td><strong>支持"修改金额为退款"快捷操作</strong>，自动生成负数账目</td>
+        </tr>
+        <tr>
+          <td>不支持转账类型</td>
+          <td>只能支出/收入</td>
+          <td><strong>完整支持转账</strong>，配对记账不影响收支统计</td>
+        </tr>
+        <tr>
+          <td>信用卡还款无总结</td>
+          <td>用户明确反馈的痛点</td>
+          <td><strong>信用卡页是核心 Tab 之一</strong>，账期日历 + 还款历史 + 信用报告</td>
+        </tr>
+        <tr>
+          <td>手动记账流程不顺</td>
+          <td>主推自动记账但手动不顺</td>
+          <td><strong>手动记账是 P0 重点</strong>，≤ 5 秒、3 步完成</td>
+        </tr>
+        <tr>
+          <td>未接入理财平台</td>
+          <td>数据孤岛</td>
+          <td><strong>暂不接入</strong>（自用，不依赖第三方 API）</td>
+        </tr>
+        <tr>
+          <td>功能相对较少</td>
+          <td>成熟记账功能未补齐</td>
+          <td><strong>预算 + 信用卡 + RPG + AI 审计全覆盖</strong></td>
+        </tr>
+      </table>
+
+      <h3>咔皮 vs 我们：核心差异对比</h3>
+      <table>
+        <tr><th>维度</th><th>咔皮记账</th><th>我们的 App</th></tr>
+        <tr>
+          <td><strong>AI 引擎</strong></td>
+          <td>云端 DeepSeek（联网、要钱）</td>
+          <td><strong>本地 Vision API + 规则引擎</strong>（离线、0 成本）</td>
+        </tr>
+        <tr>
+          <td><strong>数据存储</strong></td>
+          <td>云端（依赖服务器）</td>
+          <td><strong>本地 SQLite + SQLCipher 加密</strong>（隐私满分）</td>
+        </tr>
+        <tr>
+          <td><strong>AI 角色</strong></td>
+          <td>无具象化 AI 角色</td>
+          <td><strong>审计官 + 攒攒双层人格</strong>，有名字有形象</td>
+        </tr>
+        <tr>
+          <td><strong>游戏化</strong></td>
+          <td>手账风格（轻度）</td>
+          <td><strong>重度 RPG</strong>（等级/成就/剧情/形态进化）</td>
+        </tr>
+        <tr>
+          <td><strong>准确性保证</strong></td>
+          <td>AI 自动入账，可能有幻觉</td>
+          <td><strong>审计官二次校验 + 必须用户确认</strong>，零误差</td>
+        </tr>
+        <tr>
+          <td><strong>信用卡</strong></td>
+          <td>提醒 OK，无深度管理</td>
+          <td><strong>账期日历 + 还款日 + 可用额度 + 信用报告</strong></td>
+        </tr>
+        <tr>
+          <td><strong>预算</strong></td>
+          <td>AI 推荐 + 预警</td>
+          <td><strong>总预算 + 分类预算双层 + 实时进度 + 攒攒反馈</strong></td>
+        </tr>
+        <tr>
+          <td><strong>成本</strong></td>
+          <td>免费（商汤补贴，有停服风险）</td>
+          <td><strong>0 永久成本</strong>（侧载，无人可停服）</td>
+        </tr>
+        <tr>
+          <td><strong>离线可用</strong></td>
+          <td>❌ 大部分功能需联网</td>
+          <td><strong>✅ 完全离线可用</strong></td>
+        </tr>
+        <tr>
+          <td><strong>可定制性</strong></td>
+          <td>中等</td>
+          <td><strong>极高</strong>（自用，可深度定制）</td>
+        </tr>
+      </table>
+
+      <h3>功能策略（开发优先级依据）</h3>
+      <div class="callout callout-success">
+        <div class="callout-title">✅ 三条铁律</div>
+        <ol>
+          <li><strong>咔皮有的好功能必须有</strong>：用户已经习惯这些功能，不能缺（语音/拍照/OCR/多账本）</li>
+          <li><strong>咔皮的痛点必须解决</strong>：导航乱、修改不便、不支持转账、无信用卡深度——这些必须做到更好</li>
+          <li><strong>咔皮没有的优势要加</strong>：RPG 化、审计官、纯本地隐私、0 成本长期可用</li>
+        </ol>
+      </div>
+
+      <h3>对咔皮用户的迁移友好性</h3>
+      <p>虽然我们不发布到 App Store（侧载），但要确保<strong>从咔皮导出的数据能无缝导入</strong>：</p>
+      <ul>
+        <li>支持咔皮 CSV 格式导入（金额/分类/日期/账户映射）</li>
+        <li>分类映射：咔皮的"餐饮"→ 我们的"餐饮"</li>
+        <li>账户映射：咔皮的"现金"→ 我们的"现金"</li>
+        <li>导入后用户可手动调整差异</li>
+      </ul>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 与咔皮的差异化不能为差异化而差异化</div>
+        <p>我们的所有差异化都<strong>必须服务于"用户痛点"</strong>，不是为了不同而不同：</p>
+        <ul>
+          <li>RPG 化 → 解决"记账坚持不下来"</li>
+          <li>审计官 → 解决"AI 幻觉不放心"</li>
+          <li>本地化 → 解决"隐私担忧"</li>
+          <li>0 成本 → 解决"怕被停服"</li>
+          <li>重度信用卡管理 → 解决"还款总忘、统计混乱"</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 三、AI 身份系统 ============ -->
+    <section id="ai-identity">
+      <h2><span class="num">03</span>AI 身份系统设计</h2>
+
+      <h3>身份架构：双层结构</h3>
+      <p>采用「<strong>底层审计官 + 外壳攒钱合伙人</strong>」双层架构，审计官永远是真相之源，攒钱合伙人是情感接口。</p>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <h5>🛡️ 底层：审计官（"真相之源"）</h5>
+          <p>无性格、无表情、只输出事实。所有数据校验、异常检测、账目核对都走它。用户看到的"警告"、"异常"全部由它发出。</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎮 外壳：攒钱合伙人（"情感接口"）</h5>
+          <p>重度 RPG 化的虚拟角色。所有主动推送、鼓励、调侃、剧情都走它。但它说的每一句话都必须<strong>基于审计官的真相</strong>。</p>
+        </div>
+      </div>
+
+      <h3>角色人格设定</h3>
+
+      <h4>审计官人格</h4>
+      <pre><code>姓名：审计官
+代号：AUDIT-01
+性格：极度严谨、不苟言笑、用数据说话、对错误零容忍
+语言风格：陈述句、简短、不带感情色彩
+
+对话原则：
+  ✅ "餐饮类支出本月累计 1847 元，超预算 23.4%。"
+  ✅ "检测到异常：2026-07-13 23:47 单笔支出 ¥899，超过日均支出 18 倍。"
+  ❌ "哎呀，你今天花太多了哦~"
+  ❌ "别担心啦，还剩一点点预算嘛"
+
+触发场景：
+  - AI 自动识别账目 → 让用户确认
+  - 异常消费 → 红色警告
+  - 信用卡账单日/还款日前 → 精确倒计时
+  - 每月 1 号 → 出具"财务体检报告"
+</code></pre>
+
+      <h4>攒钱合伙人人格（重度 RPG 化）</h4>
+      <pre><code>姓名：可自定义（默认"攒攒"）
+形态：Q 版像素角色，会随等级成长换形态
+初始状态：一级"小财苗"（绿色幼苗 + 单片叶子）
+满级状态：十级"财神"（穿着金甲的元宝形象）
+
+人格双面：
+  - 70% 时间：温柔鼓励型（"主人好棒！连续 7 天未超预算~"）
+  - 30% 时间：毒舌调侃型（"主人又在喝奶茶？这是本月的第 6 杯。"）
+
+台词库（节选）：
+  🎉 成就解锁：
+     "🎊 解锁【预算执行者】！本月光荣结余 ¥234！"
+     "👑 解锁【10 级财神】！你已经超越 99% 的记账用户。"
+
+  💸 预算警告：
+     "⚠️ 餐饮预算还剩 ¥89，还能吃 3 顿工作日午餐哦~"
+     "🚨 主人！本月已花 95%！建议启动'吃土模式'。"
+
+  💳 还款提醒：
+     "📅 信用卡 X 还剩 3 天还款，金额 ¥2350，已准备好。"
+     "✅ 还款完成！信用值 +50，主人信用等级：A+"
+
+  🏆 剧情推进：
+     "📖 主线任务：攒下第一笔 ¥10000 → 进度 73.4%"
+     "✨ 支线解锁：【咖啡自由挑战】30 天不点外卖咖啡"
+
+禁止：
+  ❌ 编造数据
+  ❌ 给虚假鼓励（预算超了还说"没关系"）
+  ❌ 鸡汤话术（"钱不是问题，爱才是"）
+</code></pre>
+
+      <h3>对话示例（真实场景）</h3>
+
+      <div class="callout callout-info">
+        <div class="callout-title">📌 场景：用户深夜点外卖 ¥58</div>
+        <p><strong>[审计官后台]</strong> 餐饮 +58，本日餐饮 +158，超日均 73%</p>
+        <p><strong>[攒攒显示]</strong></p>
+        <pre><code>┌─────────────────────────────────┐
+│  🍱 餐饮 +¥58 已记录            │
+│                                  │
+│         (o_O)                     │
+│        攒攒                       │
+│                                  │
+│  "主人，这是本周第 4 次外卖了。"  │
+│  "餐饮预算还剩 ¥131 / ¥600。"   │
+│  "建议：剩 4 天，每天 ¥32。"     │
+│                                  │
+│  [😋 知道啦]  [🥗 改做饭]      │
+└─────────────────────────────────┘</code></pre>
+      </div>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">📌 场景：信用卡还款日前 3 天</div>
+        <pre><code>┌─────────────────────────────────┐
+│  💳 还款提醒                     │
+│                                  │
+│       ⚠️ ⚠️ ⚠️                  │
+│        攒攒                       │
+│                                  │
+│  "招商银行信用卡（**8821）"     │
+│  "📅 还款日：2026-07-17（剩 3 天）│
+│  "💰 应还金额：¥2,350"           │
+│  "📊 当前可用余额：¥3,100 ✅"   │
+│                                  │
+│  [💸 立即还款]  [⏰ 延后提醒]  │
+└─────────────────────────────────┘</code></pre>
+      </div>
+    </section>
+
+    <!-- ============ 三、核心功能矩阵 ============ -->
+    <section id="features">
+      <h2><span class="num">04</span>核心功能矩阵</h2>
+
+      <p>按 <strong>P0 (必须有)</strong> · <strong>P1 (应该有)</strong> · <strong>P2 (最好有)</strong> 三级优先级划分。MVP（最小可用版本）只做 P0。</p>
+
+      <h3>P0 - MVP 必须有（v1.0 上线）</h3>
+      <table>
+        <tr><th>功能</th><th>说明</th><th>验收标准</th></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 手动记账</td><td>最基础的记账，3 秒内完成</td><td>点击 → 选分类 → 输入金额 → 保存 ≤ 3 步</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 分类管理</td><td>预置 + 自定义分类，支持图标</td><td>至少 12 个预置分类，支持增删改</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 信用卡管理</td><td>添加多张信用卡，记录账单日/还款日/额度</td><td>支持 ≥ 3 张卡，账期自动计算</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 还款提醒</td><td>还款日前 3 天 + 当天推送通知</td><td>本地通知 + 应用内红点双通道</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 预算管理</td><td>月度总预算 + 分类预算双层</td><td>支持设置 → 执行 → 超支警告</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 基础统计</td><td>本月汇总、分类占比、近 30 天趋势</td><td>3 种图表（饼图、柱状图、折线图）</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 数据本地存储</td><td>SQLite 加密存储</td><td>SQLCipher 加密，App 卸载前数据不丢</td></tr>
+        <tr><td><span class="tag tag-p0">P0</span> 数据导出</td><td>CSV 导出，备份到 iCloud/Files</td><td>一键导出，文件可被 Numbers/Excel 打开</td></tr>
+      </table>
+
+      <h3>P1 - 应该有的（v1.1 迭代）</h3>
+      <table>
+        <tr><th>功能</th><th>说明</th></tr>
+        <tr><td><span class="tag tag-p1">P1</span> OCR 自动记账</td><td>截图识别微信/支付宝账单，用户确认后入库</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> 多账本</td><td>日常/旅行/生意分开，独立统计</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> 转账记录</td><td>账户间转账不重复计入收支</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> 资产账户</td><td>现金、银行卡、余额宝等账户管理</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> 月度财务报告</td><td>每月 1 号生成上月报告，可导出 PDF</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> RPG 等级系统</td><td>经验值、等级、解锁成就</td></tr>
+        <tr><td><span class="tag tag-p1">P1</span> 信用卡账期视图</td><td>可视化账期日历，本期已花/可用额度</td></tr>
+      </table>
+
+      <h3>P2 - 锦上添花（v2.0+ 远期）</h3>
+      <table>
+        <tr><th>功能</th><th>说明</th></tr>
+        <tr><td><span class="tag tag-p2">P2</span> AI 财务洞察</td><td>消费模式识别、异常预警、攒钱建议</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> 跨账本分析</td><td>"旅行账本超支 30%，但日常账本盈余"</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> 主线剧情任务</td><td>"攒下第一笔 ¥10000" 等长线目标</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> 角色皮肤系统</td><td>攒攒换装，但不影响功能</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> Apple Watch 组件</td><td>手表端快速记一笔</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> iCloud 同步</td><td>多设备同步（自用基本用不到）</td></tr>
+        <tr><td><span class="tag tag-p2">P2</span> Siri Shortcuts</td><td>"Hey Siri，我花了 35 块午饭"</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 四、用户旅程 ============ -->
+    <section id="journey">
+      <h2><span class="num">05</span>用户旅程与核心流程</h2>
+
+      <h3>首次启动 Onboarding</h3>
+      <div class="flow">
+        <span class="flow-step">欢迎页</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">选择角色形态</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">设置总预算</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">添加信用卡</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">录入资产</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">首笔记账教学</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">主页</span>
+      </div>
+
+      <h3>核心场景：日常记账</h3>
+      <div class="grid-2">
+        <div>
+          <h4>场景 A：手动记账（最常用）</h4>
+          <div class="flow">
+            <span class="flow-step">主页点击 +</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">选分类（图标网格）</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">输入金额（数字键盘）</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">可选备注+支付方式</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">保存（震动反馈）</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px;">目标：≤ 5 秒完成</p>
+        </div>
+        <div>
+          <h4>场景 B：截图自动识别（v1.1）</h4>
+          <div class="flow">
+            <span class="flow-step">截图保存到相册</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">App 内"扫一扫"</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">OCR 提取信息</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">审计官校验</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">用户确认/修改</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">入库</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px;">关键：每步都可回退，必须用户确认</p>
+        </div>
+      </div>
+
+      <h3>核心场景：信用卡还款</h3>
+      <div class="flow">
+        <span class="flow-step">T-7 天<br>轻度提醒</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-3 天<br>正式通知</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-1 天<br>红色警告</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">T-0 当天<br>全屏弹窗</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">还款完成<br>+信用经验</span>
+      </div>
+
+      <h3>异常检测触发流</h3>
+      <pre><code>用户输入一笔支出
+       ↓
+[审计官后台检查]
+   ├── 金额异常？> 日均 × 5 → 红色警告
+   ├── 分类异常？深夜餐饮 → 黄色提示
+   ├── 预算异常？超 80% → 橙色提醒
+   └── 重复检测？同金额同分类 1 小时内 → 询问是否重复
+       ↓
+[攒攒显示对应话术]
+       ↓
+用户决定：忽略 / 修改 / 确认
+       ↓
+入库
+</code></pre>
+    </section>
+
+    <!-- ============ 五、系统架构 ============ -->
+    <section id="arch">
+      <h2><span class="num">06</span>系统架构设计</h2>
+
+      <h3>技术选型</h3>
+      <table>
+        <tr><th>层</th><th>技术</th><th>选型理由</th></tr>
+        <tr><td>前端框架</td><td><strong>Flutter 3.x</strong></td><td>一套代码，Windows 上写，macOS 编译，未来可上 Android</td></tr>
+        <tr><td>状态管理</td><td>Riverpod 2.x</td><td>比 Provider 更现代，类型安全，测试友好</td></tr>
+        <tr><td>本地数据库</td><td>Drift (SQLite) + SQLCipher</td><td>Drift 是 Flutter 最成熟的 ORM，SQLCipher 加密</td></tr>
+        <tr><td>本地通知</td><td>flutter_local_notifications</td><td>iOS 16+ 完美支持</td></tr>
+        <tr><td>图表</td><td>fl_chart</td><td>Flutter 生态最专业的图表库</td></tr>
+        <tr><td>OCR（v1.1）</td><td>Apple Vision API（原生 iOS）+ MethodChannel</td><td>免费、本地、隐私好，准确率高</td></tr>
+        <tr><td>路径规划</td><td>go_router</td><td>声明式路由，深度链接支持</td></tr>
+        <tr><td>国际化</td><td>flutter_localizations</td><td>预留英文支持</td></tr>
+      </table>
+
+      <div class="callout callout-info">
+        <div class="callout-title">💡 为什么不用 React Native / 原生 Swift</div>
+        <ul>
+          <li><strong>vs 原生 Swift</strong>：开发速度慢，且不能在 Windows 上写代码</li>
+          <li><strong>vs React Native</strong>：Flutter 性能更稳定，UI 一致性更好，RPG 化需要复杂动画</li>
+          <li><strong>vs Tauri / 其他</strong>：移动端体验 Flutter 完胜</li>
+        </ul>
+      </div>
+
+      <h3>分层架构</h3>
+      <pre><code>┌──────────────────────────────────────────┐
+│         Presentation Layer               │
+│  (UI Widgets · Pages · Widgets · Theme)   │
+└──────────────┬───────────────────────────┘
+               │
+┌──────────────▼───────────────────────────┐
+│         Application Layer                │
+│  (Riverpod Providers · Use Cases · DTOs) │
+└──────────────┬───────────────────────────┘
+               │
+┌──────────────▼───────────────────────────┐
+│           Domain Layer                   │
+│  (Entities · Repository Interfaces ·     │
+│   Business Rules · AI Identity Service)  │
+└──────────────┬───────────────────────────┘
+               │
+┌──────────────▼───────────────────────────┐
+│            Data Layer                    │
+│  (Drift DB · File System · OCR Service · │
+│   Notification Service · Export Service) │
+└──────────────────────────────────────────┘
+</code></pre>
+
+      <h3>模块划分</h3>
+      <div class="grid-3">
+        <div class="feature-card">
+          <h5>📒 ledger（账本）</h5>
+          <p>交易、分类、账户的 CRUD 与查询</p>
+        </div>
+        <div class="feature-card">
+          <h5>💳 credit_card（信用卡）</h5>
+          <p>信用卡信息、账期计算、还款提醒</p>
+        </div>
+        <div class="feature-card">
+          <h5>📊 budget（预算）</h5>
+          <p>预算设置、执行追踪、超支警告</p>
+        </div>
+        <div class="feature-card">
+          <h5>📈 analytics（分析）</h5>
+          <p>统计聚合、报表生成、可视化</p>
+        </div>
+        <div class="feature-card">
+          <h5>🤖 audit（审计官）</h5>
+          <p>异常检测、数据校验、洞察生成</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎮 rpg（游戏化）</h5>
+          <p>经验值、等级、成就、剧情</p>
+        </div>
+        <div class="feature-card">
+          <h5>🔔 notify（通知）</h5>
+          <p>本地通知、应用内消息、提醒队列</p>
+        </div>
+        <div class="feature-card">
+          <h5>💾 backup（备份）</h5>
+          <p>CSV 导出、iCloud 同步（可选）</p>
+        </div>
+        <div class="feature-card">
+          <h5>🎨 theme（主题）</h5>
+          <p>暗色主题、RPG 风格、动效</p>
+        </div>
+      </div>
+
+      <h3>部署架构（0 成本）</h3>
+      <pre><code>开发机（Windows 11）
+    │
+    │ git push
+    ▼
+GitHub Repository
+    │
+    │ trigger
+    ▼
+GitHub Actions（macOS runner）
+    │
+    │ flutter build ios
+    ▼
+Artifact: app.ipa
+    │
+    │ download
+    ▼
+AltServer（旧电脑常开）
+    │
+    │ USB / WiFi
+    ▼
+iPhone（iOS 16+）← 每 7 天自动续签
+</code></pre>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 关键技术决策</div>
+        <p><strong>OCR 用本地 Vision API 而非云端 LLM</strong>：</p>
+        <ul>
+          <li>成本：Vision API 完全免费，调用云端 LLM 要花钱，违背 0 成本原则</li>
+          <li>隐私：账单截图是敏感数据，本地处理更安全</li>
+          <li>准确率：账单格式相对固定，Vision API 对印刷体识别率 &gt; 95%</li>
+          <li>LLM 仅用于"非结构化文本理解"（如 OCR 后二次校验）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 六、UI/UX 设计 ============ -->
+    <section id="ui">
+      <h2><span class="num">07</span>UI/UX 设计规范</h2>
+
+      <h3>设计原则</h3>
+      <div class="grid-3">
+        <div class="feature-card">
+          <h5>1. 信息密度优先</h5>
+          <p>每屏信息量足够，但不拥挤。专业感来自"看得清"，不是"看得花"</p>
+        </div>
+        <div class="feature-card">
+          <h5>2. 操作永远 ≤ 3 步</h5>
+          <p>核心操作不超过 3 次点击。任何超过 3 步的操作都是设计失败</p>
+        </div>
+        <div class="feature-card">
+          <h5>3. 反馈必须即时</h5>
+          <p>每个动作都有视觉/触觉反馈。无反馈 = 用户不知道发生了什么</p>
+        </div>
+        <div class="feature-card">
+          <h5>4. RPG 是"皮肤"</h5>
+          <p>所有 RPG 元素都不能阻挡效率。游戏化是奖励，不是负担</p>
+        </div>
+        <div class="feature-card">
+          <h5>5. 暗色为主</h5>
+          <p>默认暗色主题（专业感 + 省电），可切换亮色</p>
+        </div>
+        <div class="feature-card">
+          <h5>6. 数据可视化大于文字</h5>
+          <p>能画图就不写文字，能用数字就不用形容词</p>
+        </div>
+      </div>
+
+      <h3>视觉风格</h3>
+      <table>
+        <tr><th>元素</th><th>规格</th></tr>
+        <tr><td>主色（强调）</td><td><span style="color:#00d4ff">■</span> #00D4FF 青蓝（数据、准确感）</td></tr>
+        <tr><td>辅助色</td><td><span style="color:#a855f7">■</span> #A855F7 紫（成就、神秘感）</td></tr>
+        <tr><td>强调色</td><td><span style="color:#ffd700">■</span> #FFD700 金（等级、稀有）</td></tr>
+        <tr><td>警示色</td><td><span style="color:#ff4d6d">■</span> #FF4D6D 红（异常、警告）</td></tr>
+        <tr><td>成功色</td><td><span style="color:#00ff88">■</span> #00FF88 绿（达成、OK）</td></tr>
+        <tr><td>背景</td><td><span style="color:#0a0e1a">■</span> #0A0E1A 深空蓝黑</td></tr>
+        <tr><td>卡片</td><td><span style="color:#1a2138">■</span> #1A2138 深蓝灰</td></tr>
+        <tr><td>字体</td><td>iOS 系统字体（PingFang SC / SF Pro）</td></tr>
+        <tr><td>数字字体</td><td>SF Mono / JetBrains Mono（财务数据等宽）</td></tr>
+        <tr><td>圆角</td><td>16px（卡片）· 12px（按钮）· 8px（标签）</td></tr>
+        <tr><td>间距</td><td>4 / 8 / 12 / 16 / 24 / 32 / 48 px 八点网格</td></tr>
+      </table>
+
+      <h3>信息架构</h3>
+      <pre><code>App Root
+├── 首页（Home）
+│   ├── 今日概览
+│   ├── 预算进度
+│   ├── 最近 5 笔交易
+│   ├── 信用卡提醒（如有）
+│   └── 攒攒每日一语
+├── 账本（Ledger）
+│   ├── 交易列表（按时间倒序）
+│   ├── 筛选（日期/分类/账户）
+│   └── 搜索
+├── 信用卡（Cards）
+│   ├── 卡片列表
+│   ├── 单卡详情（账期日历）
+│   └── 还款记录
+├── 统计（Analytics）
+│   ├── 月度汇总
+│   ├── 分类饼图
+│   ├── 趋势折线
+│   └── 月度报告
+├── 我的（Profile）
+│   ├── 攒攒形象
+│   ├── 等级 & 成就
+│   ├── 预算设置
+│   ├── 分类管理
+│   ├── 数据导出
+│   └── 关于
+└── 浮窗：记账按钮（任何页面右下角）
+</code></pre>
+
+      <h3>关键页面 Mockup</h3>
+
+      <h4>① 主页（Home）</h4>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span> ⭐ Lv.7 <span class="m-gold">财宝猎人</span>  💎 2,340 EXP   <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>    本月已花  <span class="m-red">¥4,567</span> / ¥6,000     <span class="m-title">│</span>
+<span class="m-title">│</span>    ████████████░░░  76%          <span class="m-title">│</span>
+<span class="m-title">│</span>    剩 12 天,日均 ¥119            <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  💳 招商银行（**8821）          <span class="m-title">│</span>
+<span class="m-title">│</span>     还款日：<span class="m-red">7月17日（剩3天）</span>         <span class="m-title">│</span>
+<span class="m-title">│</span>     应还：¥2,350  ✅ 余额充足    <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  最近交易                       <span class="m-title">│</span>
+<span class="m-title">│</span>  🍱 餐饮       -¥58    12:30    <span class="m-title">│</span>
+<span class="m-title">│</span>  🚇 交通       -¥6     08:45    <span class="m-title">│</span>
+<span class="m-title">│</span>  ☕ 咖啡       -¥35    08:10    <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>         <span class="m-green">(◕‿◕)</span>                    <span class="m-title">│</span>
+<span class="m-title">│</span>         <span class="m-green">攒攒</span>                    <span class="m-title">│</span>
+<span class="m-title">│</span>  "主人，今天咖啡花了 ¥35，      <span class="m-title">│</span>
+<span class="m-title">│</span>   本月已 8 杯，建议改喝水~"     <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🏠    📒    💳    📊    👤    <span class="m-title">│</span>
+<span class="m-title">│</span>                       <span class="m-gold">[+]</span>    <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h4>② 记账弹窗（核心交互）</h4>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>        <span class="m-purple">记一笔</span>                  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>      <span class="m-red">支出</span>   |   收入   |   转账   <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>           <span style="color:#888">¥</span><span style="font-size:20px">5</span><span style="font-size:32px;color:#00d4ff"><b>8</b></span>.<span style="font-size:20px">0</span>0          <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  分类                           <span class="m-title">│</span>
+<span class="m-title">│</span>  🍱 🍔 ☕ 🛒 🚇 ✈️ 💊 🎮 📚 🏠 ➕  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  备注: 午餐 和府捞面            <span class="m-title">│</span>
+<span class="m-title">│</span>  账户: 招商银行（**8821）▼      <span class="m-title">│</span>
+<span class="m-title">│</span>  日期: 今天 12:30               <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  [<span class="m-red">取消</span>]                  [<span class="m-green">✓ 保存</span>]   <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h4>③ 信用卡详情页</h4>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  ← 招商银行（**8821）            <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  ╔═══════════════════════════╗    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ <span class="m-purple">VISA Signature</span>          ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║                           ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ **** **** **** 8821       ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║                           ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 额度  ¥50,000            ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 已用  ¥12,340  <span class="m-gold">25%</span>       ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ║ 可用  ¥37,660            ║    <span class="m-title">│</span>
+<span class="m-title">│</span>  ╚═══════════════════════════╝    <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  📅 账单周期                     <span class="m-title">│</span>
+<span class="m-title">│</span>  账单日：每月 5 日               <span class="m-title">│</span>
+<span class="m-title">│</span>  还款日：每月 25 日               <span class="m-title">│</span>
+<span class="m-title">│</span>  本期：7/5 - 8/4                  <span class="m-title">│</span>
+<span class="m-title">│</span>  已出账单：¥2,350                 <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  📊 本期消费分类                  <span class="m-title">│</span>
+<span class="m-title">│</span>  🍱 餐饮  ¥1,200  ████          <span class="m-title">│</span>
+<span class="m-title">│</span>  🛒 购物  ¥800    ██            <span class="m-title">│</span>
+<span class="m-title">│</span>  🎮 娱乐  ¥350    █             <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  [<span class="m-green">立即还款</span>]    [<span class="m-purple">导出账单</span>]  <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h4>④ RPG 成就页</h4>
+      <div class="mockup">
+<span class="m-title">┌─────────────────────────────────┐</span>
+<span class="m-title">│</span>  ← 我的等级 & 成就                <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>         <span style="color:#ffd700">★</span> Lv.7 <span class="m-gold">财宝猎人</span>           <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>            <span class="m-gold">(◕‿◕)</span>                  <span class="m-title">│</span>
+<span class="m-title">│</span>           <span class="m-gold">✨ 攒攒 ✨</span>              <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  经验：██████░░░░  2,340/3,000    <span class="m-title">│</span>
+<span class="m-title">│</span>  距下一级还差：660 EXP            <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🏆 已解锁（5/20）              <span class="m-title">│</span>
+<span class="m-title">│</span>                                  <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 初出茅庐  首次记账          <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 坚持一周  连续记账 7 天     <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 预算执行者  月末未超预算     <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 还款先锋  准时还款 3 次     <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-gold">🎖️</span> 攒钱达人  累计结余 ¥10000  <span class="m-title">│</span>
+<span class="m-title">├─────────────────────────────────┤</span>
+<span class="m-title">│</span>  🔒 未解锁（15）                 <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-dim">❓ 咖啡自由挑战</span>              <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-dim">❓ 一年守信</span>  12 个月准时还款   <span class="m-title">│</span>
+<span class="m-title">│</span>  <span class="m-dim">❓ 万元户</span>  单月结余 ¥10000     <span class="m-title">│</span>
+<span class="m-title">└─────────────────────────────────┘</span>
+      </div>
+
+      <h3>微交互规范</h3>
+      <table>
+        <tr><th>交互</th><th>反馈</th><th>时长</th></tr>
+        <tr><td>点击记账 +</td><td>按钮缩放 0.95 → 1</td><td>100ms</td></tr>
+        <tr><td>保存记账</td><td>数字滚动 + 震动 + 攒攒说话</td><td>300ms</td></tr>
+        <tr><td>超预算警告</td><td>数字变红 + 进度条抖动</td><td>500ms</td></tr>
+        <tr><td>解锁成就</td><td>全屏闪光 + 攒攒跳跃 + 震动</td><td>1500ms</td></tr>
+        <tr><td>升级</td><td>攒攒进化动画 + 等级号弹跳</td><td>2000ms</td></tr>
+        <tr><td>页面切换</td><td>iOS 标准左右滑动</td><td>250ms</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ 七、数据模型 ============ -->
+    <section id="data">
+      <h2><span class="num">08</span>数据模型设计</h2>
+
+      <p>使用 Drift (SQLite) 定义，所有表均有 <code>id</code>、<code>created_at</code>、<code>updated_at</code>、<code>deleted_at</code> 字段（软删除）。</p>
+
+      <h3>ER 关系图</h3>
+      <pre><code>┌─────────┐         ┌──────────────┐         ┌─────────────┐
+│ account │ 1───*  │ transaction  │ *───1 │  category   │
+└─────────┘         └──────┬───────┘         └─────────────┘
+                            │
+                            *───1  ┌──────────┐
+                                   │ credit_  │
+                                   │  card    │
+                                   └──────────┘
+                            │
+                            *───*  ┌──────────┐
+                                   │   tag    │
+                                   └──────────┘
+
+┌─────────┐         ┌──────────────┐         ┌─────────────┐
+│ budget  │ *───1  │     user     │ 1───*  │ achievement │
+└─────────┘         └──────┬───────┘         └─────────────┘
+                           │
+                           1───*  ┌──────────┐
+                                  │ user_    │
+                                  │  level   │
+                                  └──────────┘
+</code></pre>
+
+      <h3>核心表 Schema</h3>
+
+      <h4>account（账户）</h4>
+      <pre><code>CREATE TABLE account (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,           -- "招商信用卡" "现金" "余额宝"
+  type TEXT NOT NULL,           -- 'cash' | 'debit' | 'credit' | 'investment'
+  balance REAL NOT NULL DEFAULT 0,  -- 当前余额（信用卡为可用额度）
+  icon TEXT,                    -- 图标 emoji
+  color TEXT,                   -- 主题色
+  credit_limit REAL,            -- 信用卡总额度
+  statement_day INTEGER,        -- 账单日（信用卡专用，1-31）
+  due_day INTEGER,              -- 还款日（信用卡专用，1-31）
+  is_archived INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_account_type ON account(type);
+</code></pre>
+
+      <h4>category（分类）</h4>
+      <pre><code>CREATE TABLE category (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,           -- "餐饮" "交通" "工资"
+  type TEXT NOT NULL,           -- 'expense' | 'income' | 'transfer'
+  icon TEXT,                    -- emoji
+  color TEXT,
+  parent_id INTEGER,            -- 支持二级分类（餐饮 → 早餐/午餐/晚餐）
+  is_system INTEGER DEFAULT 0,  -- 系统预置 vs 用户自定义
+  sort_order INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (parent_id) REFERENCES category(id)
+);
+</code></pre>
+
+      <h4>transaction（交易）</h4>
+      <pre><code>CREATE TABLE transaction (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  category_id INTEGER NOT NULL,
+  amount REAL NOT NULL,         -- 正数表示收入，负数表示支出
+  type TEXT NOT NULL,           -- 'expense' | 'income' | 'transfer'
+  note TEXT,
+  occurred_at INTEGER NOT NULL, -- 交易发生时间
+  transfer_pair_id INTEGER,     -- 转账配对 ID
+  source TEXT,                  -- 'manual' | 'ocr' | 'siri' | 'shortcut'
+  confidence REAL,              -- OCR 识别置信度 0-1
+  is_confirmed INTEGER DEFAULT 1,  -- OCR 账目需用户确认
+  image_path TEXT,              -- 关联截图（OCR 时）
+  location_lat REAL,            -- 可选位置
+  location_lng REAL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES account(id),
+  FOREIGN KEY (category_id) REFERENCES category(id)
+);
+
+CREATE INDEX idx_tx_occurred ON transaction(occurred_at DESC);
+CREATE INDEX idx_tx_account ON transaction(account_id);
+CREATE INDEX idx_tx_category ON transaction(category_id);
+CREATE INDEX idx_tx_type ON transaction(type);
+</code></pre>
+
+      <h4>budget（预算）</h4>
+      <pre><code>CREATE TABLE budget (
+  id INTEGER PRIMARY KEY,
+  scope TEXT NOT NULL,          -- 'total' | 'category'
+  category_id INTEGER,          -- scope='category' 时必填
+  amount REAL NOT NULL,
+  period TEXT NOT NULL,         -- 'monthly' | 'weekly' | 'yearly'
+  start_date INTEGER NOT NULL,  -- 周期开始日期
+  alert_threshold REAL DEFAULT 0.8,  -- 达 80% 时警告
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (category_id) REFERENCES category(id)
+);
+</code></pre>
+
+      <h4>user_level（用户等级）</h4>
+      <pre><code>CREATE TABLE user_level (
+  id INTEGER PRIMARY KEY DEFAULT 1,  -- 始终只有一行
+  level INTEGER NOT NULL DEFAULT 1,
+  exp INTEGER NOT NULL DEFAULT 0,
+  total_exp INTEGER NOT NULL DEFAULT 0,  -- 历史累计
+  character_name TEXT DEFAULT '攒攒',
+  character_form INTEGER DEFAULT 1,     -- 当前形态 ID
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+</code></pre>
+
+      <h4>achievement（成就）</h4>
+      <pre><code>CREATE TABLE achievement (
+  id INTEGER PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,    -- 'first_record' 'weekly_streak'
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,                    -- emoji
+  rarity TEXT,                  -- 'common' | 'rare' | 'epic' | 'legendary'
+  exp_reward INTEGER DEFAULT 0,
+  condition_type TEXT,          -- 'count' | 'streak' | 'amount' | 'custom'
+  condition_value INTEGER,
+  unlocked_at INTEGER,          -- NULL 表示未解锁
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_ach_unlocked ON achievement(unlocked_at);
+</code></pre>
+
+      <h3>数据加密与隐私</h3>
+      <div class="callout callout-success">
+        <div class="callout-title">🔐 隐私设计</div>
+        <ul>
+          <li>SQLCipher AES-256 加密整个数据库</li>
+          <li>密钥存储在 iOS Keychain（系统级安全）</li>
+          <li>Face ID / Touch ID 可选启用</li>
+          <li>OCR 全本地处理，截图不上传</li>
+          <li>无任何云端同步（除非用户主动启用 iCloud）</li>
+          <li>导出 CSV 时可脱敏（隐藏金额）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 八、RPG 化系统 ============ -->
+    <section id="rpg">
+      <h2><span class="num">09</span>RPG 化系统设计</h2>
+
+      <h3>等级体系</h3>
+      <table>
+        <tr><th>等级</th><th>称号</th><th>累计 EXP</th><th>形态</th></tr>
+        <tr><td>Lv.1</td><td>小财苗</td><td>0</td><td>🌱 绿色幼苗</td></tr>
+        <tr><td>Lv.2</td><td>铜币小子</td><td>500</td><td>🥉 铜色小人</td></tr>
+        <tr><td>Lv.3</td><td>记账学徒</td><td>1,500</td><td>📒 戴眼镜的账本精灵</td></tr>
+        <tr><td>Lv.4</td><td>银光理财</td><td>3,500</td><td>🥈 银色小财神</td></tr>
+        <tr><td>Lv.5</td><td>金币守护</td><td>7,000</td><td>🥇 金色盔甲守护</td></tr>
+        <tr><td>Lv.6</td><td>审计学徒</td><td>12,000</td><td>🔍 戴单片眼镜的会计师</td></tr>
+        <tr><td>Lv.7</td><td>财宝猎人</td><td>20,000</td><td>💎 手持放大镜的猎人</td></tr>
+        <tr><td>Lv.8</td><td>财务大师</td><td>35,000</td><td>📊 戴学士帽的财务专家</td></tr>
+        <tr><td>Lv.9</td><td>理财宗师</td><td>60,000</td><td>🏆 紫色长袍宗师</td></tr>
+        <tr><td>Lv.10</td><td>财神降临</td><td>100,000</td><td>👑 金甲财神（终极形态）</td></tr>
+      </table>
+
+      <h3>经验值获取规则</h3>
+      <table>
+        <tr><th>行为</th><th>EXP</th><th>说明</th></tr>
+        <tr><td>手动记账</td><td>+5</td><td>每笔</td></tr>
+        <tr><td>OCR 记账（被用户确认）</td><td>+8</td><td>比手写奖励高，激励用 OCR</td></tr>
+        <tr><td>连续记账 7 天</td><td>+50</td><td>触发后一次性发放</td></tr>
+        <tr><td>连续记账 30 天</td><td>+300</td><td>触发后一次性发放</td></tr>
+        <tr><td>月末未超预算</td><td>+100</td><td>每月 1 号结算</td></tr>
+        <tr><td>准时还款</td><td>+30</td><td>每张卡每次</td></tr>
+        <tr><td>检测到异常消费并避免</td><td>+20</td><td>用户确认"取消"该笔交易</td></tr>
+        <tr><td>解锁新成就</td><td>+成就奖励 EXP</td><td>详见成就表</td></tr>
+        <tr><td>导出月度报告</td><td>+15</td><td>鼓励复盘</td></tr>
+      </table>
+
+      <h3>成就系统</h3>
+      <table>
+        <tr><th>代码</th><th>名称</th><th>条件</th><th>稀有度</th><th>奖励 EXP</th></tr>
+        <tr><td>first_record</td><td>初出茅庐</td><td>首次记账</td><td>普通</td><td>20</td></tr>
+        <tr><td>streak_7</td><td>坚持一周</td><td>连续 7 天记账</td><td>普通</td><td>50</td></tr>
+        <tr><td>streak_30</td><td>月度习惯</td><td>连续 30 天记账</td><td>稀有</td><td>300</td></tr>
+        <tr><td>streak_100</td><td>百日筑基</td><td>连续 100 天记账</td><td>史诗</td><td>1500</td></tr>
+        <tr><td>streak_365</td><td>一年守信</td><td>连续 365 天记账</td><td>传说</td><td>5000</td></tr>
+        <tr><td>budget_master</td><td>预算执行者</td><td>月末未超预算</td><td>普通</td><td>100</td></tr>
+        <tr><td>budget_legend</td><td>预算之神</td><td>连续 12 月未超预算</td><td>史诗</td><td>2000</td></tr>
+        <tr><td>on_time_3</td><td>还款先锋</td><td>准时还款 3 次</td><td>普通</td><td>100</td></tr>
+        <tr><td>on_time_50</td><td>信用模范</td><td>准时还款 50 次</td><td>稀有</td><td>500</td></tr>
+        <tr><td>saved_10k</td><td>攒钱达人</td><td>累计结余 ¥10000</td><td>稀有</td><td>500</td></tr>
+        <tr><td>saved_50k</td><td>五万富翁</td><td>累计结余 ¥50000</td><td>史诗</td><td>2000</td></tr>
+        <tr><td>coffee_free</td><td>咖啡自由挑战</td><td>30 天不点外卖咖啡</td><td>稀有</td><td>400</td></tr>
+        <tr><td>audit_5</td><td>识破五次</td><td>5 次避免异常消费</td><td>普通</td><td>150</td></tr>
+        <tr><td>ocr_100</td><td>截图高手</td><td>OCR 记账 100 笔</td><td>稀有</td><td>600</td></tr>
+        <tr><td>data_export</td><td>数据管家</td><td>导出 12 份月度报告</td><td>普通</td><td>300</td></tr>
+        <tr><td>zero_debt</td><td>零负债英雄</td><td>信用卡余额全清</td><td>史诗</td><td>1000</td></tr>
+        <tr><td>first_card</td><td>持卡人</td><td>添加第一张信用卡</td><td>普通</td><td>50</td></tr>
+        <tr><td>card_master</td><td>多卡管理</td><td>同时管理 ≥3 张卡</td><td>稀有</td><td>300</td></tr>
+        <tr><td>report_12</td><td>复盘达人</td><td>查看 12 份月度报告</td><td>稀有</td><td>500</td></tr>
+        <tr><td>level_10</td><td>财神降临</td><td>达到 Lv.10</td><td>传说</td><td>0（已是最高）</td></tr>
+      </table>
+
+      <h3>主线剧情任务（v2.0 启用）</h3>
+      <div class="callout callout-gold">
+        <div class="callout-title">📖 主线：财务自由之路</div>
+        <p>每章解锁一个长期目标，给用户"我在做一件大事"的感觉。</p>
+        <pre><code>📖 第一章：万元户
+   目标：累计结余 ¥10000
+   进度：██████░░░░ 62%
+   奖励：解锁 Lv.5 形态
+
+📖 第二章：信用模范
+   目标：连续 12 个月所有卡准时还款
+   进度：██░░░░░░░░ 17%
+   奖励：解锁专属"信用金身"光环
+
+📖 第三章：财务自由预演
+   目标：月度结余稳定 ≥ ¥5000
+   进度：░░░░░░░░░░ 0%
+   奖励：攒攒进化为"自由向导"形态
+</code></pre>
+      </div>
+
+      <h3>攒攒人格台词库设计</h3>
+      <pre><code>class DialogueLibrary {
+  // 按场景分类，每个场景至少 5 句随机
+  static const encouragement = [
+    "主人好棒！今天又坚持记账了 ✨",
+    "又是元气满满的一天！攒攒为主人加油 ~",
+    "今天的每一笔，都在为未来积攒力量~",
+  ];
+
+  static const roast = [
+    "主人又在喝奶茶？这是本月第 6 杯了哦。",
+    "嗯？又下单外卖了吗？主人真是... 嗯... 勇于消费！",
+    "检测到深夜下单，建议先睡一觉再决定。",
+  ];
+
+  static const onTimeRepayment = [
+    "还款完成！信用值 +50，主人信用等级：A+ ✨",
+    "准时还款！主人是真正的守信之人 🏆",
+    "又一张卡搞定！攒攒为主人的信用记录喝彩 👏",
+  ];
+
+  static const budgetWarning = [
+    "⚠️ 餐饮预算还剩 ¥89，还能吃 3 顿工作日午餐哦~",
+    "🚨 主人！本月已花 95%！建议启动吃土模式！",
+    "📊 预算进度 80%。攒攒决定给主人一个爱的眼神：盯着。",
+  ];
+
+  static const levelUp = [
+    "🎊 主人升级啦！新形态解锁：${newForm.name}",
+    "✨ 升级！新技能解锁：${newSkill.description}",
+    "👑 主人变强了！攒攒也跟着变厉害！",
+  ];
+}
+</code></pre>
+    </section>
+
+    <!-- ============ 九、AI 模块 ============ -->
+    <section id="ai-module">
+      <h2><span class="num">10</span>AI 模块设计</h2>
+
+      <h3>AI 模块架构</h3>
+      <pre><code>┌────────────────────────────────────────────┐
+│           AI Module (Local)                │
+│                                            │
+│  ┌──────────────┐    ┌──────────────────┐ │
+│  │  OCR Service │ →  │ Audit Validator  │ │
+│  │ (Vision API) │    │   (审计官)       │ │
+│  └──────────────┘    └────────┬─────────┘ │
+│                              │           │
+│                              ↓           │
+│                     ┌──────────────────┐  │
+│                     │ User Confirmation│  │
+│                     │     Dialog       │  │
+│                     └────────┬─────────┘  │
+│                              │           │
+│                              ↓           │
+│                     ┌──────────────────┐  │
+│                     │  Insight Engine  │  │
+│                     │  (Insights)      │  │
+│                     └──────────────────┘  │
+└────────────────────────────────────────────┘
+</code></pre>
+
+      <h3>OCR 自动记账流程</h3>
+      <div class="callout callout-info">
+        <div class="callout-title">🔍 流程：截图 → 入库</div>
+        <ol>
+          <li><strong>截图保存</strong>：用户截图微信/支付宝账单</li>
+          <li><strong>App 内唤起 OCR</strong>：用户点击"扫一扫"或相册选择</li>
+          <li><strong>Vision API 识别</strong>：提取金额、商户、时间</li>
+          <li><strong>审计官校验</strong>：
+            <ul>
+              <li>金额合理性（不是 0、不是天文数字）</li>
+              <li>商户名是否在已知库中</li>
+              <li>时间是否在合理范围（不是未来）</li>
+              <li>是否与近期交易重复</li>
+            </ul>
+          </li>
+          <li><strong>用户确认界面</strong>：显示识别结果，用户可修改</li>
+          <li><strong>攒攒说话</strong>："已识别餐饮 ¥58，是否确认？"</li>
+          <li><strong>入库</strong>：用户点确认后写入数据库</li>
+        </ol>
+      </div>
+
+      <h3>异常检测规则（审计官核心）</h3>
+      <pre><code>class AuditRule {
+  // 1. 金额异常检测
+  bool checkAmountAnomaly(Transaction tx) {
+    final avgDaily = getAvgDailyExpense(tx.accountId);
+    if (tx.amount.abs() > avgDaily * 5) {
+      return true;  // 单笔超过日均 5 倍，触发红色警告
+    }
+    return false;
+  }
+
+  // 2. 时间异常检测
+  bool checkTimeAnomaly(Transaction tx) {
+    final hour = DateTime.fromMillisecondsSinceEpoch(tx.occurredAt).hour;
+    if (hour >= 1 && hour <= 5 && tx.category == '餐饮') {
+      return true;  // 凌晨 1-5 点餐饮，触发黄色提示
+    }
+    return false;
+  }
+
+  // 3. 预算超支检测
+  bool checkBudgetAnomaly(Transaction tx) {
+    final usage = getBudgetUsage(tx.categoryId);
+    if (usage >= 0.95) {
+      return true;  // 预算用 95%，触发橙色警告
+    }
+    return false;
+  }
+
+  // 4. 重复检测
+  bool checkDuplicate(Transaction tx) {
+    final recent = getRecentTransactions(
+      accountId: tx.accountId,
+      categoryId: tx.categoryId,
+      amount: tx.amount,
+      within: Duration(hours: 1),
+    );
+    return recent.isNotEmpty;  // 1 小时内同金额同分类
+  }
+
+  // 5. 信用卡账期检测
+  bool checkCreditLimit(Transaction tx) {
+    if (getAccountType(tx.accountId) == 'credit') {
+      final usage = getCreditUsage(tx.accountId);
+      if (usage >= 0.9) {
+        return true;  // 信用卡额度用 90%
+      }
+    }
+    return false;
+  }
+}
+</code></pre>
+
+      <h3>财务洞察生成（v2.0）</h3>
+      <pre><code>class InsightEngine {
+  // 每月 1 号生成上月洞察
+  Future&lt;List&lt;Insight&gt;&gt; generateMonthlyInsights() async {
+    return [
+      // 1. 消费结构洞察
+      Insight(
+        type: 'consumption_structure',
+        title: '你的钱去哪了',
+        content: '上月餐饮占 35%（行业平均 25%），'
+                 '建议调整工作日午餐习惯。',
+      ),
+
+      // 2. 趋势洞察
+      Insight(
+        type: 'trend',
+        title: '外卖趋势',
+        content: '近 3 个月外卖支出逐月上涨 18%/月，'
+                 '7 月已达 ¥1,200，预计月底 ¥1,500。',
+      ),
+
+      // 3. 异常洞察
+      Insight(
+        type: 'anomaly',
+        title: '异常消费提醒',
+        content: '7 月 13 日凌晨 1 点 ¥899 餐饮支出，'
+                 '是你近 30 天最大单笔，建议复盘。',
+      ),
+
+      // 4. 攒钱洞察
+      Insight(
+        type: 'saving',
+        title: '攒钱进度',
+        content: '本月结余率 23%，同比上月提升 5%。'
+                 '按此速度，年末可多攒 ¥3,000。',
+      ),
+    ];
+  }
+}
+</code></pre>
+
+      <h3>0 成本原则下的 AI 实现</h3>
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 关键约束</div>
+        <p>严格遵守 0 成本原则，AI 模块设计如下：</p>
+        <table>
+          <tr><th>能力</th><th>实现方式</th><th>成本</th></tr>
+          <tr>
+            <td>OCR 识别</td>
+            <td>iOS Vision API（系统原生）</td>
+            <td><span class="tag tag-a">免费</span></td>
+          </tr>
+          <tr>
+            <td>异常检测</td>
+            <td>规则引擎（纯本地代码）</td>
+            <td><span class="tag tag-a">免费</span></td>
+          </tr>
+          <tr>
+            <td>数据校验</td>
+            <td>纯本地代码</td>
+            <td><span class="tag tag-a">免费</span></td>
+          </tr>
+          <tr>
+            <td>统计聚合</td>
+            <td>SQL 查询 + Dart 计算</td>
+            <td><span class="tag tag-a">免费</span></td>
+          </tr>
+          <tr>
+            <td>对话/剧本</td>
+            <td>预设台词库 + 模板渲染</td>
+            <td><span class="tag tag-a">免费</span></td>
+          </tr>
+          <tr>
+            <td>深度语义理解（v2.0 远期）</td>
+            <td>本地小型 LLM（Llama 3 2B 量化版）</td>
+            <td><span class="tag tag-a">免费</span>（算力消耗）</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 十、测试方案 ============ -->
+    <section id="test">
+      <h2><span class="num">11</span>测试方案</h2>
+
+      <h3>测试策略</h3>
+      <p>采用「<strong>测试金字塔</strong>」：大量单元测试 + 关键集成测试 + 少量 E2E 测试 + 手动验收。</p>
+
+      <h3>单元测试（覆盖率目标 ≥ 80%）</h3>
+      <table>
+        <tr><th>模块</th><th>测试重点</th><th>用例示例</th></tr>
+        <tr>
+          <td>账本核心</td>
+          <td>CRUD、计算、统计</td>
+          <td>
+            - 月度支出汇总金额正确<br>
+            - 跨月数据正确归属<br>
+            - 删除交易后统计实时更新
+          </td>
+        </tr>
+        <tr>
+          <td>信用卡模块</td>
+          <td>账期计算、还款日推算</td>
+          <td>
+            - 跨月账期正确归属<br>
+            - 2 月 28 天账期边界<br>
+            - 闰年 2 月 29 账期边界
+          </td>
+        </tr>
+        <tr>
+          <td>预算模块</td>
+          <td>执行追踪、超支判断</td>
+          <td>
+            - 分类预算累计正确<br>
+            - 总预算与分类预算关系<br>
+            - 周期切换时预算重置
+          </td>
+        </tr>
+        <tr>
+          <td>审计官</td>
+          <td>异常检测规则</td>
+          <td>
+            - 金额异常 5 倍阈值<br>
+            - 凌晨餐饮检测<br>
+            - 重复检测 1 小时窗口<br>
+            - 边界值（恰好 5 倍）
+          </td>
+        </tr>
+        <tr>
+          <td>RPG 系统</td>
+          <td>经验值计算、成就解锁</td>
+          <td>
+            - 经验值累加正确<br>
+            - 升级判定<br>
+            - 成就条件触发<br>
+            - 同一行为不重复触发
+          </td>
+        </tr>
+        <tr>
+          <td>数据层</td>
+          <td>DAO 操作、迁移</td>
+          <td>
+            - 增删改查<br>
+            - 数据库版本迁移<br>
+            - 加密读写正确
+          </td>
+        </tr>
+      </table>
+
+      <h3>集成测试</h3>
+      <table>
+        <tr><th>场景</th><th>验证点</th></tr>
+        <tr>
+          <td>记账 → 统计 → 显示</td>
+          <td>添加交易后，主页和统计页数据实时同步</td>
+        </tr>
+        <tr>
+          <td>OCR → 校验 → 入库</td>
+          <td>截图识别 → 审计官校验 → 用户确认 → 数据库写入链路完整</td>
+        </tr>
+        <tr>
+          <td>信用卡消费 → 还款提醒</td>
+          <td>添加信用卡消费 → T-3 天触发通知 → T-0 弹窗</td>
+        </tr>
+        <tr>
+          <td>预算超支 → 警告 → 攒攒反馈</td>
+          <td>支出累积到 80% → 警告触发 → 攒攒显示对应台词</td>
+        </tr>
+        <tr>
+          <td>成就解锁 → 升级 → 形态变化</td>
+          <td>触发成就 → EXP 增加 → 跨级时升级动画 → 攒攒形态切换</td>
+        </tr>
+      </table>
+
+      <h3>E2E 测试（关键用户旅程）</h3>
+      <ol>
+        <li><strong>首次启动 → Onboarding → 主页</strong>：完成所有引导步骤，最终落在主页</li>
+        <li><strong>添加信用卡 → 设置还款提醒 → 收到通知</strong>：完整还款提醒链路</li>
+        <li><strong>截图 → OCR → 确认 → 入账 → 查看统计</strong>：OCR 全链路</li>
+        <li><strong>设置预算 → 消费累积 → 超支 → 攒攒反馈</strong>：预算链路</li>
+      </ol>
+
+      <h3>手动验收（每个迭代必做）</h3>
+      <div class="callout callout-success">
+        <div class="callout-title">✅ 验收 Checklist（每次发版前）</div>
+        <ul class="checklist">
+          <li>启动时间 ≤ 2 秒</li>
+          <li>主页加载 ≤ 1 秒</li>
+          <li>记账流程 ≤ 5 秒完成</li>
+          <li>所有动画流畅，无掉帧</li>
+          <li>暗色/亮色主题切换正常</li>
+          <li>iOS 16 / 17 / 18 真机测试通过</li>
+          <li>iPhone SE（小屏）布局不破</li>
+          <li>iPhone 15 Pro Max（大屏）布局不空</li>
+          <li>杀进程后数据不丢</li>
+          <li>App 后台切换不闪退</li>
+          <li>通知权限请求弹窗正常</li>
+          <li>Face ID 解锁正常（如启用）</li>
+          <li>数据导出 CSV 可正常打开</li>
+          <li>卸载 App 重装数据可恢复</li>
+        </ul>
+      </div>
+
+      <h3>性能测试</h3>
+      <table>
+        <tr><th>指标</th><th>目标</th><th>测试方法</th></tr>
+        <tr><td>启动时间</td><td>≤ 2.0s</td><td>冷启动测量</td></tr>
+        <tr><td>主页滚动 FPS</td><td>≥ 55</td><td>Flutter DevTools</td></tr>
+        <tr><td>列表 1000 条数据滚动</td><td>无卡顿</td><td>性能 Profile</td></tr>
+        <tr><td>数据库查询（10 万条交易）</td><td>≤ 100ms</td><td>SQL EXPLAIN</td></tr>
+        <tr><td>OCR 识别（单张截图）</td><td>≤ 3s</td><td>Vision API 实测</td></tr>
+        <tr><td>App 安装包大小</td><td>≤ 50MB</td><td>build 产物</td></tr>
+      </table>
+
+      <h3>兼容性测试</h3>
+      <table>
+        <tr><th>设备</th><th>系统</th><th>优先级</th></tr>
+        <tr><td>iPhone SE (3rd gen)</td><td>iOS 16</td><td>必须</td></tr>
+        <tr><td>iPhone 13</td><td>iOS 17</td><td>必须</td></tr>
+        <tr><td>iPhone 15</td><td>iOS 17</td><td>必须</td></tr>
+        <tr><td>iPhone 15 Pro Max</td><td>iOS 17</td><td>必须</td></tr>
+        <tr><td>iPhone 15 Pro</td><td>iOS 18</td><td>应该</td></tr>
+      </table>
+
+      <h3>数据准确性测试（关键中的关键）</h3>
+      <div class="callout callout-danger">
+        <div class="callout-title">🚨 准确性专项</div>
+        <p>审计官的准确性是产品根基，专项测试：</p>
+        <ul>
+          <li><strong>100 笔模拟交易</strong>：审计官检测准确率 ≥ 95%</li>
+          <li><strong>边界值用例</strong>：0 元、负数、超大金额、跨年、闰年</li>
+          <li><strong>并发用例</strong>：同时录入多笔，统计不串</li>
+          <li><strong>回滚用例</strong>：删除交易后，相关统计回滚正确</li>
+          <li><strong>迁移用例</strong>：旧版本数据迁移到新版本不丢不串</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 十一、开发计划 ============ -->
+    <section id="plan">
+      <h2><span class="num">12</span>开发计划与里程碑</h2>
+
+      <h3>总体节奏</h3>
+      <p>采用「<strong>小步快跑 + 每周可演示</strong>」模式。每个里程碑结束都能跑起来给自己用。</p>
+
+      <table>
+        <tr><th>阶段</th><th>时长</th><th>交付物</th><th>可演示</th></tr>
+        <tr>
+          <td><strong>M0 基础架构</strong></td>
+          <td>3 天</td>
+          <td>项目脚手架、主题、路由、数据库初始化</td>
+          <td>空壳 App 能跑起来</td>
+        </tr>
+        <tr>
+          <td><strong>M1 MVP 记账</strong></td>
+          <td>7 天</td>
+          <td>手动记账、分类、列表、基础统计</td>
+          <td>可以记账 + 看流水</td>
+        </tr>
+        <tr>
+          <td><strong>M2 信用卡</strong></td>
+          <td>7 天</td>
+          <td>多卡管理、账期日历、还款提醒、预算</td>
+          <td>可以用核心功能了 ⭐</td>
+        </tr>
+        <tr>
+          <td><strong>M3 RPG 系统</strong></td>
+          <td>5 天</td>
+          <td>等级、经验、成就、攒攒形象</td>
+          <td>用起来会上瘾</td>
+        </tr>
+        <tr>
+          <td><strong>M4 审计官 v1</strong></td>
+          <td>5 天</td>
+          <td>异常检测、警告系统、攒攒反馈</td>
+          <td>核心差异化能力</td>
+        </tr>
+        <tr>
+          <td><strong>M5 OCR & 深度分析</strong></td>
+          <td>7 天</td>
+          <td>OCR 自动记账、深度统计、月报</td>
+          <td>v1.1 功能完整</td>
+        </tr>
+        <tr>
+          <td><strong>M6 剧情 & 优化</strong></td>
+          <td>5 天</td>
+          <td>主线剧情、视觉优化、性能调优</td>
+          <td>v2.0 上瘾满级</td>
+        </tr>
+      </table>
+
+      <div class="callout callout-gold">
+        <div class="callout-title">🎯 关键节点</div>
+        <ul>
+          <li><strong>Day 10（M1 完成）</strong>：第一次能往 iPhone 上装自己用的 App</li>
+          <li><strong>Day 24（M4 完成）</strong>：核心差异化能力上线，开始"用得上瘾"</li>
+          <li><strong>Day 39（M6 完成）</strong>：A+ 级产品完成</li>
+        </ul>
+      </div>
+
+      <h3>每周工作流</h3>
+      <pre><code>周一：计划本周目标（Claude 给方案，你确认）
+周二~周四：开发（Claude 写代码，你做关键决策）
+周五：演示（Claude 部署到你的 iPhone，你测试验收）
+周末：复盘 + 下周计划
+
+每完成一个里程碑：
+  → git tag 标记版本
+  → 你验收通过 → 进入下一阶段
+  → 你验收不通过 → 返工
+</code></pre>
+
+      <h3>每日协作模式</h3>
+      <ol>
+        <li>你说"开始 M1"</li>
+        <li>Claude 给出本周详细任务清单</li>
+        <li>逐项实现，每完成一项你验收</li>
+        <li>遇到决策点（要选 A 还是 B），Claude 给你对比，你拍板</li>
+        <li>周五装到 iPhone，你试用，反馈</li>
+      </ol>
+    </section>
+
+    <!-- ============ 十二、风险与权衡 ============ -->
+    <section id="risk">
+      <h2><span class="num">13</span>风险与权衡</h2>
+
+      <h3>已知风险与应对</h3>
+      <table>
+        <tr><th>风险</th><th>概率</th><th>影响</th><th>应对策略</th></tr>
+        <tr>
+          <td>AltStore 7 天断签</td>
+          <td>中</td>
+          <td>App 闪退</td>
+          <td>
+            • 家里电脑常开跑 AltServer<br>
+            • 准备 2 个备用 Apple ID<br>
+            • 关键时候手动续签
+          </td>
+        </tr>
+        <tr>
+          <td>GitHub Actions 免费额度用完</td>
+          <td>低</td>
+          <td>无法云端编译</td>
+          <td>
+            • 免费 2000 分钟/月，绝对够<br>
+            • 备用：本地 Mac 虚拟机<br>
+            • 备用：朋友借 Mac 编译
+          </td>
+        </tr>
+        <tr>
+          <td>iOS 17/18 兼容性</td>
+          <td>中</td>
+          <td>UI 异常 / API 失败</td>
+          <td>
+            • 主要目标 iOS 16<br>
+            • CI 测试覆盖到 iOS 18<br>
+            • 用户升级 iOS 后适配
+          </td>
+        </tr>
+        <tr>
+          <td>OCR 识别准确率不足</td>
+          <td>中</td>
+          <td>用户要反复修改</td>
+          <td>
+            • Vision API 准确率本就高（>95%）<br>
+            • 必须用户确认才能入库<br>
+            • 失败可手动重输
+          </td>
+        </tr>
+        <tr>
+          <td>数据库迁移失败</td>
+          <td>低</td>
+          <td>数据丢失</td>
+          <td>
+            • Drift 迁移机制成熟<br>
+            • 每次升级前自动备份<br>
+            • CSV 导出兜底
+          </td>
+        </tr>
+        <tr>
+          <td>攒攒变成"假努力"工具</td>
+          <td>中</td>
+          <td>用户失去信任</td>
+          <td>
+            • 攒攒绝不为超支开脱<br>
+            • 台词基于真实数据生成<br>
+            • 长期沉默优于虚假鼓励
+          </td>
+        </tr>
+        <tr>
+          <td>Flutter 在 iOS 18 上的兼容性</td>
+          <td>低</td>
+          <td>构建失败</td>
+          <td>
+            • 锁定 Flutter 3.24+ 稳定版<br>
+            • 关键依赖固定版本
+          </td>
+        </tr>
+      </table>
+
+      <h3>0 成本约束下的关键权衡</h3>
+      <div class="grid-2">
+        <div class="feature-card">
+          <h5>✅ 不做的事</h5>
+          <ul>
+            <li>不上 iCloud 同步</li>
+            <li>不做云端 AI</li>
+            <li>不做实时推送（用本地通知代替）</li>
+            <li>不做应用商店分发</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h5>✅ 必做的事</h5>
+          <ul>
+            <li>本地 Vision API OCR</li>
+            <li>本地 SQLCipher 加密</li>
+            <li>本地通知</li>
+            <li>CSV 导出到 iCloud Drive</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>可能让你犹豫的决策点</h3>
+      <div class="callout callout-warn">
+        <div class="callout-title">⚠️ 提前告知</div>
+        <p>开发过程中，以下决策会让你犹豫，提前说清楚：</p>
+        <ol>
+          <li><strong>要不要 OCR？</strong>：OCR 是 P1，要不要放到 v1.0？建议放，但晚一周</li>
+          <li><strong>要不要剧情？</strong>：剧情是 P2，但重度 RPG 没剧情会"散"。建议 M6 简单做主线</li>
+          <li><strong>要不要多账本？</strong>：多账本是 P1，但自用可能 1 个账本够。建议 M2 后看你是否需要</li>
+          <li><strong>要不要 iCloud 同步？</strong>：你只有 1 个手机，先不做，省事</li>
+          <li><strong>要不要做支出趋势预测？</strong>：v2.0 再说</li>
+        </ol>
+      </div>
+
+      <h3>成功标准</h3>
+      <div class="callout callout-success">
+        <div class="callout-title">🏆 这个产品算"成功"的标准</div>
+        <ul>
+          <li>✅ 你每天打开 App 至少 1 次</li>
+          <li>✅ 连续记账 30 天不中断</li>
+          <li>✅ 信用卡从未逾期</li>
+          <li>✅ 每月结余率提升 ≥ 5%</li>
+          <li>✅ 你愿意主动给朋友演示（即使不分享 App）</li>
+          <li>✅ 攒攒升到 Lv.5+</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <p><strong>《审计官》记账 App · 产品方案 v1.0</strong></p>
+  <p>由 Claude（15 年产品经理 + 15 年系统架构师双重身份）设计</p>
+  <p>2026-07-14 · 文档持续迭代</p>
+</footer>
+
+</body>
+</html>

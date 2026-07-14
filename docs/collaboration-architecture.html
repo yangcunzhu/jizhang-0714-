@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>协作架构 · 审计官项目</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #0a0e1a 0%, #1a2332 100%);
+  color: #e6e6e6;
+  line-height: 1.65;
+  padding: 24px;
+  min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+header {
+  text-align: center;
+  padding: 32px 0 24px;
+  border-bottom: 2px solid #2e5bff;
+  margin-bottom: 32px;
+}
+h1 {
+  font-size: 38px;
+  background: linear-gradient(90deg, #2e5bff 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.subtitle { color: #888; font-size: 14px; }
+.subtitle strong { color: #fbbf24; }
+
+.section {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-num {
+  background: linear-gradient(135deg, #2e5bff, #8b5cf6);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.section-subtitle {
+  color: #888;
+  font-size: 13px;
+  font-weight: 400;
+  margin-left: 12px;
+}
+
+/* 角色卡片 */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .role-grid { grid-template-columns: 1fr; }
+}
+.role-card {
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid;
+  transition: transform 0.2s;
+}
+.role-card:hover { transform: translateY(-2px); }
+.role-card.user { border-color: #fbbf24; }
+.role-card.main { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+.role-card.specialist { border-color: #f97316; }
+.role-card.auditor { border-color: #10b981; }
+
+.role-icon { font-size: 32px; margin-bottom: 12px; }
+.role-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.role-title { font-size: 12px; color: #888; margin-bottom: 12px; font-family: monospace; }
+.role-desc { font-size: 13px; color: #ccc; line-height: 1.8; }
+.role-meta {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+}
+.role-when {
+  display: inline-block;
+  background: rgba(46, 91, 255, 0.2);
+  color: #93c5fd;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-right: 4px;
+  margin-top: 4px;
+}
+.role-when.critical { background: rgba(251,191,36,0.2); color: #fde68a; }
+.role-when.exclusive { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+
+/* 会话拓扑 */
+.session-diagram {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 24px 0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.session-box {
+  background: rgba(255,255,255,0.08);
+  border: 2px solid;
+  border-radius: 12px;
+  padding: 20px;
+  width: 240px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+.session-box.main { border-color: #8b5cf6; }
+.session-box.task { border-color: #2e5bff; }
+.session-box.specialist { border-color: #f97316; }
+
+.session-icon { font-size: 40px; margin-bottom: 8px; }
+.session-name { font-weight: 700; margin-bottom: 4px; font-size: 15px; }
+.session-type { font-size: 11px; color: #888; font-family: monospace; margin-bottom: 12px; }
+.session-desc {
+  font-size: 12px;
+  color: #ccc;
+  flex: 1;
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.session-meta {
+  font-size: 11px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  color: #aaa;
+}
+.arrow {
+  display: flex;
+  align-items: center;
+  font-size: 24px;
+  color: #555;
+  padding: 0 4px;
+}
+
+.note {
+  margin-top: 20px;
+  font-size: 13px;
+  padding: 16px;
+  background: rgba(46,91,255,0.1);
+  border-left: 3px solid #2e5bff;
+  border-radius: 8px;
+  color: #ccc;
+  line-height: 1.8;
+}
+.note strong { color: #93c5fd; }
+
+/* 模式表格 */
+.mode-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.mode-table th {
+  text-align: left;
+  padding: 12px 14px;
+  background: rgba(46,91,255,0.15);
+  border-bottom: 2px solid #2e5bff;
+  font-size: 13px;
+  color: #93c5fd;
+}
+.mode-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  vertical-align: top;
+}
+.mode-table tr:hover { background: rgba(255,255,255,0.03); }
+.mode-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: monospace;
+  white-space: nowrap;
+}
+.tag-plan { background: rgba(139,92,246,0.25); color: #c4b5fd; }
+.tag-impl { background: rgba(46,91,255,0.25); color: #93c5fd; }
+.tag-tdd { background: rgba(249,115,22,0.25); color: #fdba74; }
+.tag-audit { background: rgba(16,185,129,0.25); color: #6ee7b7; }
+.tag-review { background: rgba(251,191,36,0.25); color: #fde68a; }
+.tag-accept { background: rgba(236,72,153,0.25); color: #f9a8d4; }
+
+/* 流程图 */
+.flow-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 24px 0;
+}
+.flow-step {
+  background: rgba(255,255,255,0.06);
+  border: 2px solid;
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+  flex: 1;
+  min-width: 110px;
+  position: relative;
+}
+.flow-step strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.flow-step small {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.flow-arrow { color: #555; font-size: 18px; flex-shrink: 0; }
+
+.s-draft { border-color: #6b7280; }
+.s-ready { border-color: #3b82f6; }
+.s-auth { border-color: #8b5cf6; }
+.s-active { border-color: #f97316; background: rgba(249,115,22,0.08); }
+.s-valid { border-color: #eab308; }
+.s-roa { border-color: #ec4899; }
+.s-accept { border-color: #10b981; background: rgba(16,185,129,0.08); }
+
+/* 责任矩阵 */
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 16px;
+}
+.matrix-table th, .matrix-table td {
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+.matrix-table th { background: rgba(255,255,255,0.06); font-weight: 600; color: #93c5fd; }
+.matrix-table td:first-child { text-align: left; font-weight: 600; color: #ccc; }
+.check { color: #10b981; font-weight: 700; font-size: 16px; }
+.cross { color: #4b5563; }
+.warn { color: #f59e0b; font-weight: 700; font-size: 16px; }
+
+/* 实战剧本 */
+.script {
+  background: rgba(0,0,0,0.3);
+  padding: 24px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 2;
+  font-family: -apple-system, "Microsoft YaHei", sans-serif;
+}
+.script-line {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.script-actor {
+  font-weight: 700;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.actor-user { background: rgba(251,191,36,0.2); color: #fde68a; }
+.actor-main { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+.actor-auditor { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+
+footer {
+  text-align: center;
+  padding: 32px 0 16px;
+  color: #666;
+  font-size: 12px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  margin-top: 24px;
+}
+footer p { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>协作架构 · 审计官项目</h1>
+  <p class="subtitle">v1.0 · 2026-07-14 · 当前 Stage: <strong>S00 (DRAFT)</strong></p>
+</header>
+
+<!-- ===== 1. 角色 ===== -->
+<section class="section">
+  <h2 class="section-title">
+    <span class="section-num">1</span>
+    一共 6 个角色
+    <span class="section-subtitle">1 个你 + 5 个 AI 角色</span>
+  </h2>
+
+  <div class="role-grid">
+
+    <div class="role-card user">
+      <div class="role-icon">👤</div>
+      <div class="role-name">用户 (Owner)</div>
+      <div class="role-title">决策者 · 验收者</div>
+      <div class="role-desc">
+        • 你本人<br>
+        • 不写代码、不懂技术<br>
+        • 做关键决策（授权 / 验收）<br>
+        • 每个 Stage 开始前授权<br>
+        • 每个 Stage 完成后验收签字
+      </div>
+      <div class="role-meta">
+        <span class="role-when critical">全程在线</span>
+        <span class="role-when critical">不可替代</span>
+      </div>
+    </div>
+
+    <div class="role-card main">
+      <div class="role-icon">🧠</div>
+      <div class="role-name">主 Agent</div>
+      <div class="role-title">Claude (MiniMax-M3) · 我</div>
+      <div class="role-desc">
+        • 写所有文档<br>
+        • 编写代码<br>
+        • 实时答疑<br>
+        • 协调领域经理<br>
+        • <strong>唯一写入者</strong>
+      </div>
+      <div class="role-meta">
+        <span class="role-when exclusive">每天 13h</span>
+        <span class="role-when exclusive">唯一写入权限</span>
+      </div>
+    </div>
+
+    <div class="role-card specialist">
+      <div class="role-icon">🏗️</div>
+      <div class="role-name">架构经理</div>
+      <div class="role-title">加密 · 数据库设计</div>
+      <div class="role-desc">
+        • SQLCipher 集成<br>
+        • 密钥管理<br>
+        • 数据迁移<br>
+        • 快照策略<br>
+        • Stage 6 启用
+      </div>
+      <div class="role-meta">
+        <span class="role-when">Stage 6 起</span>
+      </div>
+    </div>
+
+    <div class="role-card specialist">
+      <div class="role-icon">🍎</div>
+      <div class="role-name">iOS 原生经理</div>
+      <div class="role-title">Swift 桥接 · Apple API</div>
+      <div class="role-desc">
+        • Swift 代码<br>
+        • Vision API (OCR)<br>
+        • Siri Shortcuts<br>
+        • 本地通知<br>
+        • Stage 1 / 7 启用
+      </div>
+      <div class="role-meta">
+        <span class="role-when">Stage 1 起</span>
+      </div>
+    </div>
+
+    <div class="role-card specialist">
+      <div class="role-icon">🤖</div>
+      <div class="role-name">AI 经理</div>
+      <div class="role-title">LLM · Prompt · OCR</div>
+      <div class="role-desc">
+        • AI 模型集成<br>
+        • Prompt 设计<br>
+        • 攒攒台词库<br>
+        • 异常检测<br>
+        • Stage 7 / v1.1 启用
+      </div>
+      <div class="role-meta">
+        <span class="role-when">Stage 7 起</span>
+      </div>
+    </div>
+
+    <div class="role-card auditor">
+      <div class="role-icon">🔍</div>
+      <div class="role-name">只读检查池</div>
+      <div class="role-title">审计 · 复核</div>
+      <div class="role-desc">
+        • 代码审查<br>
+        • 安全审计<br>
+        • 性能审查<br>
+        • <strong>只读不写</strong><br>
+        • 每个 Stage 完成后启用
+      </div>
+      <div class="role-meta">
+        <span class="role-when">每个 Stage 结束</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 2. 会话 ===== -->
+<section class="section">
+  <h2 class="section-title">
+    <span class="section-num">2</span>
+    一共 3 类会话窗口
+    <span class="section-subtitle">你只需要管第一个</span>
+  </h2>
+
+  <div class="session-diagram">
+
+    <div class="session-box main">
+      <div class="session-icon">💬</div>
+      <div class="session-name">主对话窗口</div>
+      <div class="session-type">你 ↔ 主 Agent</div>
+      <div class="session-desc">
+        唯一一个<br>
+        你直接对话的窗口<br>
+        也就是现在这个
+      </div>
+      <div class="session-meta">📌 你只管这个</div>
+    </div>
+
+    <div class="arrow">⇄</div>
+
+    <div class="session-box task">
+      <div class="session-icon">⚡</div>
+      <div class="session-name">任务执行窗口</div>
+      <div class="session-type">主 Agent → 子智能体</div>
+      <div class="session-desc">
+        临时开的<br>
+        处理单一任务<br>
+        5 分钟内关闭<br>
+        你看不到
+      </div>
+      <div class="session-meta">🤖 主 Agent 自管</div>
+    </div>
+
+    <div class="arrow">⇄</div>
+
+    <div class="session-box specialist">
+      <div class="session-icon">🎯</div>
+      <div class="session-name">专项会话窗口</div>
+      <div class="session-type">主 Agent ↔ 领域经理</div>
+      <div class="session-desc">
+        长期保持<br>
+        Stage 启用时打开<br>
+        Stage 结束关闭<br>
+        你看不到
+      </div>
+      <div class="session-meta">🎯 主 Agent 自管</div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <strong>📌 关键说明：</strong><br>
+    你只需要和<strong style="color:#c4b5fd;">主对话窗口</strong>交互（也就是当前这个对话）。其他窗口是主 Agent 在后台开的，你看不到也不需要关心。所有文档、代码、决策都汇总到主对话，再写入文件。
+  </div>
+</section>
+
+<!-- ===== 3. 模式 ===== -->
+<section class="section">
+  <h2 class="section-title">
+    <span class="section-num">3</span>
+    一共 6 种工作模式
+    <span class="section-subtitle">每个 Stage 都按这个循环跑</span>
+  </h2>
+
+  <table class="mode-table">
+    <thead>
+      <tr>
+        <th style="width:180px;">模式</th>
+        <th style="width:140px;">谁主导</th>
+        <th>做什么</th>
+        <th style="width:200px;">何时触发</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="mode-tag tag-plan">PLAN</span></td>
+        <td>主 Agent</td>
+        <td>写 Stage 授权包络 / 每日计划 / ADR 决策记录</td>
+        <td>每个 Stage 开始前</td>
+      </tr>
+      <tr>
+        <td><span class="mode-tag tag-impl">IMPLEMENT</span></td>
+        <td>主 Agent 写<br>你执行</td>
+        <td>主 Agent 出代码 → 你跑命令 → 反馈结果</td>
+        <td>Stage ACTIVE 期间</td>
+      </tr>
+      <tr>
+        <td><span class="mode-tag tag-tdd">TDD</span></td>
+        <td>主 Agent</td>
+        <td>先写测试 → 再写实现 → 跑通</td>
+        <td>复杂功能（自动启用）</td>
+      </tr>
+      <tr>
+        <td><span class="mode-tag tag-audit">AUDIT</span></td>
+        <td>只读检查池</td>
+        <td>代码 / 安全 / 性能审查</td>
+        <td>每个 Stage 完成后</td>
+      </tr>
+      <tr>
+        <td><span class="mode-tag tag-review">REVIEW</span></td>
+        <td>主 Agent</td>
+        <td>根据审计结果修复 / 改进</td>
+        <td>AUDIT 之后</td>
+      </tr>
+      <tr>
+        <td><span class="mode-tag tag-accept">OWNER_ACCEPTANCE</span></td>
+        <td>你（用户）</td>
+        <td>走验收清单 → 签字通过</td>
+        <td>每个 Stage 结束</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== 4. 配合流程 ===== -->
+<section class="section">
+  <h2 class="section-title">
+    <span class="section-num">4</span>
+    怎么配合 · Stage 生命周期
+    <span class="section-subtitle">S00 到 S08 都按这 7 步走</span>
+  </h2>
+
+  <div class="flow-container">
+    <div class="flow-step s-draft">
+      <strong>DRAFT</strong>
+      <small>主 Agent 起草</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-ready">
+      <strong>READY</strong>
+      <small>主 Agent 自审</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-auth">
+      <strong>AUTHORIZED</strong>
+      <small>你授权</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-active">
+      <strong>ACTIVE</strong>
+      <small>主 Agent 写<br>你执行命令</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-valid">
+      <strong>VALIDATING</strong>
+      <small>主 Agent 自验<br>检查池审计</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-roa">
+      <strong>ROA</strong>
+      <small>你走验收清单</small>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step s-accept">
+      <strong>ACCEPTED</strong>
+      <small>签字 · 进下个 Stage</small>
+    </div>
+  </div>
+
+  <h3 style="margin-top:32px; margin-bottom:12px; font-size:16px; color:#93c5fd;">📋 责任矩阵（谁做什么）</h3>
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th style="width:200px;">环节</th>
+        <th style="width:120px;">👤 你</th>
+        <th style="width:140px;">🧠 主 Agent</th>
+        <th style="width:140px;">🎯 领域经理</th>
+        <th style="width:120px;">🔍 检查池</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>规划 (PLAN)</td>
+        <td class="warn">⚠ 审阅</td>
+        <td class="check">✅ 起草</td>
+        <td class="cross">—</td>
+        <td class="cross">—</td>
+      </tr>
+      <tr>
+        <td>执行 (IMPLEMENT)</td>
+        <td class="check">✅ 跑命令</td>
+        <td class="check">✅ 写代码</td>
+        <td class="check">✅ 专项</td>
+        <td class="cross">—</td>
+      </tr>
+      <tr>
+        <td>测试 (TDD)</td>
+        <td class="cross">—</td>
+        <td class="check">✅ 主导</td>
+        <td class="check">✅ 协助</td>
+        <td class="cross">—</td>
+      </tr>
+      <tr>
+        <td>审计 (AUDIT)</td>
+        <td class="cross">—</td>
+        <td class="cross">—</td>
+        <td class="cross">—</td>
+        <td class="check">✅ 审查</td>
+      </tr>
+      <tr>
+        <td>验收 (ACCEPT)</td>
+        <td class="check">✅ 签字</td>
+        <td class="cross">—</td>
+        <td class="cross">—</td>
+        <td class="cross">—</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== 5. 实战剧本 ===== -->
+<section class="section">
+  <h2 class="section-title">
+    <span class="section-num">5</span>
+    实战剧本 · 当前 Stage 0
+    <span class="section-subtitle">从你说话到 Stage 完成的全过程</span>
+  </h2>
+
+  <div class="script">
+    <div class="script-line">
+      <span class="script-actor actor-user">👤 你</span>
+      <span>"开始 Stage 0"</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>写 S00 授权包络 + Day 1-3 计划（PLAN 模式 → DRAFT）</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>自审文档 → 状态推进到 READY</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-user">👤 你</span>
+      <span>看文档，问几个问题，<strong style="color:#10b981;">授权开始</strong>（→ AUTHORIZED）</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>进入 IMPLEMENT 模式 → 给出 Day 1 命令清单</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-user">👤 你</span>
+      <span>在 PowerShell 执行命令，截图报错给主 Agent</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>实时答疑 + 排查问题（持续 3 天）</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>每天结束填 EOD 结束卡 → Day 3 整理 Stage 0 结束卡</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-auditor">🔍 池</span>
+      <span>审计 S00 全部交付物（AUDIT 模式）</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>修复审计发现的问题（REVIEW 模式）</span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-user">👤 你</span>
+      <span>走验收清单 → 看到 iPhone 显示 "Hello 审计官" → <strong style="color:#10b981;">签字通过</strong></span>
+    </div>
+    <div class="script-line">
+      <span class="script-actor actor-main">🧠 主</span>
+      <span>状态 → ACCEPTED → 创建 S01 授权包络草稿 → 等你授权下一轮</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>📁 文件位置：<code>E:\jizhang-0714\docs\collaboration-architecture.html</code></p>
+  <p>v1.0 · 2026-07-14 · 由 Claude (MiniMax-M3) 生成</p>
+</footer>
+
+</div>
+</body>
+</html>
