@@ -12,7 +12,7 @@
 
 ## 🎯 Goal
 
-**跑通完整的 0 成本开发链路**：Windows 11 → VS Code → GitHub → GitHub Actions（macOS runner）→ .ipa → AltStore → iPhone 真机
+**跑通完整的 0 成本开发链路**：Windows 11 → VS Code → GitHub → GitHub Actions（macOS runner）→ .ipa → Sideloadly（短期）/ AltStore（长期）→ iPhone 真机
 
 **用户结果**：在 iPhone 上看到 "Hello 审计官" 应用图标，点击启动看到欢迎界面，证明整套 0 成本方案可行。
 
@@ -24,7 +24,8 @@
 - ADR-0001：Flutter 技术栈
 - PLAN.md：W1 (S00) 工时 ~30h
 - 用户时间：每天 12-16 小时，平均 13h
-- 部署方案：GitHub Actions + AltStore
+- 部署方案：GitHub Actions + Sideloadly(短期) / AltStore(长期)
+  - 详见 ADR-0004
 
 ### 当前状态
 - Windows 11 开发机已就绪
@@ -38,7 +39,7 @@
 - Git
 - VS Code + Flutter 插件
 - GitHub 账户
-- Apple ID（用于 AltStore）
+- Apple ID（用于 Sideloadly / AltStore，**两阶段共用**）
 - iPhone + Lightning/USB-C 数据线
 
 ---
@@ -58,7 +59,7 @@
 10. ✅ Workflow 跑通（产出 .ipa）
 11. ✅ 下载 .ipa + AltStore 安装到 iPhone
 12. ✅ 真机启动 + 显示 "Hello 审计官"
-13. ✅ 配置 AltServer（家里旧电脑常开）
+13. ✅ 配置 AltServer（家里旧电脑常开 - **长期方案保留,短期用 Sideloadly**）
 
 ### 不做（明确排除）
 - ❌ 写任何业务代码
@@ -141,7 +142,7 @@ E:\jizhang-0714\
 | Flutter SDK 下载慢/失败 | 🟡 中 | 用清华镜像（FLUTTER_STORAGE_BASE_URL） |
 | GitHub Actions macOS runner 排队 | 🟢 低 | 等待或换时间触发 |
 | Apple 证书导入失败 | 🟡 中 | 详细步骤在 daily 文件，按步骤操作 |
-| AltStore 配对失败 | 🟡 中 | 重启 AltServer + 重新配对 |
+| AltStore 配对失败(长期方案) | 🟡 中 | 重启 AltServer + 重新配对 |
 | iPhone 不信任证书 | 🟢 低 | 设置 → 通用 → VPN 与设备管理 → 信任 |
 | 网络问题（GitHub / Apple） | 🟡 中 | 备用网络（如手机热点） |
 
@@ -184,14 +185,15 @@ E:\jizhang-0714\
 - 20:00-22:00 下载 .ipa artifact 验证
 - **当日产出**: 可下载的 .ipa 文件
 
-### Day 3 (2026-07-17) - AltStore 部署
-- 09:00-11:00 AltServer 安装（家里旧电脑）
-- 11:00-13:00 iPhone USB 连接 + AltStore 配对
-- 13:00-15:00 通过 AltStore 安装 .ipa
-- 15:00-17:00 真机启动 + 截图验证
-- 17:00-18:00 AltServer 续签机制配置
-- 18:00-22:00 编写 Stage 0 结束卡 + 复盘
-- **当日产出**: iPhone 上能启动的 Hello 审计官
+### Day 3 (2026-07-17) - Sideloadly 真机部署(短期方案)
+- 09:00-10:00 开发机装 Sideloadly(已完成)
+- 10:00-11:00 iPhone USB 连开发机 + 信任
+- 11:00-12:00 Sideloadly 装 Runner.ipa
+- 12:00-13:00 iPhone 设置 → 信任证书 + 真机验证 + 截图
+- 13:00-15:00 Stage 0 结束卡 + ROA
+- 15:00-18:00 写 ADR-0004(部署架构决策)
+- **当日产出**: iPhone 上 "Hello 审计官" 截图 + ADR-0004 + Stage 0 收官
+- **未来扩展**:v1.0 上线后切 AltServer(详见 ADR-0004)
 
 ---
 
