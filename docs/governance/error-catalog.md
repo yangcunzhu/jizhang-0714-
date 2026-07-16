@@ -228,58 +228,96 @@ error: Could not find build/ios/iphoneos/Runner.ipa
 
 ---
 
-## 📱 AltStore
+## 📱 iOS 真机部署(爱思助手 + SideStore)
 
-### A-001: AltStore 配对失败
+> **2026-07 修订**:AltStore / AltServer 章节已废弃。详见 ADR-0008。
 
-**症状**：
-```
-AltStore could not connect to AltServer
-```
+### I4A-001: 爱思助手不识别 iPhone
+
+**症状**：爱思助手左侧"设备 0",iPhone 不显示。
 
 **排查**：
-1. AltServer 在旧电脑上运行？
-2. iPhone 和电脑**同一 WiFi**？
-3. 防火墙允许 AltServer？
-4. Apple ID 正确？
+1. Apple Mobile Device Service 是否 Running(`services.msc`)
+2. iPhone 是否解锁 + 主屏
+3. USB 数据线是否**支持数据**(不是纯充电线)
+4. iPhone 是否已**信任此电脑**(USB 连后 iPhone 弹窗)
 
 **解决**：
-- 重启 AltServer
-- 重新连接 USB
-- 检查网络
+- 重启 Apple Mobile Device Service
+- iPhone 重启
+- 换 USB 数据线 / 换 USB 端口
+- iPhone 设置 → 通用 → 复位 → 复位位置和隐私,然后重连
 
 ---
 
-### A-002: .ipa 安装失败 "Unable to install"
+### I4A-002: 爱思助手装机报"Apple ID 错误"
 
-**症状**：
-```
-Unable to install "审计官"
-```
+**症状**：输 Apple ID 后提示登录失败。
 
 **排查**：
-1. Apple ID 证书过期？（免费 7 天，付费 1 年）
-2. Bundle ID 冲突？
-3. iOS 版本不兼容（v1.0 要 iOS 16+）
+1. Apple ID 是否正确([APPLE_ID_EMAIL])
+2. 是否启用 2FA:若是,**必须**用 App 专用密码(不是主密码)
+   - 生成:https://appleid.apple.com → App 专用密码 → 标签:`AltStore-Auditor` 或 `Auditor-i4Tools`
+3. 密码是否含特殊字符(部分字符在爱思助手有 bug)
 
 **解决**：
-- 重新签名（AltStore → My Apps → Refresh）
-- 卸载重装
-- 检查设备 iOS 版本
+- 重生成 App 专用密码
+- 用纯字母数字密码测试
 
 ---
 
-### A-003: App 启动闪退
+### I4A-003: iPhone 装上 .ipa 但点开闪退
 
 **症状**：点击图标立刻闪退。
 
-**原因**：证书未信任。
+**原因**：证书未信任 + 开发者模式未开(iOS 16+)。
 
 **解决**：
-1. iPhone 设置 → 通用 → VPN 与设备管理
-2. 找到开发者 App（你的 Apple ID）
-3. 点击 → 信任 "Apple Development: ..."
-4. 返回主屏，重新启动 App
+1. iPhone 设置 → 通用 → VPN 与设备管理 → 信任 Apple ID 证书
+2. iPhone 设置 → 隐私与安全性 → **开发者模式** → 打开 → 重启 → 确认
+3. 重启后,App 可正常打开
+
+---
+
+### SS-001: SideStore 自动续签失败
+
+**症状**：SideStore 已装,但 App 过期,提示"无法验证"。
+
+**排查**：
+1. iPhone 当前不在 SideStore 控制下 → 看 SideStore App 内"凭证"状态
+2. Anisette 服务器失效 → SideStore 设置 → 切换服务器
+3. iCloud 登录失效 → Apple ID 登出再登入
+
+**解决**：
+- SideStore 设置 → Apple ID → Sign Out → Sign In
+- SideStore 设置 → Anisette 服务器 → 切换(默认 → AltKit 等)
+- 手动 Refres All:SideStore App → My Apps → Refresh All
+
+---
+
+### SS-002: SideStore 装不上(签名失败)
+
+**症状**：爱思助手首次装 SideStore.IPA 时报错。
+
+**排查**：
+1. Apple ID 凭证问题(同 I4A-002)
+2. Runner.ipa / SideStore.ipa 文件损坏 → 重新下载
+3. Personal Team 3 App 限制(免费 ID 限制 3 个 active App)
+
+**解决**：
+- 卸载已装的 App(释放 Personal Team 名额)
+- 重新生成凭证
+
+---
+
+> **历史章节**(已废弃,仅供参考):
+>
+> ~~## 📱 AltStore~~
+> ~~### A-001: AltStore 配对失败~~(2026-07 已替代)
+> ~~### A-002: .ipa 安装失败~~(2026-07 已替代)
+> ~~### A-003: App 启动闪退~~(2026-07 已替代)
+>
+> 替代方案:**爱思助手 + SideStore**(见上 I4A-*/SS-*)
 
 ---
 
