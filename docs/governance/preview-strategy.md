@@ -20,7 +20,7 @@
 |---|---|---|---|---|
 | **Chrome (Web)** | ⚡ 秒开 | ⭐ 完全不同（Material 风） | 纯 UI 调试 | ⚠️ 辅助（仅 layout/颜色微调）|
 | **iOS Simulator** | 🚀 10 秒 | ⭐⭐⭐ 接近真机 | 90% iOS API | ✅ **主力开发预览** |
-| **真机 (AltStore)** | 🐢 5-10 分钟打包 | ⭐⭐⭐⭐⭐ 100% | 全部硬件 API | ✅ Stage 收尾验收 |
+| **真机 (爱思助手 + SideStore)** | 🐢 5-10 分钟装机 | ⭐⭐⭐⭐⭐ 100% | 全部硬件 API | ✅ Stage 收尾验收 |
 
 ---
 
@@ -87,7 +87,7 @@ flutter run -d chrome
   - 性能（启动时间、滚动 FPS）
 
 **安装方式**：
-- 本项目用 **AltStore** + GitHub Actions 打包 IPA
+- 本项目用 **爱思助手(i4Tools)** + GitHub Actions 打包 IPA(2026-07-16 已验证),SideStore 接管自动续签(详见 ADR-0008)
 - 详见 [governance/error-catalog.md § A-002](./error-catalog.md) 安装排错
 
 ---

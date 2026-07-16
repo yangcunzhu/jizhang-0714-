@@ -19,7 +19,7 @@
 1. [Flutter 环境](#flutter-环境)
 2. [GitHub Actions](#github-actions)
 3. [iOS 代码签名](#ios-代码签名)
-4. [AltStore](#altstore)
+4. ~~[AltStore](#altstore)~~(已废弃,见 ADR-0004 SUPERSEDED → ADR-0008 爱思助手 + SideStore)
 5. [Drift 数据库](#drift-数据库)
 6. [Riverpod](#riverpod)
 

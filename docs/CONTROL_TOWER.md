@@ -156,7 +156,7 @@ Milestone v1.0.0 (MVP 上线)
 | 决策 | 批准日 | ADR |
 |---|---|---|
 | 技术栈：Flutter + Riverpod + Drift | 2026-07-14 | adr/0001 |
-| 部署：AltStore + GitHub Actions | 2026-07-14 | （待写 ADR）|
+| 部署：**爱思助手 + SideStore + GitHub Actions** | 2026-07-16 | ADR-0008(终极方案) + ADR-0010 + ADR-0011 |
 | AI 模型：MiniMax-M3 | 2026-07-14 | （待写 ADR）|
 | 开发文档根目录：E:\jizhang-0714\docs\ | 2026-07-14 | （本文件）|
 

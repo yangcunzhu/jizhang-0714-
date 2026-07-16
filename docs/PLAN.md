@@ -88,19 +88,21 @@
 
 ### S00：环境验证 + Hello World（W1, Day 1-3）
 
-**目标**：证明 0 成本开发链路完全跑通（Windows → GitHub Actions → AltStore → iPhone）
+**目标**:证明 0 永久成本开发链路完全跑通(Windows → GitHub Actions → **爱思助手 + SideStore** → iPhone)
 
-**任务清单**：
-1. 安装 Flutter SDK（Windows 11）
+**任务清单**:
+1. 安装 Flutter SDK(Windows 11)
 2. 安装 VS Code + Flutter/Dart 插件
-3. 配置 Git（用户名、SSH key）
+3. 配置 Git(用户名、SSH key)
 4. 创建 GitHub 私有仓库
 5. 用 `flutter create` 生成 Hello World 项目
 6. 提交到 GitHub
-7. 配置 GitHub Actions（macOS runner，编 .ipa）
-8. 下载 .ipa + AltStore 安装到 iPhone
-9. 真机启动 + 显示 "Hello 审计官"
-10. 备份到本地 + AltServer 配置（家里旧电脑）
+7. 配置 GitHub Actions(macOS runner,产未签名 .ipa)
+8. 下载 .ipa + **爱思助手装机**到 iPhone(2026-07-16 已验证 iPhone 16 Pro Max / iOS 18.6.2)
+9. 真机启动 + 显示 "Hello 审计官" ✅
+10. **可选**:装 SideStore 接管自动续签(0 电脑依赖)
+
+> ⚠️ **2026-07-16 修订**:原计划用 AltStore / AltServer 装机路径。已**过时**(AltServer 1.7.4 报 3017 / Sideloadly 因 OpenSSL EOL 不兼容),改用**爱思助手**(中国本土工具)+ **SideStore**(开源续签引擎)。详见 ADR-0008 / 0010 / 0011。ADR-0004 旧方案已被 SUPERSEDED。
 
 **验收**：iPhone 上能看到 "Hello 审计官" 应用图标，点击启动
 

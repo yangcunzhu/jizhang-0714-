@@ -1,7 +1,15 @@
 # ADR-0004: 部署架构两阶段化(Sideloadly 短期 + AltServer 长期)
 
-> **状态**: 已接受
-> **日期**: 2026-07-14
+> **⚠️ 此 ADR 已被 SUPERSEDED(2026-07-16)**
+> **替代方案**: ADR-0008(爱思助手 + SideStore 终极方案)
+> **理由**: Sideloadly v0.60 在 2026 年因 OpenSSL 1.1 EOL + Python 3.8 EOL 不兼容 Apple 当前服务器;AltServer 1.7.4 报 3017 错误,AltStore Classic 团队 2025 停维护。本 ADR 的"两阶段方案"已基于过时工具,不适用于 2026 年。
+> **请参阅**: `docs/adr/0008-deployment-final-i4tools-sidestore.md`
+>
+> **本 ADR 保留作为历史教训**,供未来参考。不再具有指导意义。
+
+> **状态**: 🔴 **SUPERSEDED**(2026-07-16)
+> **原状态**: 已接受
+> **原日期**: 2026-07-14
 > **决策者**: 用户(指挥官) + Claude(大副执行)
 > **ADR 系列**: 0001 Flutter 技术栈 · 0002 项目结构 · 0003 测试策略
 

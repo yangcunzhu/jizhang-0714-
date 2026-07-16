@@ -12,7 +12,7 @@
 
 ## 🎯 Goal
 
-**跑通完整的 0 成本开发链路**：Windows 11 → VS Code → GitHub → GitHub Actions（macOS runner）→ .ipa → Sideloadly（短期）/ AltStore（长期）→ iPhone 真机
+**跑通完整的 0 成本开发链路**：Windows 11 → VS Code → GitHub → GitHub Actions（macOS runner）→ 未签名 .ipa → **爱思助手 + SideStore** → iPhone 真机(0 永久成本)
 
 **用户结果**：在 iPhone 上看到 "Hello 审计官" 应用图标，点击启动看到欢迎界面，证明整套 0 成本方案可行。
 
@@ -24,8 +24,9 @@
 - ADR-0001：Flutter 技术栈
 - PLAN.md：W1 (S00) 工时 ~30h
 - 用户时间：每天 12-16 小时，平均 13h
-- 部署方案：GitHub Actions + Sideloadly(短期) / AltStore(长期)
-  - 详见 ADR-0004
+- 部署方案：**GitHub Actions 产未签名 .ipa → 爱思助手首次装机 + SideStore 自动续签**(0 电脑依赖)
+  - 详见 ADR-0008 / 0010 / 0011
+  - ❌ 已废弃方案:Sideloadly / AltServer / AltStore Classic / iMazing / 旧电脑 7×24 常开
 
 ### 当前状态
 - Windows 11 开发机已就绪
@@ -39,7 +40,7 @@
 - Git
 - VS Code + Flutter 插件
 - GitHub 账户
-- Apple ID（用于 Sideloadly / AltStore，**两阶段共用**）
+- Apple ID（用于**爱思助手首次签名 + SideStore 自动续签**）
 - iPhone + Lightning/USB-C 数据线
 
 ---
@@ -57,9 +58,9 @@
 8. ✅ 配置 GitHub Actions workflow（macOS runner）
 9. ✅ 配置 Apple 证书 + Provisioning Profile
 10. ✅ Workflow 跑通（产出 .ipa）
-11. ✅ 下载 .ipa + AltStore 安装到 iPhone
-12. ✅ 真机启动 + 显示 "Hello 审计官"
-13. ✅ 配置 AltServer（家里旧电脑常开 - **长期方案保留,短期用 Sideloadly**）
+11. ✅ 下载 .ipa + **爱思助手装机** iPhone(2026-07-16 已完成)
+12. ✅ 真机启动 + 显示 "Hello 审计官"(iPhone 16 Pro Max / iOS 18.6.2)
+13. ✅ 终极方案:**爱思助手首次 + SideStore 自动续签**(0 电脑依赖,ADR-0008)
 
 ### 不做（明确排除）
 - ❌ 写任何业务代码
@@ -142,7 +143,7 @@ E:\jizhang-0714\
 | Flutter SDK 下载慢/失败 | 🟡 中 | 用清华镜像（FLUTTER_STORAGE_BASE_URL） |
 | GitHub Actions macOS runner 排队 | 🟢 低 | 等待或换时间触发 |
 | Apple 证书导入失败 | 🟡 中 | 详细步骤在 daily 文件，按步骤操作 |
-| AltStore 配对失败(长期方案) | 🟡 中 | 重启 AltServer + 重新配对 |
+| Sideloadly/AltServer 失效 | 🟡 中 | **爱思助手装载**(已废弃方案,见 ADR-0004 SUPERSEDED) |
 | iPhone 不信任证书 | 🟢 低 | 设置 → 通用 → VPN 与设备管理 → 信任 |
 | 网络问题（GitHub / Apple） | 🟡 中 | 备用网络（如手机热点） |
 
@@ -160,7 +161,7 @@ E:\jizhang-0714\
 | 单元测试 | `flutter test` | PASS |
 | Git 提交 | `git log --oneline` | 清晰历史 |
 | GitHub Actions | 仓库 Actions tab | 绿勾 |
-| iPhone 安装 | AltStore My Apps | 显示已安装 |
+| iPhone 安装 | SideStore → 设置 → Add Apple ID | 显示已安装 |
 
 ---
 
@@ -185,36 +186,38 @@ E:\jizhang-0714\
 - 20:00-22:00 下载 .ipa artifact 验证
 - **当日产出**: 可下载的 .ipa 文件
 
-### Day 3 (2026-07-17) - Sideloadly 真机部署(短期方案)
-- 09:00-10:00 开发机装 Sideloadly(已完成)
-- 10:00-11:00 iPhone USB 连开发机 + 信任
-- 11:00-12:00 Sideloadly 装 Runner.ipa
-- 12:00-13:00 iPhone 设置 → 信任证书 + 真机验证 + 截图
-- 13:00-15:00 Stage 0 结束卡 + ROA
-- 15:00-18:00 写 ADR-0004(部署架构决策)
-- **当日产出**: iPhone 上 "Hello 审计官" 截图 + ADR-0004 + Stage 0 收官
-- **未来扩展**:v1.0 上线后切 AltServer(详见 ADR-0004)
+### Day 3 (2026-07-16) - 爱思助手真机部署(终极方案)
+- 09:00-10:00 准备新电脑(临时测试机) + 下载爱思助手
+- 10:00-11:00 iPhone USB 连新电脑 + 信任此电脑
+- 11:00-13:00 **爱思助手装机 Runner.ipa → iPhone 16 Pro Max 看到 "Hello 审计官"** ✅
+- 13:00-14:00 iPhone 设置 → 信任证书 + 开发者模式
+- 14:00-16:00 写 ADR-0008/0010/0011(部署架构终极方案)
+- 16:00-18:00 SOP V4 + 文档清理(无任何旧方案残留)
+- **当日产出**: iPhone 真机显示 "Hello 审计官" + ADR-0008 + Stage 0 ROA 准备
+- **未来扩展**:Stage 1+ 继续走爱思助手 + SideStore 路径(详见 ADR-0008)
 
 ---
 
-## 🔄 交接（Handoff）
+## 🔄 交接（Handoff · 已完成 2026-07-16）
 
-### Stage 0 → Stage 1 的交付物
-- 完整可运行的 Flutter 项目（GitHub 仓库）
-- GitHub Actions 流水线（自动编 .ipa）
-- AltStore 安装链路（家里旧电脑常开）
-- 用户验收：iPhone 看到 Hello 审计官
+### Stage 0 → Stage 1 的交付物(✅ 完成)
+- ✅ 完整可运行的 Flutter 项目(8 commits on main,GitHub 仓库 yangcunzhu/jizhang-0714-)
+- ✅ GitHub Actions 流水线(自动产未签名 Runner.ipa 5.80 MB)
+- ✅ **爱思助手 + SideStore 部署架构**(ADR-0008 — 0 电脑依赖)
+- ✅ 用户验收:iPhone 16 Pro Max / iOS 18.6.2 看到 "Hello 审计官"
 
 ### Stage 1 准备
-- 用户必须给出 Apple ID 凭证（在加密环境）
-- 用户确认家里旧电脑已配置
-- 用户准备 iPhone 数据线
+- 用户 Apple ID 已就绪([APPLE_ID_EMAIL])
+- 用户爱思助手已安装(任何电脑都行,临时测试机也可以)
+- SideStore 接管自动续签(可选,推荐)
 
-### 文档同步
-- [ ] CONTROL_TOWER 更新：S00 → DONE，S01 → ACTIVE
-- [ ] daily/2026-07-17.md 写结束卡
-- [ ] 创建 stages/S01-manual-record.md 授权包络
-- [ ] 创建 daily/2026-07-18.md Day 4 计划
+### 文档同步(✅ 完成)
+- [x] CONTROL_TOWER 更新:Stage 0 完成(ADR-0008 签署)
+- [x] daily/2026-07-17.md 写结束卡 + 真机验证
+- [x] ADR-0008 / 0010 / 0011 完整记录终极方案
+- [x] SOP V4 重写(爱思助手 + SideStore)
+- [ ] Stage 1 启动:stages/S01-manual-record.md(DRAFT)
+- [ ] Stage 1 启动:daily/2026-07-18.md(Day 4 计划)
 
 ---
 

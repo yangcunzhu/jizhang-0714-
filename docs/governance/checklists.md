@@ -130,7 +130,7 @@
 □ iPhone 真机烟雾测试通过
 □ CHANGELOG.md 更新
 □ git tag v1.0.0
-□ AltStore 安装成功
+□ **爱思助手装机**成功 + iPhone 看到 "Hello 审计官"(ADR-0008)
 □ 7 天无 P0 崩溃
 □ 备份到本地（防止云端丢失）
 ```
