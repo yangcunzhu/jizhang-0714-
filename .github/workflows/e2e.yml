@@ -85,7 +85,8 @@ jobs:
         run: |
           flutter test integration_test/ \
             -d "${{ steps.pick-sim.outputs.sim_udid }}" \
-            --reporter expanded
+            --reporter expanded \
+            --verbose 2>&1 | tee e2e.log
 
       - name: Upload logs (always)
         if: always()
@@ -93,6 +94,7 @@ jobs:
         with:
           name: e2e-logs
           path: |
+            e2e.log
             build/
             ios/Pods/Manifest.lock
             ios/Podfile.lock
