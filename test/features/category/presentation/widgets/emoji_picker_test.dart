@@ -58,4 +58,67 @@ void main() {
     expect(find.byKey(const Key('emoji-pick-☕')), findsOneWidget);
     expect(find.byKey(const Key('emoji-pick-🍔')), findsOneWidget);
   });
+
+  testWidgets('底部「更多 emoji(系统键盘)」入口渲染', (tester) async {
+    await tester.pumpWidget(
+      hostWithPicker(selected: '🍔', onSelected: (_) {}),
+    );
+    // ListView 懒构建,scroll 到底部
+    await tester.dragUntilVisible(
+      find.byKey(const Key('emoji-picker-more')),
+      find.byType(EmojiPicker),
+      const Offset(0, -100),
+    );
+    expect(find.byKey(const Key('emoji-picker-more')), findsOneWidget);
+    expect(find.text('更多 emoji（系统键盘）'), findsOneWidget);
+  });
+
+  testWidgets('点「更多 emoji」→ 弹 Dialog 含 autofocus TextField + 取消/确认按钮',
+      (tester) async {
+    await tester.pumpWidget(
+      hostWithPicker(selected: '🍔', onSelected: (_) {}),
+    );
+    await tester.dragUntilVisible(
+      find.byKey(const Key('emoji-picker-more')),
+      find.byType(EmojiPicker),
+      const Offset(0, -100),
+    );
+    await tester.tap(find.byKey(const Key('emoji-picker-more')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('emoji-picker-more-dialog')), findsOneWidget);
+    expect(find.text('更多 Emoji'), findsOneWidget);
+    expect(find.byKey(const Key('emoji-picker-more-input')), findsOneWidget);
+    expect(find.byKey(const Key('emoji-picker-more-confirm')), findsOneWidget);
+    expect(find.byKey(const Key('emoji-picker-more-cancel')), findsOneWidget);
+  });
+
+  testWidgets('Dialog 输入 emoji → 点确认 → 触发 onSelected + Dialog 关闭',
+      (tester) async {
+    String? picked;
+    await tester.pumpWidget(
+      hostWithPicker(selected: '🍔', onSelected: (e) => picked = e),
+    );
+    await tester.dragUntilVisible(
+      find.byKey(const Key('emoji-picker-more')),
+      find.byType(EmojiPicker),
+      const Offset(0, -100),
+    );
+    await tester.tap(find.byKey(const Key('emoji-picker-more')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('emoji-picker-more-input')),
+      '🐱',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('emoji-picker-more-confirm')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(picked, '🐱');
+    expect(find.byKey(const Key('emoji-picker-more-dialog')), findsNothing);
+  });
 }

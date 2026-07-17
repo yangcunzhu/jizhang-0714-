@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 ///
 /// 6 主题 × 12 emoji = 72 个,覆盖记账高频场景。数据 const 化,widget 零开销 rebuild。
 ///
+/// Day 16 polish:末尾加「更多 emoji（系统键盘）」入口,弹 TextField
+/// autofocus 调起系统键盘 → 用户切到 emoji 键盘输入 → 提取首个 grapheme cluster
+/// 作为 emoji 返回。补 ADR-0019 §6 留的系统键盘接口。
+///
 /// 用法:
 /// ```dart
 /// final picked = await EmojiPicker.show(context, initial: '🍔');
@@ -83,12 +87,39 @@ class EmojiPicker extends StatelessWidget {
                   onSelected: onSelected,
                 ),
               ],
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton.icon(
+                  key: const Key('emoji-picker-more'),
+                  onPressed: () => _showMoreDialog(context, onSelected),
+                  icon: const Icon(Icons.keyboard_outlined),
+                  label: const Text('更多 emoji（系统键盘）'),
+                ),
+              ),
               const SizedBox(height: 8),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// 弹系统键盘输入 Dialog(TextField autofocus 调起系统键盘)。
+  ///
+  /// WHY: 72 个精选 emoji 可能不够用户用(ADR-0019 §6 缓解措施)。
+  /// iOS 系统键盘顶部有 globe 切换到 emoji 键盘,用户输入后取首个
+  /// grapheme cluster(用 `characters.first`,支持 ZWJ 组合 emoji)。
+  Future<void> _showMoreDialog(
+    BuildContext context,
+    ValueChanged<String> onPicked,
+  ) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (_) => const _MoreEmojiDialog(),
+    );
+    if (picked != null && picked.isNotEmpty) {
+      onPicked(picked);
+    }
   }
 }
 
@@ -184,3 +215,74 @@ const List<({String name, List<String> emojis})> kEmojiGroups = [
     ]
   ),
 ];
+
+/// 「更多 emoji」系统键盘输入 Dialog(Day 16 polish)。
+///
+/// WHY: 72 个精选 emoji 可能不够(ADR-0019 §6)。弹 Dialog + TextField
+/// autofocus 调起系统键盘 → 用户切到 emoji 键盘 → 选 emoji → 提取首个
+/// grapheme cluster(用 `characters`,支持 ZWJ 组合如 👨‍👩‍👧)返回。
+class _MoreEmojiDialog extends StatefulWidget {
+  const _MoreEmojiDialog();
+
+  @override
+  State<_MoreEmojiDialog> createState() => _MoreEmojiDialogState();
+}
+
+class _MoreEmojiDialogState extends State<_MoreEmojiDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// 取首个 grapheme cluster(emoji 可能由多个 UTF-16 code unit 组成,
+  /// 如 👨‍👩‍👧 含 8 个 code unit 但只算 1 个 grapheme)。
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final firstGrapheme = text.characters.first;
+    Navigator.pop(context, firstGrapheme);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: const Key('emoji-picker-more-dialog'),
+      title: const Text('更多 Emoji'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('从系统键盘选 emoji,点确认'),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('emoji-picker-more-input'),
+            controller: _controller,
+            autofocus: true,
+            maxLength: 10,
+            decoration: const InputDecoration(
+              hintText: '例如:🐱',
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const Key('emoji-picker-more-cancel'),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          key: const Key('emoji-picker-more-confirm'),
+          onPressed: _submit,
+          child: const Text('确认'),
+        ),
+      ],
+    );
+  }
+}
