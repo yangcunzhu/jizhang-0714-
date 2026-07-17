@@ -33,7 +33,7 @@ Milestone v1.0.0 (MVP 上线)
 └── Wave W1-W8
     ├── Stage 0: 环境验证 (S00)         ✅ ACCEPTED (2026-07-16)
     ├── Stage 1: 手动记账 (S01)         ✅ ACCEPTED (2026-07-17)
-    ├── Stage 2: 分类 & 账户 (S02)      📋 PLAN
+    ├── Stage 2: 分类 & 账户 (S02)      🔄 DRAFT (Day 11 开工)
     ├── Stage 3: 信用卡 & 还款 (S03)    📋 PLAN
     ├── Stage 4: 账本 & 预算 (S04)      📋 PLAN
     ├── Stage 5: 净资产 & 仪表盘 (S05)  📋 PLAN
