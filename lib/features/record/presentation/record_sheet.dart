@@ -1,0 +1,308 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../data/db/app_database.dart';
+import '../../home/application/home_providers.dart';
+import '../application/record_form_provider.dart';
+import 'widgets/account_picker.dart';
+import 'widgets/amount_keypad.dart';
+import 'widgets/category_grid.dart';
+
+/// 打开记账弹层（半屏，可滚动超 50%）。
+///
+/// WHY: 5 秒 3 步手动记账的入口。HomePage "记一笔"FAB 调用。
+Future<void> showRecordSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (sheetContext) => const RecordSheet(),
+  );
+}
+
+/// 记账弹层主体。
+///
+/// 3 步单页内切换（[RecordStep]）：
+///   selectCategory → inputAmount → selectAccount
+///
+/// 状态由 [recordFormProvider] 统一管理。
+class RecordSheet extends ConsumerWidget {
+  const RecordSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final form = ref.watch(recordFormProvider);
+    final notifier = ref.read(recordFormProvider.notifier);
+
+    // Stage 1 自动选中默认账户（"现金"），用户无需手动选。
+    //
+    // WHY: 用 ref.watch 而非 ref.listen，因为 ref.listen 不会回调初始值，
+    // 弹层打开时 defaultAccountProvider 已经有值，需要主动触发 setAccount。
+    final accAsync = ref.watch(defaultAccountProvider);
+    final acc = accAsync.valueOrNull;
+    if (acc != null && form.accountId == null) {
+      // 用 post-frame callback 避免 build 阶段 mutate state 触发警告。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifier.setAccount(acc.id);
+      });
+    }
+
+    final mq = MediaQuery.of(context);
+    final maxHeight = mq.size.height * 0.85;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Header(
+              canBack: form.step != RecordStep.selectCategory,
+              onBack: notifier.previousStep,
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: _StepBody(step: form.step, form: form, notifier: notifier),
+              ),
+            ),
+            _PrimaryAction(form: form, notifier: notifier),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepBody extends StatelessWidget {
+  const _StepBody({
+    required this.step,
+    required this.form,
+    required this.notifier,
+  });
+
+  final RecordStep step;
+  final RecordFormState form;
+  final RecordFormNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (step) {
+      case RecordStep.selectCategory:
+        return CategoryGrid(
+          selectedCategoryId: form.categoryId,
+          onSelected: (c) => notifier.selectCategory(c.id),
+        );
+      case RecordStep.inputAmount:
+        return _AmountStep(
+          amountCents: form.amountCents,
+          onDigit: notifier.appendDigit,
+          onDot: notifier.appendDot,
+          onBackspace: notifier.backspace,
+          onClear: notifier.clearAmount,
+        );
+      case RecordStep.selectAccount:
+        return AccountPicker(
+          initialNote: form.note,
+          onNoteChanged: notifier.setNote,
+        );
+    }
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.canBack,
+    required this.onBack,
+    required this.onClose,
+  });
+
+  final bool canBack;
+  final VoidCallback onBack;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: canBack ? onBack : null,
+            icon: const Icon(Icons.arrow_back),
+            tooltip: '上一步',
+          ),
+          const Expanded(
+            child: Center(
+              child: Text(
+                '记一笔',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onClose,
+            icon: const Icon(Icons.close),
+            tooltip: '关闭',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountStep extends StatelessWidget {
+  const _AmountStep({
+    required this.amountCents,
+    required this.onDigit,
+    required this.onDot,
+    required this.onBackspace,
+    required this.onClear,
+  });
+
+  final int amountCents;
+  final ValueChanged<int> onDigit;
+  final VoidCallback onDot;
+  final VoidCallback onBackspace;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _AmountDisplay(cents: amountCents, onClear: onClear),
+          const SizedBox(height: 16),
+          AmountKeypad(
+            onDigit: onDigit,
+            onDot: onDot,
+            onBackspace: onBackspace,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountDisplay extends StatelessWidget {
+  const _AmountDisplay({required this.cents, required this.onClear});
+
+  final int cents;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final yuan = cents ~/ 100;
+    final centsPart = cents % 100;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Text(
+            '¥',
+            style: TextStyle(
+              fontSize: 24,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              '${yuan.toString()}.${centsPart.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w600,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          if (cents > 0)
+            IconButton(
+              onPressed: onClear,
+              icon: const Icon(Icons.cancel_outlined),
+              tooltip: '清空',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryAction extends ConsumerWidget {
+  const _PrimaryAction({required this.form, required this.notifier});
+
+  final RecordFormState form;
+  final RecordFormNotifier notifier;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final (label, enabled, action) = _resolve(context);
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton(
+            onPressed: enabled ? action : null,
+            child: Text(form.isSubmitting ? '保存中...' : label),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 根据当前 step 决定底部主按钮文案、enabled 状态和点击动作。
+  ///
+  /// WHY: step 1 没有金额 → 只能回退；step 2 需要"下一步"按钮主动推进（避免用户输入完金额后无入口）；
+  /// step 3 才显示"保存"。
+  (String, bool, VoidCallback) _resolve(BuildContext context) {
+    switch (form.step) {
+      case RecordStep.selectCategory:
+        // step 1 无金额按钮槽位;这里放空按钮占位(用户已选分类会自动跳到 step 2,实际不会停留)
+        return ('下一步', form.canProceedFromCategory, notifier.nextStep);
+      case RecordStep.inputAmount:
+        return ('下一步', form.canProceedFromAmount, notifier.nextStep);
+      case RecordStep.selectAccount:
+        return ('保存', form.canSubmit, () => _submit(context));
+    }
+  }
+
+  Future<void> _submit(BuildContext context) async {
+    try {
+      await notifier.submit();
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已记账'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：$e')),
+        );
+      }
+    }
+  }
+}

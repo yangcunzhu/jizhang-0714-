@@ -44,7 +44,7 @@ Milestone v1.0.0 (MVP 上线)
     └── Stage 8: 上线验收 (S08)          📋 PLAN
 ```
 
-**当前位置**：Stage 1 / Day 5（Riverpod 状态骨架 + 主页布局）
+**当前位置**：Stage 1 / Day 6（记账卡弹层 + 金额输入 + 保存逻辑）
 
 **授权终点**：S08 完成 → `READY_FOR_OWNER_ACCEPTANCE`
 
@@ -91,7 +91,8 @@ Milestone v1.0.0 (MVP 上线)
 | 完整路线图 | ✅ DONE | ROADMAP.md | 已批准 |
 | Stage 0 ROA | ✅ ACCEPTED | Hello World + Runner.ipa 真机装机 | 2026-07-16 |
 | Stage 1 Day 4 | ✅ DONE | Drift 3 表 + 3 DAO + seed + 11 单测全绿 | 独立审计通过 |
-| Stage 1 Day 5 | 🔄 ACTIVE | Riverpod ProviderScope + 主页骨架 | 进行中 |
+| Stage 1 Day 5 | ✅ DONE | Riverpod ProviderScope + 主页骨架 | 17/17 测试 + analyze 0 |
+| Stage 1 Day 6 | ✅ DONE | 记账卡弹层 + 金额输入 + 保存逻辑 | 45/45 测试 + analyze 0 |
 | v1.0.0 上线 | ❌ NOT_STARTED | - | - |
 
 ### Stage 1 7 天进度
@@ -206,8 +207,8 @@ W8 (9/2-9/9)    [▱▱▱▱▱▱▱] Stage 7+8 - 攒攒 + 上线
 
 ### W2 详细（Stage 1 收尾）
 
-- Day 5 (07-19)：Riverpod + 主页骨架 🔄
-- Day 6 (07-20)：记账卡弹层 + 保存逻辑
+- Day 5 (07-19)：Riverpod + 主页骨架 ✅
+- Day 6 (07-20)：记账卡弹层 + 保存逻辑 ✅
 - Day 7 (07-21)：分类图标网格 + 账户选择
 - Day 8 (07-22)：修改/删除 + 退款 + 振动
 - Day 9 (07-23)：攒攒动画 + E2E 测试

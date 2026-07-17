@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../record/presentation/record_sheet.dart';
 import '../application/home_providers.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -27,14 +28,7 @@ class HomePage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('记账卡（Day 6 实装）'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        },
+        onPressed: () => showRecordSheet(context),
         icon: const Icon(Icons.add),
         label: const Text('记一笔'),
       ),
