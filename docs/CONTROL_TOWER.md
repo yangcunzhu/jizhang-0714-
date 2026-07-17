@@ -14,7 +14,7 @@
 
 **用户结果**：在 iPhone 上流畅、安全、可长期使用地进行个人记账、预算管理、信用卡管理，并通过 AI 攒攒 + RPG 化机制让记账变得可持续。
 
-**当前健康**：✅ Stage 0 ROA 完成 / 🔄 Stage 1 ROA 中（代码全绿,等真机验收签字）
+**当前健康**：✅ Stage 0 ROA 完成 / ✅ Stage 1 ACCEPTED(真机 3 场景全过) / 📋 Stage 2 准备中
 
 **派生依据**：
 - `git log --oneline -10`：远程 main 最新 commit（filter-branch 重写后 SHA 全变,见 daily/2026-07-24.md）
@@ -32,7 +32,7 @@
 Milestone v1.0.0 (MVP 上线)
 └── Wave W1-W8
     ├── Stage 0: 环境验证 (S00)         ✅ ACCEPTED (2026-07-16)
-    ├── Stage 1: 手动记账 (S01)         🔄 ROA — 真机验收中 (2026-07-24)
+    ├── Stage 1: 手动记账 (S01)         ✅ ACCEPTED (2026-07-17)
     ├── Stage 2: 分类 & 账户 (S02)      📋 PLAN
     ├── Stage 3: 信用卡 & 还款 (S03)    📋 PLAN
     ├── Stage 4: 账本 & 预算 (S04)      📋 PLAN
@@ -42,7 +42,8 @@ Milestone v1.0.0 (MVP 上线)
     └── Stage 8: 上线验收 (S08)          📋 PLAN
 ```
 
-**当前位置**：Stage 1 / Day 10 — 真机手验 3 场景准备就绪
+**当前位置**：Stage 1 = ACCEPTED ✅(2026-07-17 真机手验 3 场景全过)
+**下一站**：Stage 2 开工(2026-07-18,取决于 ADR-0015 写集确认)
 
 **授权终点**：S08 完成 → `READY_FOR_OWNER_ACCEPTANCE`
 
@@ -98,8 +99,8 @@ Milestone v1.0.0 (MVP 上线)
 | Stage 1 Day 7 | ✅ DONE | emoji 化 + 账户 UI + E2E 基建 | 54/54 测试 + ADR-0013/0014 |
 | Stage 1 Day 8 | ✅ DONE | 编辑/删除/退款 + Key + 振动 | 72/72 测试 |
 | Stage 1 Day 9 | ✅ DONE | 攒攒动画 + E2E CI 基建 | 75/75 测试 + E2E CI 卡死暂缓 |
-| Stage 1 Day 10 | 🔄 ROA | 真机手验清单 + 收尾卡 | 用户 iPhone 操作中 |
-| Stage 1 ROA | 🔄 ROA | 等真机 3 场景全过 | 待 Owner Acceptance |
+| Stage 1 Day 10 | ✅ DONE | 真机手验 3 场景全过 + 收尾卡 + CONTROL_TOWER 派生 + G-003 沉淀 | 2026-07-17 |
+| Stage 1 ROA | ✅ ACCEPTED | iPhone 16 Pro Max 真机手验签字 | 2026-07-17 |
 | v1.0.0 上线 | ❌ NOT_STARTED | - | - |
 
 ### Stage 1 7+ 天进度
