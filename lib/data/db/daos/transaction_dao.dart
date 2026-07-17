@@ -38,6 +38,14 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     return into(transactions).insert(entry);
   }
 
+  /// 按 id 查询单笔交易(编辑/退款流程需要先 load 再反向填充表单)。
+  ///
+  /// 返回 null 表示 id 不存在(不应在 UI 主流程发生,但留给退款流程防御)。
+  Future<TransactionEntry?> getById(int id) {
+    return (select(transactions)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
   /// 全量更新一笔交易,内部自动刷新 updatedAt。
   ///
   /// WHY: .replace() 不会触碰 updatedAt 默认值(默认仅在 INSERT 生效),

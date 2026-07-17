@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/db/app_database.dart';
 import '../../home/application/home_providers.dart';
 import '../application/record_form_provider.dart';
 import 'widgets/account_picker.dart';
@@ -10,7 +11,12 @@ import 'widgets/category_grid.dart';
 /// 打开记账弹层（半屏，可滚动超 50%）。
 ///
 /// WHY: 5 秒 3 步手动记账的入口。HomePage "记一笔"FAB 调用。
-Future<void> showRecordSheet(BuildContext context) {
+/// [editing] 非 null 时进入"编辑模式":弹层打开后由 [RecordSheet.initState] 调
+/// `loadForEdit` 反向填充表单,走 UPDATE 分支提交。
+Future<void> showRecordSheet(
+  BuildContext context, {
+  TransactionEntry? editing,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -19,7 +25,7 @@ Future<void> showRecordSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (sheetContext) => const RecordSheet(),
+    builder: (sheetContext) => RecordSheet(editing: editing),
   );
 }
 
@@ -29,11 +35,33 @@ Future<void> showRecordSheet(BuildContext context) {
 ///   selectCategory → inputAmount → selectAccount
 ///
 /// 状态由 [recordFormProvider] 统一管理。
-class RecordSheet extends ConsumerWidget {
-  const RecordSheet({super.key});
+///
+/// Day 8: 转为 ConsumerStatefulWidget 以支持 [editing] 在 initState 调 loadForEdit,
+/// 避开 autoDispose 时序坑(ActionSheet pop → showRecordSheet 期间 provider 被 dispose)。
+class RecordSheet extends ConsumerStatefulWidget {
+  const RecordSheet({super.key, this.editing});
+
+  final TransactionEntry? editing;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecordSheet> createState() => _RecordSheetState();
+}
+
+class _RecordSheetState extends ConsumerState<RecordSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // 编辑模式:在弹层已挂载(recordFormProvider 已被 watch)后调 loadForEdit,
+    // 不会因 autoDispose 丢失状态。
+    if (widget.editing != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(recordFormProvider.notifier).loadForEdit(widget.editing!);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final form = ref.watch(recordFormProvider);
     final notifier = ref.read(recordFormProvider.notifier);
 
@@ -41,9 +69,10 @@ class RecordSheet extends ConsumerWidget {
     //
     // WHY: 用 ref.watch 而非 ref.listen，因为 ref.listen 不会回调初始值，
     // 弹层打开时 defaultAccountProvider 已经有值，需要主动触发 setAccount。
+    // 编辑模式下 accountId 已由 loadForEdit 填充,跳过。
     final accAsync = ref.watch(defaultAccountProvider);
     final acc = accAsync.valueOrNull;
-    if (acc != null && form.accountId == null) {
+    if (!form.isEditing && acc != null && form.accountId == null) {
       // 用 post-frame callback 避免 build 阶段 mutate state 触发警告。
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifier.setAccount(acc.id);
@@ -134,6 +163,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            key: const Key('record-sheet-back'),
             onPressed: canBack ? onBack : null,
             icon: const Icon(Icons.arrow_back),
             tooltip: '上一步',
@@ -147,6 +177,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
+            key: const Key('record-sheet-close'),
             onPressed: onClose,
             icon: const Icon(Icons.close),
             tooltip: '关闭',
@@ -260,6 +291,7 @@ class _PrimaryAction extends ConsumerWidget {
           width: double.infinity,
           height: 48,
           child: FilledButton(
+            key: const Key('record-sheet-primary'),
             onPressed: enabled ? action : null,
             child: Text(form.isSubmitting ? '保存中...' : label),
           ),
@@ -285,14 +317,15 @@ class _PrimaryAction extends ConsumerWidget {
   }
 
   Future<void> _submit(BuildContext context) async {
+    final wasEditing = form.isEditing;
     try {
       await notifier.submit();
       if (context.mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已记账'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(wasEditing ? '已修改' : '已记账'),
+            duration: const Duration(seconds: 1),
           ),
         );
       }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../record/presentation/record_sheet.dart';
 import '../application/home_providers.dart';
+import 'widgets/transaction_actions_sheet.dart';
 import 'widgets/transaction_tile.dart';
 
 /// 主页骨架（Stage 1 Day 5）。
@@ -28,6 +29,7 @@ class HomePage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        key: const Key('record-fab'),
         onPressed: () => showRecordSheet(context),
         icon: const Icon(Icons.add),
         label: const Text('记一笔'),
@@ -107,6 +109,7 @@ class _TransactionList extends ConsumerWidget {
         return TransactionTile(
           transaction: tx,
           category: categories[tx.categoryId],
+          onLongPress: () => TransactionActionsSheet.show(context, tx),
         );
       },
     );
@@ -119,6 +122,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
+      key: const Key('home-empty'),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

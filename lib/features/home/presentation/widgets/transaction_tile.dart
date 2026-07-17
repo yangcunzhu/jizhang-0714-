@@ -7,15 +7,21 @@ import '../../../../data/db/tables/categories.dart';
 /// 单条交易列表项。
 ///
 /// 显示分类（颜色 + 名称）/ 备注 / 时间 + 金额（红=支出 / 绿=收入）。
+///
+/// ADR-0014: 顶层 ListTile 带 Key('txn-{id}'),Day 9 E2E 直接定位。
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
     required this.transaction,
     required this.category,
+    this.onLongPress,
   });
 
   final TransactionEntry transaction;
   final CategoryEntry? category;
+
+  /// 长按回调(Day 8 弹 ActionSheet 用)。null 时 ListTile 不响应长按。
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +33,7 @@ class TransactionTile extends StatelessWidget {
         DateFormat('MM-dd HH:mm').format(transaction.occurredAt);
 
     return ListTile(
+      key: Key('txn-${transaction.id}'),
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.15),
         child: Text(
@@ -46,6 +53,7 @@ class TransactionTile extends StatelessWidget {
           color: isExpense ? Colors.red[700] : Colors.green[700],
         ),
       ),
+      onLongPress: onLongPress,
     );
   }
 

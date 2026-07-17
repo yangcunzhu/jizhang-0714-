@@ -71,6 +71,7 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
           const SizedBox(height: 16),
           const _SectionLabel(label: '备注(可选)'),
           TextField(
+            key: const Key('record-note'),
             controller: _noteController,
             decoration: InputDecoration(
               hintText: '比如:午饭、咖啡、地铁',
@@ -118,6 +119,7 @@ class _AccountCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(12),
+      key: const Key('account-card'),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
@@ -174,6 +176,7 @@ class _AddAccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
+      key: const Key('btn-add-account'),
       onPressed: onTap,
       icon: const Icon(Icons.add, size: 18),
       label: const Text('添加账户'),

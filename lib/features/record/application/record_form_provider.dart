@@ -1,9 +1,10 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibration/vibration.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../../data/db/database_provider.dart';
+import '../../../data/db/tables/categories.dart';
+import 'haptics.dart';
 
 /// 记账表单的步骤（单页内切换，不是真 3 屏）。
 enum RecordStep { selectCategory, inputAmount, selectAccount }
@@ -11,6 +12,9 @@ enum RecordStep { selectCategory, inputAmount, selectAccount }
 /// 记账表单状态。
 ///
 /// 金额一律存整数分（[amountCents]），UI 显示时除以 100。
+///
+/// [editingTransactionId] 为 null 时为"新建"模式,非 null 时为"编辑现有交易"模式。
+/// 编辑模式下 [submit] 走 UPDATE 分支而非 INSERT。
 class RecordFormState {
   const RecordFormState({
     this.step = RecordStep.selectCategory,
@@ -19,6 +23,7 @@ class RecordFormState {
     this.accountId,
     this.note = '',
     this.isSubmitting = false,
+    this.editingTransactionId,
   });
 
   final RecordStep step;
@@ -27,6 +32,7 @@ class RecordFormState {
   final int? accountId;
   final String note;
   final bool isSubmitting;
+  final int? editingTransactionId;
 
   bool get canProceedFromCategory => categoryId != null;
   bool get canProceedFromAmount => amountCents > 0;
@@ -35,6 +41,8 @@ class RecordFormState {
   bool get canSubmit =>
       amountCents > 0 && accountId != null && !isSubmitting;
 
+  bool get isEditing => editingTransactionId != null;
+
   RecordFormState copyWith({
     RecordStep? step,
     int? categoryId,
@@ -42,6 +50,7 @@ class RecordFormState {
     int? accountId,
     String? note,
     bool? isSubmitting,
+    int? editingTransactionId,
   }) {
     return RecordFormState(
       step: step ?? this.step,
@@ -50,6 +59,7 @@ class RecordFormState {
       accountId: accountId ?? this.accountId,
       note: note ?? this.note,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      editingTransactionId: editingTransactionId ?? this.editingTransactionId,
     );
   }
 }
@@ -171,9 +181,44 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
     state = const RecordFormState();
   }
 
+  /// 从现有交易反向填充表单(进入"编辑"模式)。
+  ///
+  /// WHY: 长按交易 → 选"编辑"时复用同一个弹层,无需新建 EditPage。
+  /// 默认直接跳到 selectAccount 步骤(分类/金额不再必选,用户可改也可只改备注)。
+  void loadForEdit(TransactionEntry tx) {
+    _afterDot = false;
+    _centsAccumulator = 0;
+    state = RecordFormState(
+      step: RecordStep.selectAccount,
+      categoryId: tx.categoryId,
+      amountCents: tx.amountCents,
+      accountId: tx.accountId,
+      note: tx.note,
+      editingTransactionId: tx.id,
+    );
+  }
+
+  /// 删除一笔交易(由长按 ActionSheet → "删除"调用)。
+  ///
+  /// 返回影响行数;找不到 id 也返回 0 而非抛错(防御性,UI 层不依赖返回值)。
+  /// 删除成功后 100ms 长振反馈。
+  Future<int> deleteTransaction(int id) async {
+    final db = ref.read(databaseProvider);
+    final rows = await db.transactionDao.deleteById(id);
+    await Haptics.heavy();
+    return rows;
+  }
+
   // ---------- 保存 ----------
 
-  /// 保存到 Drift + 振动反馈。返回插入的 id。
+  /// 保存到 Drift + 振动反馈。
+  ///
+  /// - 新建模式([editingTransactionId] == null):INSERT
+  /// - 编辑模式([editingTransactionId] != null):UPDATE
+  ///
+  /// 返回:
+  /// - 新建:插入的 id
+  /// - 编辑:被更新的 id(等于 editingTransactionId)
   Future<int> submit() async {
     if (!state.canSubmit) {
       throw StateError('表单不完整：amount=${state.amountCents} account=${state.accountId}');
@@ -183,6 +228,26 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
       final db = ref.read(databaseProvider);
       final cats = await db.categoryDao.getAll();
       final cat = cats.firstWhere((c) => c.id == state.categoryId);
+
+      if (state.editingTransactionId != null) {
+        // 编辑模式:UPDATE 现有交易,保留原 occurredAt/createdAt。
+        final old = await db.transactionDao.getById(state.editingTransactionId!);
+        if (old == null) {
+          throw StateError('编辑目标不存在:id=${state.editingTransactionId}');
+        }
+        final updated = old.copyWith(
+          amountCents: state.amountCents,
+          type: cat.type,
+          categoryId: state.categoryId!,
+          accountId: state.accountId!,
+          note: state.note,
+        );
+        await db.transactionDao.updateTransaction(updated);
+        // 编辑成功:100ms 长振(成功完成档)
+        await Haptics.heavy();
+        return state.editingTransactionId!;
+      }
+
       final id = await db.transactionDao.insertTransaction(
         TransactionsCompanion.insert(
           amountCents: state.amountCents,
@@ -192,14 +257,58 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           note: Value(state.note),
         ),
       );
-      // 振动反馈（50ms 短振，模拟器/无振设备静默忽略）
-      try {
-        if (await Vibration.hasVibrator()) {
-          await Vibration.vibrate(duration: 50);
-        }
-      } catch (_) {
-        // 振动失败不阻断保存
+      // 新建成功:50ms 短振(输入确认档 — 与"分类点击""数字点击"同一档)
+      await Haptics.light();
+      return id;
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
+  }
+
+  /// 退款:以原交易的"反向"插入一笔新交易(方案 A — 见 Day 8 DRAFT)。
+  ///
+  /// 行为:
+  /// - amountCents 不变(表级 CHECK 要求 > 0,故不取负;靠 [type] 区分方向)
+  /// - category.type 反向:支出 → 收入,收入 → 支出
+  /// - note 自动加 "退款" 前缀(若原 note 非空)
+  /// - accountId 与原交易一致
+  /// - 100ms 长振反馈
+  ///
+  /// WHY: 不开新 ADR,方案 A 在 Stage 1 DRAFT 已对齐 — 简单、Drift schema 不改、
+  /// 审计轨迹清楚(原交易保留),Stage 3 信用卡退款沿用同模式。
+  Future<int> submitAsRefund(TransactionEntry original) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final db = ref.read(databaseProvider);
+      final cats = await db.categoryDao.getAll();
+      final originalCat = cats.firstWhere((c) => c.id == original.categoryId);
+      final reversedType = originalCat.type == TransactionType.expense
+          ? TransactionType.income
+          : TransactionType.expense;
+
+      // 找一个反向分类(优先同 sortOrder 段的第一个;Stage 1 简单取任意一个反向 cat)
+      final reverseCats =
+          cats.where((c) => c.type == reversedType).toList(growable: false);
+      if (reverseCats.isEmpty) {
+        throw StateError('退款失败:没有 ${reversedType.name} 类型的分类');
       }
+      final reverseCat = reverseCats.first;
+
+      final refundNote = original.note.isEmpty
+          ? '退款'
+          : '退款 · ${original.note}';
+
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: original.amountCents,
+          type: reversedType,
+          categoryId: reverseCat.id,
+          accountId: original.accountId,
+          note: Value(refundNote),
+        ),
+      );
+      // 退款成功:100ms 长振(成功完成档)
+      await Haptics.heavy();
       return id;
     } finally {
       state = state.copyWith(isSubmitting: false);

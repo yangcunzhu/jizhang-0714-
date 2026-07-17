@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -235,6 +236,218 @@ void main() {
       // 验证 _afterDot 也被重置：appendDigit 后应是整元阶段
       notifier.appendDigit(1);
       expect(container.read(recordFormProvider).amountCents, 1);
+    });
+  });
+
+  // ===== Day 8: 编辑 / 删除 / 退款 =====
+
+  group('RecordFormNotifier - 编辑(loadForEdit)', () {
+    test('isEditing 初始为 false', () {
+      expect(container.read(recordFormProvider).isEditing, false);
+      expect(container.read(recordFormProvider).editingTransactionId, null);
+    });
+
+    test('loadForEdit 反向填充 categoryId / amountCents / accountId / note',
+        () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 5678,
+          type: TransactionType.expense,
+          categoryId: cats[3].id,
+          accountId: acc!.id,
+          note: const Value('Switch 游戏'),
+        ),
+      );
+      final tx = (await db.transactionDao.getById(id))!;
+
+      final notifier = container.read(recordFormProvider.notifier);
+      notifier.loadForEdit(tx);
+
+      final s = container.read(recordFormProvider);
+      expect(s.editingTransactionId, id);
+      expect(s.isEditing, true);
+      expect(s.categoryId, cats[3].id);
+      expect(s.amountCents, 5678);
+      expect(s.accountId, acc.id);
+      expect(s.note, 'Switch 游戏');
+      expect(s.step, RecordStep.selectAccount);
+    });
+
+    test('loadForEdit 后 reset 清空 editingTransactionId', () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 100,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: acc!.id,
+        ),
+      );
+      final tx = (await db.transactionDao.getById(id))!;
+      final notifier = container.read(recordFormProvider.notifier);
+      notifier.loadForEdit(tx);
+      notifier.reset();
+      expect(container.read(recordFormProvider).isEditing, false);
+    });
+  });
+
+  group('RecordFormNotifier - 编辑模式 submit()', () {
+    test('编辑模式 submit → UPDATE 现有交易,数据库仍 1 行 + 内容更新',
+        () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 100,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: acc!.id,
+          note: const Value('旧备注'),
+        ),
+      );
+      final tx = (await db.transactionDao.getById(id))!;
+
+      final notifier = container.read(recordFormProvider.notifier);
+      notifier.loadForEdit(tx);
+      notifier.clearAmount();
+      notifier.appendDigit(2);
+      notifier.appendDigit(0);
+      notifier.appendDigit(0);
+      notifier.setNote('新备注');
+
+      final returnedId = await notifier.submit();
+      expect(returnedId, id);
+
+      final all = await db.transactionDao.getAll();
+      expect(all, hasLength(1));
+      expect(all.first.amountCents, 200);
+      expect(all.first.note, '新备注');
+      expect(all.first.id, id);
+    });
+
+    test('编辑模式 submit 找不到 id → 抛 StateError', () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final fake = TransactionEntry(
+        id: 99999,
+        amountCents: 100,
+        type: TransactionType.expense,
+        categoryId: cats.first.id,
+        accountId: acc!.id,
+        note: '',
+        occurredAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final notifier = container.read(recordFormProvider.notifier);
+      notifier.loadForEdit(fake);
+      notifier.setAccount(acc.id);
+      await expectLater(notifier.submit(), throwsStateError);
+    });
+  });
+
+  group('RecordFormNotifier - 退款(submitAsRefund,方案 A)', () {
+    test('支出交易退款 → 反向插入一笔 + amountCents 不变 + 类型变 income',
+        () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 1299,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: acc!.id,
+          note: const Value('咖啡'),
+        ),
+      );
+      final original = (await db.transactionDao.getById(id))!;
+
+      final notifier = container.read(recordFormProvider.notifier);
+      final refundId = await notifier.submitAsRefund(original);
+
+      expect(refundId, isNot(equals(id)));
+      final all = await db.transactionDao.getAll();
+      expect(all, hasLength(2));
+      final refund = all.firstWhere((t) => t.id == refundId);
+      expect(refund.amountCents, original.amountCents);
+      expect(refund.type, TransactionType.income);
+      expect(refund.accountId, original.accountId);
+      expect(refund.note, '退款 · 咖啡');
+      expect(refund.categoryId, isNot(equals(original.categoryId)));
+    });
+
+    test('收入交易退款 → 类型变 expense + note 加 "退款"', () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final incomeCat =
+          cats.firstWhere((c) => c.type == TransactionType.income);
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 5000,
+          type: TransactionType.income,
+          categoryId: incomeCat.id,
+          accountId: acc!.id,
+          note: const Value('工资'),
+        ),
+      );
+      final original = (await db.transactionDao.getById(id))!;
+
+      final notifier = container.read(recordFormProvider.notifier);
+      final refundId = await notifier.submitAsRefund(original);
+
+      final refund = (await db.transactionDao.getById(refundId))!;
+      expect(refund.type, TransactionType.expense);
+      expect(refund.amountCents, 5000);
+      expect(refund.note, '退款 · 工资');
+    });
+
+    test('原 note 为空 → 退款 note 仅 "退款"', () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 500,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: acc!.id,
+        ),
+      );
+      final original = (await db.transactionDao.getById(id))!;
+      final notifier = container.read(recordFormProvider.notifier);
+      final refundId = await notifier.submitAsRefund(original);
+      final refund = (await db.transactionDao.getById(refundId))!;
+      expect(refund.note, '退款');
+    });
+  });
+
+  group('RecordFormNotifier - 删除(deleteTransaction)', () {
+    test('deleteTransaction 删除一行 + 返回 1', () async {
+      final cats = await db.categoryDao.getAll();
+      final acc = await db.accountDao.getDefault();
+      final id = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          amountCents: 100,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: acc!.id,
+        ),
+      );
+
+      final notifier = container.read(recordFormProvider.notifier);
+      final rows = await notifier.deleteTransaction(id);
+
+      expect(rows, 1);
+      expect(await db.transactionDao.getById(id), isNull);
+    });
+
+    test('deleteTransaction 不存在的 id → 返回 0', () async {
+      final notifier = container.read(recordFormProvider.notifier);
+      final rows = await notifier.deleteTransaction(99999);
+      expect(rows, 0);
     });
   });
 }

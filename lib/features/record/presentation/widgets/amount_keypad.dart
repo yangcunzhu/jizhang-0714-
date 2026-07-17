@@ -34,12 +34,14 @@ class AmountKeypad extends StatelessWidget {
         _row([_digit(7), _digit(8), _digit(9)]),
         _row([
           _Key(
+            key: const Key('digit-dot'),
             label: '.',
             onTap: onDot,
             color: Theme.of(context).colorScheme.secondaryContainer,
           ),
           _digit(0),
           _Key(
+            key: const Key('digit-backspace'),
             icon: Icons.backspace_outlined,
             onTap: onBackspace,
             color: Theme.of(context).colorScheme.errorContainer,
@@ -62,6 +64,7 @@ class AmountKeypad extends StatelessWidget {
 
   Widget _digit(int d) {
     return _Key(
+      key: Key('digit-$d'),
       label: d.toString(),
       onTap: () => onDigit(d),
     );
@@ -70,6 +73,7 @@ class AmountKeypad extends StatelessWidget {
 
 class _Key extends StatelessWidget {
   const _Key({
+    super.key,
     this.label,
     this.icon,
     required this.onTap,

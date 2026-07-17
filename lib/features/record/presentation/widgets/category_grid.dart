@@ -44,6 +44,7 @@ class CategoryGrid extends ConsumerWidget {
             final c = cats[index];
             final selected = c.id == selectedCategoryId;
             return _CategoryTile(
+              key: Key('emoji-${c.name}'),
               category: c,
               selected: selected,
               onTap: () => onSelected(c),
@@ -57,6 +58,7 @@ class CategoryGrid extends ConsumerWidget {
 
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
+    super.key,
     required this.category,
     required this.selected,
     required this.onTap,
