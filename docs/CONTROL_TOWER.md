@@ -21,7 +21,7 @@
 - `lib/` + `test/` + `integration_test/`：Drift schema + 10 单测 + 65 widget + 3 E2E
 - `docs/stages/S01-manual-record.md`：S01 7+ 天计划全部完成
 - `docs/daily/2026-07-{18..24}.md`：Day 4-10 每日工作日志
-- `docs/adr/0012-0014.md`：依赖 / emoji / E2E 决策
+- `docs/adr/0012-0016.md`：依赖 / emoji / E2E / Stage 2 写集 / Stage 7+ 智能记账
 - GitHub Actions：Build iOS .ipa 修复后连续绿
 
 ---
@@ -43,7 +43,7 @@ Milestone v1.0.0 (MVP 上线)
 ```
 
 **当前位置**：Stage 1 = ACCEPTED ✅(2026-07-17 真机手验 3 场景全过)
-**下一站**：Stage 2 开工(2026-07-18,取决于 ADR-0015 写集确认)
+**下一站**：Stage 2 Day 11 已开(2026-07-18,Schema migration v2 — 见 `docs/daily/2026-07-25.md`)
 
 **授权终点**：S08 完成 → `READY_FOR_OWNER_ACCEPTANCE`
 
@@ -221,6 +221,8 @@ Milestone v1.0.0 (MVP 上线)
 | 依赖锁定：drift_dev 2.34.4 + flutter_riverpod 2.6.1 + 移除 codegen | 2026-07-17 | ADR-0012 |
 | emoji 优先(无 Material Icons) | 2026-07-21 | ADR-0013 |
 | E2E 用 integration_test 真引擎 | 2026-07-21 | ADR-0014 |
+| Stage 2 写集(分类 CRUD + 多账户 + 6 种账户类型 schema 扩展) | 2026-07-17 | ADR-0015 |
+| Stage 7+ 智能记账(Siri Shortcuts / OCR / iOS 4 触发方式) | 2026-07-17 | ADR-0016 |
 | LICENSE：MIT | 2026-07-23 | (新增) |
 | 隐私：Apple ID 占位符 + filter-branch 清历史 | 2026-07-24 | (本卡) |
 
@@ -255,7 +257,7 @@ W8 (9/2-9/9)    [▱▱▱▱▱▱▱] Stage 7+8 - 攒攒 + 上线
 - 分类 CRUD UI(emoji + 颜色 + 排序)
 - 6 种账户类型 schema 扩展
 - 多账户选择器(替换单一"现金")
-- ADR-0015 候选:Stage 2 写集范围
+- ADR-0017 候选:Stage 2 内决策(AccountType enum 取值 / 模板设计 / UI 关键路径)
 
 ---
 

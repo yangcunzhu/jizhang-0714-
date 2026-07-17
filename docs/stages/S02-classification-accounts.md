@@ -127,7 +127,7 @@ test/
 
 docs/
 ├── daily/2026-07-18..24.md          (Day 11-17 工作日志)
-├── adr/0016-*.md                   (Stage 2 内决策记录,按需)
+├── adr/0017-*.md                   (Stage 2 内决策记录,按需 — 0016 已被 Stage 7+ 占用)
 └── stages/S02-classification-accounts.md  (本文件)
 ```
 
@@ -159,7 +159,7 @@ docs/
 - [ ] daily/2026-07-18..24.md(7 天)写完
 - [ ] S02 状态改 ACCEPTED + ROA 报告
 - [ ] CONTROL_TOWER 派生更新到 S02 = ACCEPTED
-- [ ] ADR-0016+(Stage 2 内决策,按需)
+- [ ] ADR-0017+(Stage 2 内决策,按需)
 
 ---
 
@@ -190,7 +190,7 @@ docs/
 
 ## 📅 时间切片(7 天)
 
-- **Day 11 (07-18)**:Schema migration v2 + DAO 测试 + ADR-0016(如有新决策)
+- **Day 11 (07-18)**:Schema migration v2 + DAO 测试 + ADR-0017(如有新决策,如 AccountType enum 取值固定)
 - **Day 12 (07-19)**:账户 CRUD UI(主页入口 + 弹层 + 6 种类型卡片)
 - **Day 13 (07-20)**:多账户选择器(Step 3 下拉) + 信用卡字段
 - **Day 14 (07-21)**:分类 CRUD UI(长按菜单 + 编辑弹层 + emoji picker)

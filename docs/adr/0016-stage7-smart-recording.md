@@ -125,7 +125,7 @@ Stage 2 已经预留的衔接点:
 - `product-design-v4.html` §2.10 P0-04 / §3.20 OCR + Siri
 - ADR-0015 Stage 2 写集(分类 CRUD + 多账户,不包含智能记账)
 - ADR-0007(待写)Stage 7 苹果匠角色 / Siri 集成细节
-- 咔皮截图:用户 `E:\0717-shenjiguanxuqiu\` 下 2 张
+- 咔皮截图:用户 `[USER_LOCAL_DIR]/咔皮-截图/` 下 2 张(不入 git,本地路径占位符)
 
 ---
 
