@@ -38,6 +38,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
         await _seedDefaults();
       },
+      beforeOpen: (details) async {
+        // WHY: SQLite 默认每个连接 foreign_keys=OFF,不开则 references() 形同虚设。
+        // 记账数据完整性依赖外键(禁止悬挂 categoryId/accountId)。
+        await customStatement('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
@@ -99,15 +104,15 @@ const List<CategoriesCompanion> _defaultCategories = [
       type: Value(TransactionType.expense),
       sortOrder: Value(7)),
   CategoriesCompanion(
-      name: Value('工资'),
-      iconName: Value('payments'),
-      colorValue: Value(0xFF26C6DA),
-      type: Value(TransactionType.income),
-      sortOrder: Value(8)),
-  CategoriesCompanion(
       name: Value('其他'),
       iconName: Value('category'),
       colorValue: Value(0xFF78909C),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(8)),
+  CategoriesCompanion(
+      name: Value('工资'),
+      iconName: Value('payments'),
+      colorValue: Value(0xFF26C6DA),
       type: Value(TransactionType.income),
       sortOrder: Value(9)),
 ];

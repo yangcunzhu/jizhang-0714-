@@ -22,7 +22,10 @@ class Categories extends Table {
   IntColumn get colorValue => integer()();
 
   /// 支出 / 收入。
-  IntColumn get type => intEnum<TransactionType>()();
+  ///
+  /// WHY: 用 textEnum(按枚举 name 字符串存储),而非 intEnum(按 index)。
+  /// 这样未来在枚举中间插入新值(如 transfer)不会错位映射历史数据。
+  TextColumn get type => textEnum<TransactionType>()();
 
   /// 列表排序,越小越靠前。
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();

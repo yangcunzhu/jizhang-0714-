@@ -38,9 +38,13 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     return into(transactions).insert(entry);
   }
 
-  /// 全量更新一笔交易(同步刷新 updatedAt 由调用方在 companion 里带上)。
+  /// 全量更新一笔交易,内部自动刷新 updatedAt。
+  ///
+  /// WHY: .replace() 不会触碰 updatedAt 默认值(默认仅在 INSERT 生效),
+  /// 若交由调用方手动刷新极易遗漏 → 在 DAO 内统一 stamp,杜绝幽灵旧时间戳。
   Future<bool> updateTransaction(TransactionEntry entry) {
-    return update(transactions).replace(entry);
+    final stamped = entry.copyWith(updatedAt: DateTime.now());
+    return update(transactions).replace(stamped);
   }
 
   Future<int> deleteById(int id) {

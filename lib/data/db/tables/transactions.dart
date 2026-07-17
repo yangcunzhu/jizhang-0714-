@@ -11,10 +11,12 @@ class Transactions extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 金额,单位:分(整数,恒 > 0)。支出 / 收入由 [type] 区分,不用负数。
+  ///
+  /// 非负由表级 CHECK 约束强制(见 [customConstraints]),拦截 UI/迁移 bug。
   IntColumn get amountCents => integer()();
 
-  /// 支出 / 收入。
-  IntColumn get type => intEnum<TransactionType>()();
+  /// 支出 / 收入。textEnum 按 name 存储(见 Categories.type 说明)。
+  TextColumn get type => textEnum<TransactionType>()();
 
   /// 所属分类。
   IntColumn get categoryId =>
@@ -36,4 +38,8 @@ class Transactions extends Table {
 
   DateTimeColumn get updatedAt =>
       dateTime().withDefault(currentDateAndTime)();
+
+  /// 表级约束:金额恒正。用表级 CHECK 而非列级 .check(),避免列 getter 自引用。
+  @override
+  List<String> get customConstraints => const ['CHECK (amount_cents > 0)'];
 }

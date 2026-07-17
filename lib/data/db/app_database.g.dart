@@ -62,12 +62,12 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<TransactionType, int> type =
-      GeneratedColumn<int>(
+  late final GeneratedColumnWithTypeConverter<TransactionType, String> type =
+      GeneratedColumn<String>(
         'type',
         aliasedName,
         false,
-        type: DriftSqlType.int,
+        type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TransactionType>($CategoriesTable.$convertertype);
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
@@ -182,7 +182,7 @@ class $CategoriesTable extends Categories
       )!,
       type: $CategoriesTable.$convertertype.fromSql(
         attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
+          DriftSqlType.string,
           data['${effectivePrefix}type'],
         )!,
       ),
@@ -202,8 +202,8 @@ class $CategoriesTable extends Categories
     return $CategoriesTable(attachedDatabase, alias);
   }
 
-  static JsonTypeConverter2<TransactionType, int, int> $convertertype =
-      const EnumIndexConverter<TransactionType>(TransactionType.values);
+  static JsonTypeConverter2<TransactionType, String, String> $convertertype =
+      const EnumNameConverter<TransactionType>(TransactionType.values);
 }
 
 class CategoryEntry extends DataClass implements Insertable<CategoryEntry> {
@@ -219,6 +219,9 @@ class CategoryEntry extends DataClass implements Insertable<CategoryEntry> {
   final int colorValue;
 
   /// 支出 / 收入。
+  ///
+  /// WHY: 用 textEnum(按枚举 name 字符串存储),而非 intEnum(按 index)。
+  /// 这样未来在枚举中间插入新值(如 transfer)不会错位映射历史数据。
   final TransactionType type;
 
   /// 列表排序,越小越靠前。
@@ -241,7 +244,9 @@ class CategoryEntry extends DataClass implements Insertable<CategoryEntry> {
     map['icon_name'] = Variable<String>(iconName);
     map['color_value'] = Variable<int>(colorValue);
     {
-      map['type'] = Variable<int>($CategoriesTable.$convertertype.toSql(type));
+      map['type'] = Variable<String>(
+        $CategoriesTable.$convertertype.toSql(type),
+      );
     }
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -271,7 +276,7 @@ class CategoryEntry extends DataClass implements Insertable<CategoryEntry> {
       iconName: serializer.fromJson<String>(json['iconName']),
       colorValue: serializer.fromJson<int>(json['colorValue']),
       type: $CategoriesTable.$convertertype.fromJson(
-        serializer.fromJson<int>(json['type']),
+        serializer.fromJson<String>(json['type']),
       ),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -285,7 +290,7 @@ class CategoryEntry extends DataClass implements Insertable<CategoryEntry> {
       'name': serializer.toJson<String>(name),
       'iconName': serializer.toJson<String>(iconName),
       'colorValue': serializer.toJson<int>(colorValue),
-      'type': serializer.toJson<int>(
+      'type': serializer.toJson<String>(
         $CategoriesTable.$convertertype.toJson(type),
       ),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -388,7 +393,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntry> {
     Expression<String>? name,
     Expression<String>? iconName,
     Expression<int>? colorValue,
-    Expression<int>? type,
+    Expression<String>? type,
     Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
   }) {
@@ -439,7 +444,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryEntry> {
       map['color_value'] = Variable<int>(colorValue.value);
     }
     if (type.present) {
-      map['type'] = Variable<int>(
+      map['type'] = Variable<String>(
         $CategoriesTable.$convertertype.toSql(type.value),
       );
     }
@@ -807,12 +812,12 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<TransactionType, int> type =
-      GeneratedColumn<int>(
+  late final GeneratedColumnWithTypeConverter<TransactionType, String> type =
+      GeneratedColumn<String>(
         'type',
         aliasedName,
         false,
-        type: DriftSqlType.int,
+        type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TransactionType>($TransactionsTable.$convertertype);
   static const VerificationMeta _categoryIdMeta = const VerificationMeta(
@@ -986,7 +991,7 @@ class $TransactionsTable extends Transactions
       )!,
       type: $TransactionsTable.$convertertype.fromSql(
         attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
+          DriftSqlType.string,
           data['${effectivePrefix}type'],
         )!,
       ),
@@ -1022,8 +1027,8 @@ class $TransactionsTable extends Transactions
     return $TransactionsTable(attachedDatabase, alias);
   }
 
-  static JsonTypeConverter2<TransactionType, int, int> $convertertype =
-      const EnumIndexConverter<TransactionType>(TransactionType.values);
+  static JsonTypeConverter2<TransactionType, String, String> $convertertype =
+      const EnumNameConverter<TransactionType>(TransactionType.values);
 }
 
 class TransactionEntry extends DataClass
@@ -1031,9 +1036,11 @@ class TransactionEntry extends DataClass
   final int id;
 
   /// 金额,单位:分(整数,恒 > 0)。支出 / 收入由 [type] 区分,不用负数。
+  ///
+  /// 非负由表级 CHECK 约束强制(见 [customConstraints]),拦截 UI/迁移 bug。
   final int amountCents;
 
-  /// 支出 / 收入。
+  /// 支出 / 收入。textEnum 按 name 存储(见 Categories.type 说明)。
   final TransactionType type;
 
   /// 所属分类。
@@ -1066,7 +1073,7 @@ class TransactionEntry extends DataClass
     map['id'] = Variable<int>(id);
     map['amount_cents'] = Variable<int>(amountCents);
     {
-      map['type'] = Variable<int>(
+      map['type'] = Variable<String>(
         $TransactionsTable.$convertertype.toSql(type),
       );
     }
@@ -1102,7 +1109,7 @@ class TransactionEntry extends DataClass
       id: serializer.fromJson<int>(json['id']),
       amountCents: serializer.fromJson<int>(json['amountCents']),
       type: $TransactionsTable.$convertertype.fromJson(
-        serializer.fromJson<int>(json['type']),
+        serializer.fromJson<String>(json['type']),
       ),
       categoryId: serializer.fromJson<int>(json['categoryId']),
       accountId: serializer.fromJson<int>(json['accountId']),
@@ -1118,7 +1125,7 @@ class TransactionEntry extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'amountCents': serializer.toJson<int>(amountCents),
-      'type': serializer.toJson<int>(
+      'type': serializer.toJson<String>(
         $TransactionsTable.$convertertype.toJson(type),
       ),
       'categoryId': serializer.toJson<int>(categoryId),
@@ -1252,7 +1259,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
   static Insertable<TransactionEntry> custom({
     Expression<int>? id,
     Expression<int>? amountCents,
-    Expression<int>? type,
+    Expression<String>? type,
     Expression<int>? categoryId,
     Expression<int>? accountId,
     Expression<String>? note,
@@ -1307,7 +1314,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       map['amount_cents'] = Variable<int>(amountCents.value);
     }
     if (type.present) {
-      map['type'] = Variable<int>(
+      map['type'] = Variable<String>(
         $TransactionsTable.$convertertype.toSql(type.value),
       );
     }
@@ -1444,7 +1451,7 @@ class $$CategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<TransactionType, TransactionType, int>
+  ColumnWithTypeConverterFilters<TransactionType, TransactionType, String>
   get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnWithTypeConverterFilters(column),
@@ -1515,7 +1522,7 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get type => $composableBuilder(
+  ColumnOrderings<String> get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnOrderings(column),
   );
@@ -1554,7 +1561,7 @@ class $$CategoriesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumnWithTypeConverter<TransactionType, int> get type =>
+  GeneratedColumnWithTypeConverter<TransactionType, String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
@@ -2068,7 +2075,7 @@ class $$TransactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<TransactionType, TransactionType, int>
+  ColumnWithTypeConverterFilters<TransactionType, TransactionType, String>
   get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnWithTypeConverterFilters(column),
@@ -2160,7 +2167,7 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get type => $composableBuilder(
+  ColumnOrderings<String> get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2249,7 +2256,7 @@ class $$TransactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumnWithTypeConverter<TransactionType, int> get type =>
+  GeneratedColumnWithTypeConverter<TransactionType, String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
   GeneratedColumn<String> get note =>
