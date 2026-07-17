@@ -20,18 +20,33 @@ jobs:
           flutter-version: '3.44.6'
           channel: stable
 
-      - name: Cache pub & build
+      - name: Cache pub-cache only
+        # WHY 只 cache pub-cache 不 cache build/:
+        #   build/ 含 stale 的 Pods/Podfile.lock,会让下次 build 用旧 pod
+        #   缓存只到 pub-cache 避免 stale artifact 误导 build
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.pub-cache
-            build/
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            ${{ runner.os }}-flutter-
+            ${{ runner.os }}-flutter-pub-
 
-      - name: Install dependencies
+      - name: Install Flutter deps
         run: flutter pub get
+
+      - name: Precache iOS engine artifacts
+        # WHY 显式 precache:首次 runner 启动可能没下 iOS artifacts,
+        # flutter build ios 隐式触发会拉长 build 时间,且偶发失败显式更稳
+        run: flutter precache --ios
+
+      - name: Pod install (CocoaPods)
+        # WHY 显式 pod install:虽然 flutter build ios 会自动调,
+        # 但在 build 步骤前显式跑可以提前捕获 Podfile/Pod 解析错误,
+        # 失败时给出明确栈而非嵌入 build 错误中难定位
+        run: |
+          cd ios
+          pod install --repo-update
+          cd ..
 
       - name: Analyze
         run: flutter analyze
@@ -43,25 +58,30 @@ jobs:
       # 见 docs/product-design-v4.html §2.12 部署架构 + §8.48 AltStore 部署
       - name: Build unsigned .ipa
         run: |
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign --verbose 2>&1 | tee build.log
           mkdir -p build/Payload
           cp -R build/ios/iphoneos/Runner.app build/Payload/
           cd build && zip -r ../Runner.ipa Payload
           ls -la ../Runner.ipa
 
-      - name: Upload artifact
+      - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
           name: jizhang-app-unsigned
           path: Runner.ipa
           retention-days: 7
 
-      - name: Upload logs on failure
-        if: failure()
+      # WHY 始终上传日志(成功失败都传):
+      #   失败日志 7 天(用户截图后我可以定位),成功日志 1 天(轻量)
+      - name: Upload build logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
           path: |
-            ~/.gradle/daemon/*.log
+            build.log
             build/
+            ios/Pods/Manifest.lock
+            ios/Podfile.lock
           retention-days: 3
+          if-no-files-found: ignore

@@ -43,6 +43,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Precache iOS engine artifacts
+        run: flutter precache --ios
+
+      - name: Pod install (CocoaPods)
+        # WHY 显式:integration_test 编译时需要链接 native pods,
+        # flutter test integration_test 在 iOS Simulator 上等同 mini-build
+        run: |
+          cd ios
+          pod install --repo-update
+          cd ..
+
       - name: Analyze
         run: flutter analyze
 
@@ -76,12 +87,14 @@ jobs:
             -d "${{ steps.pick-sim.outputs.sim_udid }}" \
             --reporter expanded
 
-      - name: Upload logs on failure
-        if: failure()
+      - name: Upload logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs
           path: |
             build/
-            ~/.gradle/daemon/*.log
+            ios/Pods/Manifest.lock
+            ios/Podfile.lock
           retention-days: 3
+          if-no-files-found: ignore
