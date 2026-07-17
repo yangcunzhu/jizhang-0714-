@@ -516,6 +516,62 @@ class $AccountsTable extends Accounts
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<AccountType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('cash'),
+      ).withConverter<AccountType>($AccountsTable.$convertertype);
+  static const VerificationMeta _includeInNetWorthMeta = const VerificationMeta(
+    'includeInNetWorth',
+  );
+  @override
+  late final GeneratedColumn<bool> includeInNetWorth = GeneratedColumn<bool>(
+    'include_in_net_worth',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("include_in_net_worth" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _creditLimitMeta = const VerificationMeta(
+    'creditLimit',
+  );
+  @override
+  late final GeneratedColumn<int> creditLimit = GeneratedColumn<int>(
+    'credit_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _billingDayMeta = const VerificationMeta(
+    'billingDay',
+  );
+  @override
+  late final GeneratedColumn<int> billingDay = GeneratedColumn<int>(
+    'billing_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dueDayMeta = const VerificationMeta('dueDay');
+  @override
+  late final GeneratedColumn<int> dueDay = GeneratedColumn<int>(
+    'due_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -529,7 +585,17 @@ class $AccountsTable extends Accounts
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, balanceCents, createdAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    balanceCents,
+    type,
+    includeInNetWorth,
+    creditLimit,
+    billingDay,
+    dueDay,
+    createdAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -562,6 +628,36 @@ class $AccountsTable extends Accounts
         ),
       );
     }
+    if (data.containsKey('include_in_net_worth')) {
+      context.handle(
+        _includeInNetWorthMeta,
+        includeInNetWorth.isAcceptableOrUnknown(
+          data['include_in_net_worth']!,
+          _includeInNetWorthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('credit_limit')) {
+      context.handle(
+        _creditLimitMeta,
+        creditLimit.isAcceptableOrUnknown(
+          data['credit_limit']!,
+          _creditLimitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billing_day')) {
+      context.handle(
+        _billingDayMeta,
+        billingDay.isAcceptableOrUnknown(data['billing_day']!, _billingDayMeta),
+      );
+    }
+    if (data.containsKey('due_day')) {
+      context.handle(
+        _dueDayMeta,
+        dueDay.isAcceptableOrUnknown(data['due_day']!, _dueDayMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -589,6 +685,28 @@ class $AccountsTable extends Accounts
         DriftSqlType.int,
         data['${effectivePrefix}balance_cents'],
       )!,
+      type: $AccountsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      includeInNetWorth: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}include_in_net_worth'],
+      )!,
+      creditLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}credit_limit'],
+      ),
+      billingDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billing_day'],
+      ),
+      dueDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}due_day'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -600,6 +718,9 @@ class $AccountsTable extends Accounts
   $AccountsTable createAlias(String alias) {
     return $AccountsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<AccountType, String, String> $convertertype =
+      const EnumNameConverter<AccountType>(AccountType.values);
 }
 
 class AccountEntry extends DataClass implements Insertable<AccountEntry> {
@@ -612,11 +733,36 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
   ///
   /// WHY: 金额一律用整数分存储,杜绝 double 浮点误差(0.1+0.2 问题)。
   final int balanceCents;
+
+  /// 账户类型 — 6 种之一。
+  ///
+  /// Stage 1 已有 row 自动归类 'cash'(withDefault)。
+  final AccountType type;
+
+  /// 是否计入净资产。
+  ///
+  /// WHY: 理财类账户(已投入本金,未来收益未实现)通常不计入净资产,
+  /// 与现金流账户区分。Stage 5 净资产计算据此过滤。
+  final bool includeInNetWorth;
+
+  /// 信用卡额度(分)。Nullable:仅 creditCard 类型有意义。
+  final int? creditLimit;
+
+  /// 信用卡账单日(1-31)。Nullable:仅 creditCard 类型有意义。
+  final int? billingDay;
+
+  /// 信用卡还款日(1-31)。Nullable:仅 creditCard 类型有意义。
+  final int? dueDay;
   final DateTime createdAt;
   const AccountEntry({
     required this.id,
     required this.name,
     required this.balanceCents,
+    required this.type,
+    required this.includeInNetWorth,
+    this.creditLimit,
+    this.billingDay,
+    this.dueDay,
     required this.createdAt,
   });
   @override
@@ -625,6 +771,19 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['balance_cents'] = Variable<int>(balanceCents);
+    {
+      map['type'] = Variable<String>($AccountsTable.$convertertype.toSql(type));
+    }
+    map['include_in_net_worth'] = Variable<bool>(includeInNetWorth);
+    if (!nullToAbsent || creditLimit != null) {
+      map['credit_limit'] = Variable<int>(creditLimit);
+    }
+    if (!nullToAbsent || billingDay != null) {
+      map['billing_day'] = Variable<int>(billingDay);
+    }
+    if (!nullToAbsent || dueDay != null) {
+      map['due_day'] = Variable<int>(dueDay);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -634,6 +793,17 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       id: Value(id),
       name: Value(name),
       balanceCents: Value(balanceCents),
+      type: Value(type),
+      includeInNetWorth: Value(includeInNetWorth),
+      creditLimit: creditLimit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(creditLimit),
+      billingDay: billingDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billingDay),
+      dueDay: dueDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDay),
       createdAt: Value(createdAt),
     );
   }
@@ -647,6 +817,13 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       balanceCents: serializer.fromJson<int>(json['balanceCents']),
+      type: $AccountsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      includeInNetWorth: serializer.fromJson<bool>(json['includeInNetWorth']),
+      creditLimit: serializer.fromJson<int?>(json['creditLimit']),
+      billingDay: serializer.fromJson<int?>(json['billingDay']),
+      dueDay: serializer.fromJson<int?>(json['dueDay']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -657,6 +834,13 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'balanceCents': serializer.toJson<int>(balanceCents),
+      'type': serializer.toJson<String>(
+        $AccountsTable.$convertertype.toJson(type),
+      ),
+      'includeInNetWorth': serializer.toJson<bool>(includeInNetWorth),
+      'creditLimit': serializer.toJson<int?>(creditLimit),
+      'billingDay': serializer.toJson<int?>(billingDay),
+      'dueDay': serializer.toJson<int?>(dueDay),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -665,11 +849,21 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     int? id,
     String? name,
     int? balanceCents,
+    AccountType? type,
+    bool? includeInNetWorth,
+    Value<int?> creditLimit = const Value.absent(),
+    Value<int?> billingDay = const Value.absent(),
+    Value<int?> dueDay = const Value.absent(),
     DateTime? createdAt,
   }) => AccountEntry(
     id: id ?? this.id,
     name: name ?? this.name,
     balanceCents: balanceCents ?? this.balanceCents,
+    type: type ?? this.type,
+    includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+    creditLimit: creditLimit.present ? creditLimit.value : this.creditLimit,
+    billingDay: billingDay.present ? billingDay.value : this.billingDay,
+    dueDay: dueDay.present ? dueDay.value : this.dueDay,
     createdAt: createdAt ?? this.createdAt,
   );
   AccountEntry copyWithCompanion(AccountsCompanion data) {
@@ -679,6 +873,17 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       balanceCents: data.balanceCents.present
           ? data.balanceCents.value
           : this.balanceCents,
+      type: data.type.present ? data.type.value : this.type,
+      includeInNetWorth: data.includeInNetWorth.present
+          ? data.includeInNetWorth.value
+          : this.includeInNetWorth,
+      creditLimit: data.creditLimit.present
+          ? data.creditLimit.value
+          : this.creditLimit,
+      billingDay: data.billingDay.present
+          ? data.billingDay.value
+          : this.billingDay,
+      dueDay: data.dueDay.present ? data.dueDay.value : this.dueDay,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -689,13 +894,28 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('balanceCents: $balanceCents, ')
+          ..write('type: $type, ')
+          ..write('includeInNetWorth: $includeInNetWorth, ')
+          ..write('creditLimit: $creditLimit, ')
+          ..write('billingDay: $billingDay, ')
+          ..write('dueDay: $dueDay, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, balanceCents, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    balanceCents,
+    type,
+    includeInNetWorth,
+    creditLimit,
+    billingDay,
+    dueDay,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -703,6 +923,11 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           other.id == this.id &&
           other.name == this.name &&
           other.balanceCents == this.balanceCents &&
+          other.type == this.type &&
+          other.includeInNetWorth == this.includeInNetWorth &&
+          other.creditLimit == this.creditLimit &&
+          other.billingDay == this.billingDay &&
+          other.dueDay == this.dueDay &&
           other.createdAt == this.createdAt);
 }
 
@@ -710,29 +935,54 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
   final Value<int> id;
   final Value<String> name;
   final Value<int> balanceCents;
+  final Value<AccountType> type;
+  final Value<bool> includeInNetWorth;
+  final Value<int?> creditLimit;
+  final Value<int?> billingDay;
+  final Value<int?> dueDay;
   final Value<DateTime> createdAt;
   const AccountsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.balanceCents = const Value.absent(),
+    this.type = const Value.absent(),
+    this.includeInNetWorth = const Value.absent(),
+    this.creditLimit = const Value.absent(),
+    this.billingDay = const Value.absent(),
+    this.dueDay = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   AccountsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.balanceCents = const Value.absent(),
+    this.type = const Value.absent(),
+    this.includeInNetWorth = const Value.absent(),
+    this.creditLimit = const Value.absent(),
+    this.billingDay = const Value.absent(),
+    this.dueDay = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<AccountEntry> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? balanceCents,
+    Expression<String>? type,
+    Expression<bool>? includeInNetWorth,
+    Expression<int>? creditLimit,
+    Expression<int>? billingDay,
+    Expression<int>? dueDay,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (balanceCents != null) 'balance_cents': balanceCents,
+      if (type != null) 'type': type,
+      if (includeInNetWorth != null) 'include_in_net_worth': includeInNetWorth,
+      if (creditLimit != null) 'credit_limit': creditLimit,
+      if (billingDay != null) 'billing_day': billingDay,
+      if (dueDay != null) 'due_day': dueDay,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -741,12 +991,22 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     Value<int>? id,
     Value<String>? name,
     Value<int>? balanceCents,
+    Value<AccountType>? type,
+    Value<bool>? includeInNetWorth,
+    Value<int?>? creditLimit,
+    Value<int?>? billingDay,
+    Value<int?>? dueDay,
     Value<DateTime>? createdAt,
   }) {
     return AccountsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       balanceCents: balanceCents ?? this.balanceCents,
+      type: type ?? this.type,
+      includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+      creditLimit: creditLimit ?? this.creditLimit,
+      billingDay: billingDay ?? this.billingDay,
+      dueDay: dueDay ?? this.dueDay,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -763,6 +1023,23 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     if (balanceCents.present) {
       map['balance_cents'] = Variable<int>(balanceCents.value);
     }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $AccountsTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (includeInNetWorth.present) {
+      map['include_in_net_worth'] = Variable<bool>(includeInNetWorth.value);
+    }
+    if (creditLimit.present) {
+      map['credit_limit'] = Variable<int>(creditLimit.value);
+    }
+    if (billingDay.present) {
+      map['billing_day'] = Variable<int>(billingDay.value);
+    }
+    if (dueDay.present) {
+      map['due_day'] = Variable<int>(dueDay.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -775,6 +1052,11 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('balanceCents: $balanceCents, ')
+          ..write('type: $type, ')
+          ..write('includeInNetWorth: $includeInNetWorth, ')
+          ..write('creditLimit: $creditLimit, ')
+          ..write('billingDay: $billingDay, ')
+          ..write('dueDay: $dueDay, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1719,6 +2001,11 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<int> balanceCents,
+      Value<AccountType> type,
+      Value<bool> includeInNetWorth,
+      Value<int?> creditLimit,
+      Value<int?> billingDay,
+      Value<int?> dueDay,
       Value<DateTime> createdAt,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -1726,6 +2013,11 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> name,
       Value<int> balanceCents,
+      Value<AccountType> type,
+      Value<bool> includeInNetWorth,
+      Value<int?> creditLimit,
+      Value<int?> billingDay,
+      Value<int?> dueDay,
       Value<DateTime> createdAt,
     });
 
@@ -1773,6 +2065,32 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get balanceCents => $composableBuilder(
     column: $table.balanceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AccountType, AccountType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<bool> get includeInNetWorth => $composableBuilder(
+    column: $table.includeInNetWorth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billingDay => $composableBuilder(
+    column: $table.billingDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dueDay => $composableBuilder(
+    column: $table.dueDay,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1831,6 +2149,31 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get includeInNetWorth => $composableBuilder(
+    column: $table.includeInNetWorth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billingDay => $composableBuilder(
+    column: $table.billingDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dueDay => $composableBuilder(
+    column: $table.dueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1856,6 +2199,27 @@ class $$AccountsTableAnnotationComposer
     column: $table.balanceCents,
     builder: (column) => column,
   );
+
+  GeneratedColumnWithTypeConverter<AccountType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<bool> get includeInNetWorth => $composableBuilder(
+    column: $table.includeInNetWorth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billingDay => $composableBuilder(
+    column: $table.billingDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dueDay =>
+      $composableBuilder(column: $table.dueDay, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1917,11 +2281,21 @@ class $$AccountsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> balanceCents = const Value.absent(),
+                Value<AccountType> type = const Value.absent(),
+                Value<bool> includeInNetWorth = const Value.absent(),
+                Value<int?> creditLimit = const Value.absent(),
+                Value<int?> billingDay = const Value.absent(),
+                Value<int?> dueDay = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
                 name: name,
                 balanceCents: balanceCents,
+                type: type,
+                includeInNetWorth: includeInNetWorth,
+                creditLimit: creditLimit,
+                billingDay: billingDay,
+                dueDay: dueDay,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1929,11 +2303,21 @@ class $$AccountsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<int> balanceCents = const Value.absent(),
+                Value<AccountType> type = const Value.absent(),
+                Value<bool> includeInNetWorth = const Value.absent(),
+                Value<int?> creditLimit = const Value.absent(),
+                Value<int?> billingDay = const Value.absent(),
+                Value<int?> dueDay = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
                 name: name,
                 balanceCents: balanceCents,
+                type: type,
+                includeInNetWorth: includeInNetWorth,
+                creditLimit: creditLimit,
+                billingDay: billingDay,
+                dueDay: dueDay,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

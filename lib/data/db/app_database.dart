@@ -18,6 +18,10 @@ part 'app_database.g.dart';
 ///
 /// Stage 1 用 Drift + 原生 SQLite(未加密)。SQLCipher 加密延后到 Stage 6,
 /// 届时替换 [_openConnection] 的底层 executor 即可,schema 不变。
+///
+/// Schema 版本：
+/// - v1 (Stage 1):3 表,accounts 4 字段,单一"现金"账户 + 10 默认分类
+/// - v2 (Stage 2):accounts 加 5 字段 — ADR-0017
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions],
   daos: [CategoryDao, AccountDao, TransactionDao],
@@ -25,11 +29,11 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  /// 测试专用:注入内存 executor(NativeDatabase.memory())。
+  /// 测试专用：注入内存 executor(NativeDatabase.memory())。
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -37,6 +41,22 @@ class AppDatabase extends _$AppDatabase {
       onCreate: (m) async {
         await m.createAll();
         await _seedDefaults();
+      },
+      onUpgrade: (m, from, to) async {
+        // Stage 1 → Stage 2:accounts 加 5 字段(type / includeInNetWorth /
+        // creditLimit / billingDay / dueDay)。决策见 ADR-0017。
+        //
+        // WHY: 已有 row 自动用 DEFAULT 兜底
+        // - type:'cash' — 已有现金账户自动归类
+        // - includeInNetWorth:true — 理财类账户用户后续手动改
+        // - creditLimit / billingDay / dueDay:NULL(非信用卡)
+        if (from < 2) {
+          await m.addColumn(accounts, accounts.type);
+          await m.addColumn(accounts, accounts.includeInNetWorth);
+          await m.addColumn(accounts, accounts.creditLimit);
+          await m.addColumn(accounts, accounts.billingDay);
+          await m.addColumn(accounts, accounts.dueDay);
+        }
       },
       beforeOpen: (details) async {
         // WHY: SQLite 默认每个连接 foreign_keys=OFF,不开则 references() 形同虚设。
