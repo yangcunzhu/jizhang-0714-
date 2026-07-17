@@ -56,11 +56,12 @@
 1. **Schema migration v3 → v4** — transactions 表 type 字段扩展,加 `repayment` 类型(S02 已有 `expense` / `income`)
    - 决策点:TransactionType enum 加值 `repayment`(不可逆,见 ADR-0021 §「不可逆性」)
    - migration 用 `textEnum` 自动处理(已沿用 ADR-0017 模式)
+   - 新增「还款」默认分类(name='还款', icon='💳', type=expense)— 保持 categoryId NOT NULL 约束
 2. **还款流 UI** — 「从储蓄账户 → 信用卡账户」转账交互
-   - 入口:信用卡账户卡片菜单 / 主页「+」长按菜单(从 S02 多账户选择器扩展)
+   - 入口:主页 AppBar「还款」按钮(沿用分类模板按钮模式,Day 20 一次性加)
    - 步骤:选储蓄账户 → 输入金额 → 选信用卡账户 → 备注(可选)→ 保存
-   - 落地:生成 1 条 type=repayment 的 transaction(内部逻辑 = 从储蓄账户扣款 + 信用卡账户"增加可用额度")
-   - 验证:账户余额正确更新(transaction.amount 储蓄账户为负,信用卡账户为正)
+   - 落地:生成 1 条 type=repayment 的 transaction(categoryId 引用「还款」分类),内部逻辑 = 从储蓄账户扣款 + 信用卡账户"增加可用额度"
+   - 验证:账户余额正确更新
 3. **信用卡账户卡片增强** — 显示「距离还款日 X 天」+ 账单日 / 还款日字段
    - 当前位置:`lib/features/account/presentation/widgets/account_card.dart`
    - 显示逻辑:仅 `type=creditCard` 的卡片显示这两个字段
@@ -193,11 +194,11 @@ docs/
 
 ## 📅 时间切片(7 天)
 
-- **Day 18 (08-01)**:Schema migration v4 + TransactionType 加 repayment + DAO 测试 + 主页「+」菜单加「还款」入口(仅 1 文件)— 用户先做 S02 真机手验,签字后 CONTROL_TOWER 改 S03 写集
-- **Day 19 (08-02)**:还款流 DAO(transferRepayment 事务方法)+ 单元测试 + integration test
-- **Day 20 (08-03)**:还款流 UI(repayment_sheet.dart 3 步骤 + Riverpod provider)
+- **Day 18 (08-01)**:Schema migration v4 + TransactionType 加 repayment + 修历史注释 + DAO 测试 + ADR checkbox 补勾(总 6 文件 + 5 ADR)— ⚠️ **不动主页「+」菜单入口**(还款弹层 Day 20 才做,点了会崩)
+- **Day 19 (08-02)**:还款流 DAO(transferRepayment 完整事务方法,无占位)+ 单元测试 + integration test
+- **Day 20 (08-03)**:还款流 UI(repayment_sheet.dart 3 步骤 + Riverpod provider)+ **主页「+」菜单加「还款」入口**(弹层就绪后才加)
 - **Day 21 (08-04)**:信用卡账户卡片增强(account_card.dart 显示账单日/还款日/距离 X 天)
-- **Day 22 (08-05)**:集成测试 + polish(主页菜单区分「记账 / 还款」)
+- **Day 22 (08-05)**:集成测试 + polish
 - **Day 23 (08-06)**:真机手验 3+ 场景
 - **Day 24 (08-07)**:Stage 3 ROA 收尾 + CONTROL_TOWER 更新
 
@@ -277,28 +278,40 @@ docs/
 **下午(S03 Day 1 开工):**
 
 1. ✅ **Schema migration v3 → v4** — TransactionType enum 加 `repayment` 值
-2. ✅ **transaction_dao.dart 加 `transferRepayment()` 事务方法**(先写接口签名,Day 19 实施细节)
-3. ✅ **主页「+」菜单加「还款」入口**(仅当存在 ≥1 信用卡账户时显示)
-4. ✅ **migrate_v4_test.dart** 断言:旧 transaction.type='expense'/'income' 不变,新 type='repayment' 可写
-5. ✅ 测试 ≥ 5(S03 起步)
-6. ✅ D18 daily 写完 + commit + push
+   - **schemaVersion = 4**(必须 +1,让 Drift 知道 schema 变了)
+   - **onUpgrade 仅作占位注释**(`if (from < 4) { /* textEnum 加值 SQL 不需迁移 */ }`)— textEnum 加新值时 SQLite 列定义不变(仍 TEXT),enum 类只在 Dart 层变,无需 ALTER TABLE
+2. ✅ **修历史注释 bug** — `categories.dart` L5 注释写「intEnum」实际用 `textEnum`(S02 Day 14 残留,顺手修)
+3. ✅ **transaction_dao.dart 不动**(transferRepayment 完整方法留给 Day 19,避免「写一半」的万能函数)
+4. ✅ **主页「+」菜单不动**(还款弹层 Day 20 才做,Day 18 入口会 crash)
+5. ✅ **migration_v4_test.dart** 断言:
+   - 旧 v3 schema 升级到 v4 后,旧 transaction.type='expense'/'income' 仍可读
+   - 新 transaction.type='repayment' 可写
+   - 升级路径测试(用 `MigrationStrategy.onUpgrade` 模拟 v3→v4)
+6. ✅ 测试 ≥ 5(S03 起步)
+7. ✅ 5 个 S02 ADR §「验证」section checkbox 补勾(20+ 项,用 TaskCreate 列清单逐项勾)
+8. ✅ D18 daily 写完 + commit + push
 
 ### 写集(均在 S03 §📂 允许文件)
 
 ```
 lib/
 ├── data/db/
-│   ├── app_database.dart              (改:schemaVersion 4 + onUpgrade v3→v4)
+│   ├── app_database.dart              (改:schemaVersion 4 + onUpgrade v3→v4 占位注释)
 │   ├── tables/transactions.dart       (改:TransactionType 加 repayment)
-│   └── daos/transaction_dao.dart     (改:+ transferRepayment 签名)
-├── features/home/
-│   └── presentation/home_page.dart   (改:主页「+」菜单加「还款」入口)
+│   └── tables/categories.dart         (改:修 L5 注释 intEnum → textEnum,顺手修历史 bug)
 
 test/
-└── data/db/migration_v4_test.dart    (新:旧数据 + 新 repayment 类型断言)
+└── data/db/migration_v4_test.dart    (新:旧数据 + 新 repayment 类型 + v3→v4 升级路径断言)
 
-docs/daily/2026-08-01.md              (新:D18 daily)
+docs/
+├── daily/2026-08-01.md              (新:D18 daily)
+└── adr/0017-0020-*.md               (改:5 个 S02 ADR §验证 section checkbox 补勾)
 ```
+
+### 不动(Day 18 范围外)
+
+- ❌ `lib/features/home/presentation/home_page.dart`(Day 20 才加还款入口 — Day 18 入口会 crash)
+- ❌ `lib/data/db/daos/transaction_dao.dart`(transferRepayment 完整方法 Day 19 一次性写,避免「写一半」的万能函数)
 
 ### 不动(CLAUDE.md §11 保护)
 
@@ -321,23 +334,25 @@ docs/daily/2026-08-01.md              (新:D18 daily)
 
 | 决策 | 推荐 | 落地 |
 |---|---|---|
-| ① 还款流事务方法命名 | **A. `transferRepayment(fromAccountId, toAccountId, amountCents, note)`**(语义清晰) | transaction_dao.dart 加方法签名;Day 19 实施 |
-| ② 主页「+」菜单 UI 区分 | **A. 分两栏(记账 / 还款)下拉**(简单) | home_page.dart 改 FloatingActionButton 或加 PopupMenuButton |
+| ① 还款流事务方法命名 | **A. `transferRepayment(fromSavingsAccountId, toCreditCardAccountId, amountCents, note)`**(语义清晰) | **Day 19 一次性写完整方法 + 事务 + 测试**(Day 18 不写签名,避免万能函数)|
+| ② 主页「+」菜单 UI 区分 | **C. AppBar 加「还款」按钮**(沿用分类模板按钮模式,不破坏现有 FAB)| **Day 20 一次性加入口 + 弹层**(同日上下架,避免点了崩)|
 
 ### 验收
 
 - [ ] S02 真机手验 4 场景全过 + ROA 签字 + CONTROL_TOWER 派生 ACCEPTED
 - [ ] schemaVersion 4 + TransactionType 加 repayment
-- [ ] transaction_dao.transferRepayment 签名 + 单元测试骨架
-- [ ] 主页「+」菜单有「还款」入口(条件渲染)
-- [ ] migration_v4_test.dart 全过
+- [ ] categories.dart L5 注释修对(intEnum → textEnum)
+- [ ] transaction_dao 不动(Day 19 一次性写 transferRepayment)
+- [ ] home_page.dart 不动(Day 20 一次性加入口 + 弹层)
+- [ ] migration_v4_test.dart 全过(覆盖升级路径)
+- [ ] 5 个 S02 ADR §「验证」section checkbox 全勾(20+ 项)
 - [ ] analyze 0 + test 232+ 全绿
 - [ ] D18 daily 写完 + commit + push + status 干净
 
 ### 下一步(D19 — S03 Day 2)
 
-- transaction_dao.transferRepayment 实施(transaction {} 事务)
-- 单元测试覆盖成功路径 + 失败回滚
+- transaction_dao.transferRepayment 完整实施(`transaction {}` 包裹,储蓄账户扣款 + 信用卡账户增加可用额度)
+- 单元测试覆盖成功路径 + 失败回滚 + 边界(余额不足、信用卡账户不存在)
 - integration test 第一个用例
 
 ---

@@ -91,10 +91,11 @@ Stage 2(S02)已实现信用卡账户 CRUD + 字段(creditLimit / billingDay / du
 
 ## 不可逆性
 
-- **TransactionType enum 加值**:DB schema 列名变更极难回退,只能再 migration v5 补救
+- **TransactionType enum 加值 `repayment`**:DB schema 列名变更极难回退,只能再 migration v5 补救;**枚举名 `repayment` 必须永不变更**(S04+ 月度还款总额统计依赖字符串匹配)
 - **0 新依赖决策**:S04+ 如需通知需开新 ADR 评估,不能直接引入
-- **主页「+」菜单 UI 区分**:记账 / 还款两栏布局确定,后续新功能按这个模式
+- **主页「还款」按钮位置 = AppBar.actions**(沿用分类模板按钮模式):后续新功能按 AppBar.actions 模式,不在 FAB 加新按钮(避免 UX 分裂)
 - **还款 transaction 语义**:type=repayment 的金额方向(储蓄账户负 / 信用卡账户正)固定,下游计算依赖
+- **还款 transaction categoryId 引用「还款」分类**:S03 新增一个默认分类(name='还款', icon='💳', type=expense),repayment transaction 引用它(保持 categoryId NOT NULL 约束,避免改 schema)
 
 ---
 
@@ -102,9 +103,9 @@ Stage 2(S02)已实现信用卡账户 CRUD + 字段(creditLimit / billingDay / du
 
 - [ ] flutter analyze 0 错误
 - [ ] flutter test 全绿(227 + S03 新增 ≥ 25 = 252+)
-- [ ] migration_v4_test.dart 断言:旧 transaction.type 不变
-- [ ] transaction_dao.transferRepayment 单元测试(成功路径 + 失败回滚)
-- [ ] account_card 信用卡字段 widget 测试(显示 + 「距离还款日 X 天」计算)
+- [ ] migration_v4_test.dart 断言:旧 transaction.type='expense'/'income' 不变 + 新 type='repayment' 可写 + v3→v4 升级路径
+- [ ] transaction_dao.transferRepayment 单元测试(成功路径 + 失败回滚 + 余额不足边界)
+- [ ] account_card 信用卡字段 widget 测试(显示 + 「距离还款日 X 天」跨月计算)
 - [ ] 集成测试覆盖还款全链路
 - [ ] Build iOS .ipa CI 绿
 - [ ] Day 23 真机手验 3+ 场景
