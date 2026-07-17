@@ -62,6 +62,14 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.4
   build_runner: ^2.15.1
+
+# 锁定 device_info_plus 到 10.x,避免 13.x 用 iOS 17+ visionOS API
+# (isiOSAppOnVision) 触发 iOS 16 deployment target 编译失败。
+# device_info_plus 是 integration_test 的传递依赖,只在 E2E 测试用,
+# 锁版本不影响 app 运行时路径。
+# 详见 .github/workflows/build-ios.yml failure history。
+dependency_overrides:
+  device_info_plus: ^10.0.0
 flutter:
 
   # The following line ensures that the Material Icons font is
