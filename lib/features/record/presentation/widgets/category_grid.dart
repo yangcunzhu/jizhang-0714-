@@ -95,10 +95,10 @@ class _CategoryTile extends StatelessWidget {
                   color: color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _iconFor(category.iconName),
-                  color: color,
-                  size: 22,
+                alignment: Alignment.center,
+                child: Text(
+                  category.iconName,
+                  style: const TextStyle(fontSize: 24),
                 ),
               ),
               const SizedBox(height: 6),
@@ -121,36 +121,5 @@ class _CategoryTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// 10 个默认分类 iconName → IconData 映射。
-  ///
-  /// WHY: iconName 在 DB 中存字符串（Material Icon codepoint 别名），
-  /// UI 层映射为 [IconData] 以便渲染。Stage 2 自定义分类后此映射需扩展。
-  static IconData _iconFor(String iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'sports_esports':
-        return Icons.sports_esports;
-      case 'home':
-        return Icons.home;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'smartphone':
-        return Icons.smartphone;
-      case 'menu_book':
-        return Icons.menu_book;
-      case 'category':
-        return Icons.category;
-      case 'payments':
-        return Icons.payments;
-      default:
-        return Icons.label_outline;
-    }
   }
 }

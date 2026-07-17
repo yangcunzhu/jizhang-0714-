@@ -29,7 +29,10 @@ class TransactionTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.15),
-        child: Icon(Icons.label_outline, color: color),
+        child: Text(
+          category?.iconName ?? '📌',
+          style: const TextStyle(fontSize: 20),
+        ),
       ),
       title: Text(category?.name ?? '未知分类'),
       subtitle: Text(
@@ -47,9 +50,14 @@ class TransactionTile extends StatelessWidget {
   }
 
   /// 整数分 → "12.99" 格式字符串。
-  static String _formatYuan(int cents) {
+  ///
+  /// WHY: 由 [AccountPicker] 复用,不让两边各自实现一套 cents → 元 格式。
+  static String formatYuan(int cents) {
     final yuan = cents ~/ 100;
     final centsPart = cents % 100;
     return '${yuan.toString()}.${centsPart.toString().padLeft(2, '0')}';
   }
+
+  /// 兼容旧代码保留的 internal alias。
+  static String _formatYuan(int cents) => formatYuan(cents);
 }

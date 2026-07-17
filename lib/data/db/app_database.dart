@@ -53,65 +53,68 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// 10 个默认分类(8 支出 + 2 收入),iconName 由 UI 层映射为 IconData。
+/// 10 个默认分类(8 支出 + 2 收入),iconName 直接存 emoji 字符串。
+///
+/// WHY: 选 emoji 而非 Material Icons,见 ADR-0013 — 跨平台一致 + 用户直观
+/// + 零依赖。Stage 2 自定义分类天然兼容 emoji 输入。
 const List<CategoriesCompanion> _defaultCategories = [
   CategoriesCompanion(
       name: Value('餐饮'),
-      iconName: Value('restaurant'),
+      iconName: Value('🍔'),
       colorValue: Value(0xFFFF7043),
       type: Value(TransactionType.expense),
       sortOrder: Value(0)),
   CategoriesCompanion(
       name: Value('交通'),
-      iconName: Value('directions_car'),
+      iconName: Value('🚗'),
       colorValue: Value(0xFF42A5F5),
       type: Value(TransactionType.expense),
       sortOrder: Value(1)),
   CategoriesCompanion(
       name: Value('购物'),
-      iconName: Value('shopping_bag'),
+      iconName: Value('🛍️'),
       colorValue: Value(0xFFAB47BC),
       type: Value(TransactionType.expense),
       sortOrder: Value(2)),
   CategoriesCompanion(
       name: Value('娱乐'),
-      iconName: Value('sports_esports'),
+      iconName: Value('🎮'),
       colorValue: Value(0xFFEC407A),
       type: Value(TransactionType.expense),
       sortOrder: Value(3)),
   CategoriesCompanion(
       name: Value('居住'),
-      iconName: Value('home'),
+      iconName: Value('🏠'),
       colorValue: Value(0xFF26A69A),
       type: Value(TransactionType.expense),
       sortOrder: Value(4)),
   CategoriesCompanion(
       name: Value('医疗'),
-      iconName: Value('local_hospital'),
+      iconName: Value('🏥'),
       colorValue: Value(0xFFEF5350),
       type: Value(TransactionType.expense),
       sortOrder: Value(5)),
   CategoriesCompanion(
       name: Value('通讯'),
-      iconName: Value('smartphone'),
+      iconName: Value('📱'),
       colorValue: Value(0xFF5C6BC0),
       type: Value(TransactionType.expense),
       sortOrder: Value(6)),
   CategoriesCompanion(
       name: Value('学习'),
-      iconName: Value('menu_book'),
+      iconName: Value('📚'),
       colorValue: Value(0xFF66BB6A),
       type: Value(TransactionType.expense),
       sortOrder: Value(7)),
   CategoriesCompanion(
       name: Value('其他'),
-      iconName: Value('category'),
+      iconName: Value('📦'),
       colorValue: Value(0xFF78909C),
       type: Value(TransactionType.expense),
       sortOrder: Value(8)),
   CategoriesCompanion(
       name: Value('工资'),
-      iconName: Value('payments'),
+      iconName: Value('💰'),
       colorValue: Value(0xFF26C6DA),
       type: Value(TransactionType.income),
       sortOrder: Value(9)),

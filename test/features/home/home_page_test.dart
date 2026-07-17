@@ -80,4 +80,32 @@ void main() {
     expect(find.text('-¥12.99'), findsOneWidget);
     expect(find.text('还没有记账'), findsNothing);
   });
+
+  testWidgets('Day 7 回归:主页交易列表头像用 emoji 渲染(🍔)', (tester) async {
+    final cats = await db.categoryDao.getAll();
+    final acc = await db.accountDao.getDefault();
+    await db.transactionDao.insertTransaction(
+      TransactionsCompanion.insert(
+        amountCents: 888,
+        type: TransactionType.expense,
+        categoryId: cats.first.id, // 餐饮 🍔
+        accountId: acc!.id,
+      ),
+    );
+
+    final container = await bootContainer(tester);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: HomePage()),
+      ),
+    );
+    await tester.pump();
+
+    // ADR-0013: emoji 直接存 iconName,TransactionTile 用 Text 渲染。
+    expect(find.text('🍔'), findsOneWidget);
+    expect(find.byIcon(Icons.label_outline), findsNothing,
+        reason: 'Day 6 的占位 Icon 应已被 emoji Text 替代');
+  });
 }
