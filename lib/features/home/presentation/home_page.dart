@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
+import '../../category/presentation/category_template_page.dart';
 import '../../record/presentation/record_sheet.dart';
 import '../application/home_providers.dart';
 import 'home_page_keys.dart';
@@ -10,9 +11,9 @@ import 'widgets/confetti_burst.dart';
 import 'widgets/transaction_actions_sheet.dart';
 import 'widgets/transaction_tile.dart';
 
-/// 主页骨架（Stage 1 Day 5 + Stage 2 Day 12）。
+/// 主页骨架（Stage 1 Day 5 + Stage 2 Day 12 + Day 15）。
 ///
-/// - 顶部 AppBar：标题"审计官"
+/// - 顶部 AppBar：标题"审计官" + 右侧"分类模板"按钮(Day 15)
 /// - 净资产占位卡（Stage 5 实现完整计算;Day 12 加"账户数 X"快捷入口）
 /// - 交易列表：`ref.watch(transactionListProvider)` 实时渲染
 /// - 底部"记一笔"按钮：Stage 1 实装记账卡弹层
@@ -25,6 +26,19 @@ class HomePage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('审计官'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            key: const Key('home-template-button'),
+            icon: const Icon(Icons.dashboard_customize_outlined),
+            tooltip: '分类模板',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CategoryTemplatePage(),
+              ),
+            ),
+          ),
+        ],
       ),
       body: const Column(
         children: [

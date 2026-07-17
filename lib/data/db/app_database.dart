@@ -7,9 +7,11 @@ import 'package:path_provider/path_provider.dart';
 
 import 'daos/account_dao.dart';
 import 'daos/category_dao.dart';
+import 'daos/category_template_dao.dart';
 import 'daos/transaction_dao.dart';
 import 'tables/accounts.dart';
 import 'tables/categories.dart';
+import 'tables/category_templates.dart';
 import 'tables/transactions.dart';
 
 part 'app_database.g.dart';
@@ -19,12 +21,13 @@ part 'app_database.g.dart';
 /// Stage 1 用 Drift + 原生 SQLite(未加密)。SQLCipher 加密延后到 Stage 6,
 /// 届时替换 [_openConnection] 的底层 executor 即可,schema 不变。
 ///
-/// Schema 版本：
+/// Schema 版本:
 /// - v1 (Stage 1):3 表,accounts 4 字段,单一"现金"账户 + 10 默认分类
 /// - v2 (Stage 2):accounts 加 5 字段 — ADR-0017
+/// - v3 (Stage 2 Day 15):新增 category_templates 表 — ADR-0020
 @DriftDatabase(
-  tables: [Categories, Accounts, Transactions],
-  daos: [CategoryDao, AccountDao, TransactionDao],
+  tables: [Categories, Accounts, Transactions, CategoryTemplates],
+  daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -33,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -41,6 +44,7 @@ class AppDatabase extends _$AppDatabase {
       onCreate: (m) async {
         await m.createAll();
         await _seedDefaults();
+        await _seedTemplates();
       },
       onUpgrade: (m, from, to) async {
         // Stage 1 → Stage 2:accounts 加 5 字段(type / includeInNetWorth /
@@ -57,6 +61,15 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(accounts, accounts.billingDay);
           await m.addColumn(accounts, accounts.dueDay);
         }
+        // Stage 2 → Stage 2 (Day 15):新增 category_templates 表 — ADR-0020。
+        //
+        // WHY: 表里只放模板元数据(id / code / name / description / emoji),
+        // 模板内分类用 Dart const,不入 categories(避免污染用户分类)。
+        // 老用户的 categories / transactions 不受影响,只多了 5 条模板元数据。
+        if (from < 3) {
+          await m.createTable(categoryTemplates);
+          await _seedTemplates();
+        }
       },
       beforeOpen: (details) async {
         // WHY: SQLite 默认每个连接 foreign_keys=OFF,不开则 references() 形同虚设。
@@ -70,6 +83,26 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _seedDefaults() async {
     await into(accounts).insert(const AccountsCompanion(name: Value('现金')));
     await batch((b) => b.insertAll(categories, _defaultCategories));
+  }
+
+  /// 植入 5 个预设分类模板元数据(决策 ADR-0020)。
+  ///
+  /// WHY: 模板分类内容用 Dart const 存储(见 `defaultTemplateDefinitions`),
+  /// 此处只入元数据到 DB(code / name / description / emoji)。
+  Future<void> _seedTemplates() async {
+    await batch((b) {
+      for (final def in defaultTemplateDefinitions) {
+        b.insert(
+          categoryTemplates,
+          CategoryTemplatesCompanion.insert(
+            code: def.code,
+            name: def.name,
+            description: def.description,
+            emoji: def.emoji,
+          ),
+        );
+      }
+    });
   }
 }
 
