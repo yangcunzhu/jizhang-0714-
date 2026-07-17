@@ -49,7 +49,10 @@
 10. ✅ **修改/删除交易** — 滑动操作(swipe)
 11. ✅ **退款快捷操作** — "修改金额为退款"按钮
 12. ✅ **攒攒反馈动画** — 基础版(Stage 7 完善)
-13. ✅ **E2E 测试** — 记一笔 → 列表显示 → 修改金额
+13. ✅ **E2E 测试(ADR-0014)** — 记一笔 → 列表显示 → 修改金额
+    - `integration_test/e2e_record_flow_test.dart`(已完成 Day 7 加班)
+    - `integration_test/e2e_emoji_render_test.dart`(已完成 Day 7 加班)
+    - `integration_test/e2e_persistence_test.dart`(已完成 Day 7 加班)
 14. ✅ **部署真机验收** — 跑 10 笔交易
 
 ### 不做(明确排除)
@@ -74,7 +77,7 @@
 
 ```
 E:\jizhang-0714\
-├── pubspec.yaml                   (添加依赖:riverpod, drift, intl, vibration)
+├── pubspec.yaml                   (添加依赖:riverpod, drift, intl, vibration, integration_test[Day 7 加班])
 ├── lib/
 │   ├── main.dart                  (Riverpod ProviderScope)
 │   ├── domain/
@@ -91,9 +94,16 @@ E:\jizhang-0714\
 │   ├── data/
 │   └── features/
 │       └── home/
+├── integration_test/             (ADR-0014 — 真 Flutter engine E2E)
+│   ├── _helpers/
+│   ├── e2e_record_flow_test.dart
+│   ├── e2e_emoji_render_test.dart
+│   └── e2e_persistence_test.dart
 └── docs/
     ├── daily/2026-07-18+         (Day 4-10)
     └── adr/0012-*.md             (Stage 1 依赖决策,2026-07-17 用户授权纳入)
+    └── adr/0013-*.md             (Day 7 emoji 决策,已接受)
+    └── adr/0014-*.md             (Day 7 E2E 决策,已接受)
 ```
 
 ## 🎯 Done When
@@ -145,10 +155,10 @@ E:\jizhang-0714\
 - **Day 4 (2026-07-17)**:Drift schema 设计 + 数据库初始化(预计 6h)
 - **Day 5 (2026-07-18)**:Riverpod 状态管理骨架 + 主页布局(预计 8h)
 - **Day 6 (2026-07-19)**:记账卡弹层 + 金额输入 + 保存逻辑(预计 8h)
-- **Day 7 (2026-07-20)**:分类图标网格 + 账户选择(预计 6h)
-- **Day 8 (2026-07-21)**:修改/删除交易 + 退款快捷 + 振动反馈(预计 6h)
-- **Day 9 (2026-07-22)**:攒攒反馈动画 + E2E 测试(预计 6h)
-- **Day 10 (2026-07-23)**:真机验收 + Stage 1 结束卡(预计 4h)
+- **Day 7 (2026-07-20)**:分类图标 emoji 化 + 账户选择 UI + **E2E 基建 + ADR-0014**(实际 4h + 加班 5h = 9h)
+- **Day 8 (2026-07-21)**:Widget 加 Key 标注 + 修改/删除交易 + 退款 + 振动(预计 6h)
+- **Day 9 (2026-07-22)**:攒攒反馈动画 + E2E 调通(macOS iOS Simulator 跑通 3 个 E2E)+ 优化(预计 6h)
+- **Day 10 (2026-07-23)**:真机验收(E2E 同样的 3 个流程手动跑)+ Stage 1 结束卡(预计 4h)
 
 ## 🔄 交接(Handoff)
 

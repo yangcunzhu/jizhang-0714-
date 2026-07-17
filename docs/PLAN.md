@@ -84,6 +84,48 @@
 
 ---
 
+## 🧪 测试策略（ADR-0003 + ADR-0014）
+
+**三层金字塔 + E2E 真机/模拟器回归**:
+
+```
+         /\            E2E（integration_test，真 Flutter engine + 真 SQLite 文件）
+        /  \           ADR-0014 — 每个 Stage 至少 1 个 E2E
+       /----\
+      / Widget \       Widget 测试（fake_async + 内存 DB，覆盖复杂 UI）
+     /----------\
+    /  单元测试   \    单元测试（业务规则、计算、DAO）
+   /--------------\
+```
+
+| 比例 | 类型 | 跑法 |
+|---|---|---|
+| 60% | 单元 | `flutter test` — 秒级 |
+| 20% | Widget | `flutter test` — 秒级 |
+| 20% | E2E 集成(模块间) | `flutter test` — 秒级 |
+
+| 比例 | 类型 | 跑法 |
+|---|---|---|
+| 10% | **E2E 真机**(用户旅程) | `flutter test integration_test/` — macOS iOS simulator 或真机 |
+
+**关键模块 100% 单元覆盖**:金额、信用卡、预算、Stage 6 加密、Stage 7 AI。
+
+**每 Stage 必加 E2E 场景**:
+| Stage | E2E 必加 |
+|---|---|
+| S01 | 记账主流程 + emoji 真渲染 + 真持久化(Day 7-9 落地) |
+| S02 | 分类 CRUD + 多账户 |
+| S03 | 信用卡还款 |
+| S04 | 预算执行 |
+| S05 | 净资产计算 |
+| S06 | **SQLCipher 加密 + 错误密钥拒开** |
+| S07 | **AI 攒攒推理 + 异常检测** |
+| S08 | 全用户旅程端到端 + iOS 16/17/18 兼容 |
+
+0 成本路线下 E2E 由用户在 macOS 开发机 / 真机手跑 + GitHub Actions(Stage 8 接入)跑。
+
+---
+
 ## 🎯 Stage 详细拆分
 
 ### S00：环境验证 + Hello World（W1, Day 1-3）

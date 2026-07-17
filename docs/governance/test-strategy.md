@@ -181,6 +181,73 @@ void main() {
 
 ---
 
+### 4. E2E 集成测试（Integration Test — ADR-0014 真 Flutter engine）
+
+**关键差异**：与 widget test 不同，E2E 启动整个 Flutter app（`app.main()`），在 iOS 模拟器或真机上跑真 Flutter engine + 真 SQLite 文件 + 真 Plugin Channel。
+
+```dart
+// integration_test/e2e_record_flow_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('完整记账流程', (tester) async {
+    await tester.pumpWidget(const MyApp()); // 真 app 启动
+    await tester.tap(find.byType(FloatingActionButton));
+    // ... 真键盘 / 真 SQLite / 真字体
+  });
+}
+```
+
+**E2E 文件组织**：
+```
+integration_test/
+├── _helpers/
+│   ├── test_harness.dart    # 共享 boot / 操作
+│   └── selectors.dart       # 语义化 finder
+├── e2e_record_flow_test.dart
+├── e2e_persistence_test.dart
+└── e2e_emoji_render_test.dart
+```
+
+**跑 E2E**：
+```bash
+# macOS 开发机
+xcrun simctl boot "iPhone 15"
+flutter test integration_test/ -d "iPhone 15"
+
+# 真机（需 macOS）
+flutter test integration_test/ -d <device-id>
+```
+
+**何时写**（ADR-0014 每 Stage 至少 1 个）：
+- ✅ 完整用户旅程：记账 → 列表 → 修改 → 删除
+- ✅ 真 SQLite 持久化（文件而非内存）
+- ✅ 字体渲染（emoji / Apple Color Emoji）
+- ✅ Plugin Channel 真触发（振动 / SQLCipher / AI 推理）
+- ✅ App 生命周期（pause + resume 数据持久性）
+
+**Widget 加 Key 规范**（Day 8 起强制）：
+```dart
+// ✅ 语义清晰,可直接 find.byKey
+FloatingActionButton(
+  key: const Key('record-fab'),
+  onPressed: () => showRecordSheet(context),
+)
+
+// E2E:
+await tester.tap(find.byKey(const Key('record-fab')));
+```
+
+**反模式**：
+- ❌ 在 E2E 中复用 widget test 的 `UncontrolledProviderScope overrideWithValue`（E2E 跑真 app）
+- ❌ 测试细节如 `pump(Duration(milliseconds: 100))` 而不是 `pumpAndSettle()`（impeller 渲染等待时机不一致）
+- ❌ 一个 E2E 测多个独立流程（隔离失败,失败时无法定位）
+
+---
+
 ## 🔴 必测场景
 
 ### 金额计算
@@ -352,6 +419,7 @@ test('保存时用户取消', () {});
 □ 不测实现细节
 □ flutter test 通过
 □ flutter analyze 0 issues
+□ 关键 Stage 加 E2E(ADR-0014)
 ```
 
 ---

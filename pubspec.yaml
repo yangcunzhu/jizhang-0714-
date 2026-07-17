@@ -46,6 +46,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # E2E 集成测试(真 Flutter engine + 真 SQLite 文件 + 真 Plugin Channel)。
+  # ADR-0014: 每个 Stage 至少 1 个 E2E 测试覆盖完整用户旅程。
+  # WHY: widget test 用 fake_async + 内存 SQLite 跑不通真机场景(emoji 字体、
+  # SQLite 在 Documents 目录下的真读写、振动 API 真触发、impeller vs Skia 渲染、
+  # iOS 生命周期),加 integration_test 是 0 成本路线下覆盖真机问题最便宜路径。
+  integration_test:
+    sdk: flutter
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
