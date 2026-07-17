@@ -249,6 +249,7 @@ Milestone v1.0.0 (MVP 上线)
 | Stage 2 账户管理 UI(弹层 + 列表 + emoji 透明背景) | 2026-07-26 | ADR-0018 |
 | Stage 2 分类 CRUD UI(iconName emoji 语义 + 自建 emoji picker + 12 色板 + ↑↓ 排序 + 引用保护禁用) | 2026-07-28 | ADR-0019 |
 | Stage 2 分类模板(覆盖/追加混合策略 + 引用保护保留跳过 + 差异化 5/8/10/12/0 模板粒度) | 2026-07-29 | ADR-0020 |
+| Stage 3 范围决策(最小 MVP = 还款流 + 卡片增强 + 0 新依赖,不引 flutter_local_notifications) | 2026-07-31 | ADR-0021 |
 | Stage 7+ 智能记账(Siri Shortcuts / OCR / iOS 4 触发方式) | 2026-07-17 | ADR-0016 |
 | LICENSE：MIT | 2026-07-23 | (新增) |
 | 隐私：Apple ID 占位符 + filter-branch 清历史 | 2026-07-24 | (本卡) |
@@ -286,6 +287,12 @@ W8 (9/2-9/9)    [▱▱▱▱▱▱▱] Stage 7+8 - 攒攒 + 上线
 - ✅ 多账户选择器(替换单一"现金") — D13
 - ✅ 5 个 S02 内 ADR(0015 / 0017 / 0018 / 0019 / 0020) — 全「已接受」
 - 🔄 ROA 待签(D18 真机手验后签字)
+
+### Stage 3 准备(W4)
+
+- ✅ ADR-0021 范围决策(最小 MVP = 还款流 + 卡片增强 + 0 新依赖)
+- ✅ `docs/stages/S03-credit-card-repayment.md` 写集 + 7 天计划 + Done When(待 S02 ACCEPTED 后 ACTIVE)
+- 📋 D18 真机手验 + 签字后 S03 ACTIVE → D18-D24 开发
 
 ---
 
