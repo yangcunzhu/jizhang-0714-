@@ -130,54 +130,45 @@ void main() {
 
 ---
 
-### 3. 集成测试（Integration Test）
+### 3. 集成测试（Integration Test）— 概念
 
-测试端到端流程。
+跨多个组件、验证真实数据流的测试。Stage 1 范围：复用在 `lib/data/repositories/` 与 `lib/features/*/data/` 层的代码（DAO + 内存 SQLite + Provider），不依赖 Widget 树。
+
+> **E2E 真 Flutter engine 的规范见 §4。** §3 只描述模块级集成（不启动真 app）。
 
 ```dart
-// test/integration/record_flow_test.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
-import 'package:jizhang_app/main.dart' as app;
+// test/data/repositories/transaction_repository_test.dart
+// 示例：DAO + 内存 SQLite 联合测试(不是 E2E)
+import 'package:drift/native.dart';
+import 'package:test/test.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  
-  testWidgets('完整记账流程', (tester) async {
-    app.main();
-    await tester.pumpAndSettle();
-    
-    // 1. 点击"记一笔"
-    await tester.tap(find.text('记一笔'));
-    await tester.pumpAndSettle();
-    
-    // 2. 输入金额
-    await tester.enterText(find.byType(TextField), '100');
-    
-    // 3. 选择分类
-    await tester.tap(find.text('餐饮'));
-    await tester.pumpAndSettle();
-    
-    // 4. 选择账户
-    await tester.tap(find.text('现金'));
-    await tester.pumpAndSettle();
-    
-    // 5. 保存
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-    
-    // 验证：主页列表显示新交易
-    expect(find.text('餐饮'), findsOneWidget);
-    expect(find.text('-100'), findsOneWidget);
+  late AppDatabase db;
+
+  setUp(() => db = AppDatabase.forTesting(NativeDatabase.memory()));
+  tearDown(() async => await db.close());
+
+  test('insertTransaction 后 getById 拿回', () async {
+    final cat = await db.categoryDao.getAll();
+    final acc = await db.accountDao.getDefault();
+    final id = await db.transactionDao.insertTransaction(
+      TransactionsCompanion.insert(
+        amountCents: 1234,
+        type: TransactionType.expense,
+        categoryId: cat.first.id,
+        accountId: acc!.id,
+      ),
+    );
+    final fetched = await db.transactionDao.getById(id);
+    expect(fetched?.amountCents, 1234);
   });
 }
 ```
 
 **何时写**：
-- ✅ 关键用户旅程（记账、还款）
-- ✅ Stage 8 上线验收
-- ❌ 不写每个 feature
+- ✅ 跨 DAO / Repository 交互(如记账流程 = categoryDao + accountDao + transactionDao)
+- ✅ Provider + Drift 集成(如 transactionListProvider 监听 watchAll)
+- ❌ 不写 UI(E2E 写,见 §4)
 
 ---
 
@@ -296,7 +287,7 @@ test('迁移后数据完整', () {});
 
 - `flutter_test`（官方）
 - `mocktail`（mock 库，比 mockito 简单）
-- `integration_test`（集成测试）
+- `integration_test`（E2E 集成测试）
 
 ### 可选
 
