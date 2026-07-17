@@ -199,6 +199,47 @@ error: Could not find build/ios/iphoneos/Runner.ipa
 
 ---
 
+## 🔧 GitHub Actions: iOS Build 链(Stage 1 ROA 沉淀)
+
+> **场景**:macOS runner + `flutter build ios --release --no-codesign` 失败
+> **Day 0-3 早期 build 巧合通过**(没原生依赖,无 pod 编译),Day 4 加 drift 后开始持续失败。
+> 5 个 root cause 叠加,Day 9-10 修复链沉淀。
+
+### G-003: iOS deployment target 编译错(5 层 root cause)
+
+**症状**:`flutter build ios` 失败,日志最后一行通常是 `** BUILD FAILED **` + 几行 clang error。
+
+**根因链(按修复顺序)**:
+
+| # | 根因 | 触发条件 | 修复 |
+|---|---|---|---|
+| 1 | 缺 `ios/Podfile` | 任何带原生 plugin 的依赖(drift / path_provider / vibration 等) | 新建标准 Flutter 3.x Podfile(从 `flutter create -t app .` 模板复制) |
+| 2 | Xcode `IPHONEOS_DEPLOYMENT_TARGET=13.0` ≠ Podfile `platform :ios, '16.0'` | CocoaPods 报 platform mismatch,pod install 失败 | 编辑 `ios/Runner.xcodeproj/project.pbxproj` 三处 13.0 → 16.0;Podfile `post_install` 钩子也设 16.0 |
+| 3 | `device_info_plus` ≥ 13.x 用 `isiOSAppOnVision`(iOS 17+ API),无 `@available` 守卫 | iOS 16 deployment target 编译报 "no visible @interface" | `pubspec.yaml` 加 `dependency_overrides: device_info_plus: ^10.0.0`(锁 10.1.2,无 visionOS API) |
+| 4 | workflow 缺 `flutter precache --ios` + 显式 `pod install --repo-update` | 首次 runner 启动慢,build 隐式失败栈混乱 | 在 `flutter build ios` 之前显式跑两步,失败栈清晰 |
+| 5 | workflow timeout 设太小(默认 20 分钟) | E2E 卡在 iOS Simulator 启动 + 真引擎测试,撞 timeout | `timeout-minutes: 20 → 35`(iOS Simulator 首次启动需 10-15 分) |
+
+**完整修复 commit 链**(`<type>(<scope>): <subject>` 格式):
+
+```
+fix(ci): 新建 ios/Podfile(Day 0 漏写导致 Day 4 起 iOS build 红)        740360e
+fix(ci): 修 iOS deployment target 冲突 + 显式 pod install 步骤        f047b43
+fix(ci): 锁 device_info_plus 10.1.2 避开 iOS 17 visionOS API 编译错   257ddd3
+fix(ci): e2e.yml 加 --verbose + tee e2e.log 捕获完整日志             afe752d
+fix(ci): e2e timeout 20→35 分钟,iOS Simulator 首次启动需 10-15 分   4436c26
+```
+
+**预防措施**(后续 Stage 2+ 起新项目时必做):
+- [ ] Day 0 `flutter create .` 后检查 `ios/Podfile` 是否存在(默认应该存在)
+- [ ] 任何带原生 plugin 的依赖加入前,先跑 `flutter build ios` 验证 CI
+- [ ] iOS deployment target Xcode project + Podfile 必须一致(改 Xcode 用 `xcodebuild -showBuildSettings` 确认)
+- [ ] `integration_test` E2E workflow 必须有日志捕获(`tee e2e.log` + artifact 上传)
+- [ ] workflow timeout 设 ≥ 35 分钟(iOS Simulator 首次启动慢)
+
+**避免:** 在 Podfile post_install 用 per-pod IPHONEOS_DEPLOYMENT_TARGET 单独覆盖某个 pod —— `installer.pods_project.targets` 可能不包含 pod 自身 target,override 不生效。**改用 `dependency_overrides` 锁版本更可靠**。
+
+---
+
 ## 🍎 iOS 代码签名
 
 ### I-001: Apple ID 登录失败 "Verification failed"
