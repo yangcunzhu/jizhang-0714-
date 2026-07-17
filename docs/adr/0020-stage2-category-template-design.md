@@ -118,11 +118,11 @@ WHY:
 
 ## 验证
 
-- [ ] flutter analyze 0 错误
-- [ ] flutter test 全绿(Day 14 182 + Day 15 新增 ≥ 15 = 200+)
-- [ ] category_template_dao CRUD 测试(getAllTemplates / getTemplateCategories / applyTemplate 覆盖 / applyTemplate 追加)
-- [ ] 引用保护测试(覆盖模式有引用保留 + 无引用删除)
-- [ ] 事务回滚测试(applyTemplate 中间失败不污染数据)
-- [ ] category_template_provider 测试(策略选择 / 应用状态)
-- [ ] category_template_page 测试(5 模板卡片渲染 + 应用弹层)
-- [ ] Day 16 真机手验场景(选模板 + 覆盖/追加 + 引用保护 toast)
+- [x] flutter analyze 0 错误(D18 补勾)
+- [x] flutter test 全绿(Day 14 182 + Day 15 新增 ≥ 15 = 200+,D18 累计 227,D18 补勾)
+- [x] category_template_dao CRUD 测试(getAllTemplates / getTemplateCategories / applyTemplate 覆盖 / applyTemplate 追加)(D18 补勾)
+- [x] 引用保护测试(覆盖模式有引用保留 + 无引用删除)(D18 补勾)
+- [x] 事务回滚测试(applyTemplate 中间失败不污染数据)(D18 补勾)
+- [x] category_template_provider 测试(策略选择 / 应用状态)(D18 补勾)
+- [x] category_template_page 测试(5 模板卡片渲染 + 应用弹层)(D18 补勾)
+- [x] Day 16 真机手验场景(选模板 + 覆盖/追加 + 引用保护 toast)(D18 签字后补勾)

@@ -25,6 +25,7 @@ part 'app_database.g.dart';
 /// - v1 (Stage 1):3 表,accounts 4 字段,单一"现金"账户 + 10 默认分类
 /// - v2 (Stage 2):accounts 加 5 字段 — ADR-0017
 /// - v3 (Stage 2 Day 15):新增 category_templates 表 — ADR-0020
+/// - v4 (Stage 3 Day 18):TransactionType enum 加 repayment 值 — ADR-0021
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
   daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
@@ -36,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -69,6 +70,14 @@ class AppDatabase extends _$AppDatabase {
         if (from < 3) {
           await m.createTable(categoryTemplates);
           await _seedTemplates();
+        }
+        // Stage 2 → Stage 3 (Day 18):TransactionType enum 加 repayment 值 — ADR-0021。
+        //
+        // WHY: textEnum 按枚举 name 字符串存储,SQLite 列定义仍是 TEXT,枚举值新增不需
+        // ALTER TABLE。仅 Dart 层 enum 多一个常量,旧 transaction.type='expense'/'income'
+        // 仍可读(向下兼容)。`repayment` 名称不可变更(下游统计依赖字符串匹配)。
+        if (from < 4) {
+          // 占位:无需 SQL,仅作版本标记 + 注释意图。下游 migration_v4_test 断言此路径通过。
         }
       },
       beforeOpen: (details) async {

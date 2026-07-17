@@ -148,11 +148,11 @@ WHY:
 
 ## 验证
 
-- [ ] flutter analyze 0 错误
-- [ ] flutter test 全绿(Day 13 145 + Day 14 新增 ≥15 = 160+)
-- [ ] category_dao CRUD 4 个测试(getById / update / delete + 引用 / swapSortOrder)
-- [ ] emoji_picker widget 测试(6 主题渲染 + 选中回调)
-- [ ] category_edit_sheet 测试(emoji picker / 12 色板 / 保存校验)
-- [ ] category_management_page 测试(长按菜单 + 上下箭头 + 末尾新增入口)
-- [ ] category_form_provider 测试(校验逻辑)
-- [ ] Day 16 真机手验场景(创建/编辑/删除/重排/引用保护)
+- [x] flutter analyze 0 错误(D18 补勾)
+- [x] flutter test 全绿(Day 13 145 + Day 14 新增 ≥15 = 160+,D18 累计 227,D18 补勾)
+- [x] category_dao CRUD 4 个测试(getById / update / delete + 引用 / swapSortOrder)(D18 补勾)
+- [x] emoji_picker widget 测试(6 主题渲染 + 选中回调)(D18 补勾)
+- [x] category_edit_sheet 测试(emoji picker / 12 色板 / 保存校验)(D18 补勾)
+- [x] category_management_page 测试(长按菜单 + 上下箭头 + 末尾新增入口)(D18 补勾)
+- [x] category_form_provider 测试(校验逻辑)(D18 补勾)
+- [x] Day 16 真机手验场景(创建/编辑/删除/重排/引用保护)(D18 签字后补勾)

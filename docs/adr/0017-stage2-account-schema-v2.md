@@ -108,7 +108,7 @@ WHY:
 - [x] `flutter test` 全绿(80+ 用例含 migration ≥5)
 - [x] 真实升级路径自动化测试(v1 schema → v2 迁移后断言)
 - [x] Build iOS .ipa CI 绿
-- [ ] Day 16 真机 3 场景手验覆盖升级路径
+- [x] Day 16 真机 3 场景手验覆盖升级路径(D18 签字后补勾)
 
 ## 关联
 

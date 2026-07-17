@@ -25,8 +25,10 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion = 3', () {
-      expect(db.schemaVersion, 3);
+    test('schemaVersion >= 3(S03 升至 4,基线断言兼容)', () {
+      // WHY: S03 (Day 18, ADR-0021) schemaVersion 3 → 4,加 TransactionType enum `repayment`。
+      // 原 v3 schema 行为(5 模板 + 10 默认分类 + 老分类不丢)在 v4 仍成立,改为基线断言。
+      expect(db.schemaVersion, greaterThanOrEqualTo(3));
     });
 
     test('新装数据库含 5 个预设模板', () async {

@@ -15,7 +15,10 @@ class Transactions extends Table {
   /// 非负由表级 CHECK 约束强制(见 [customConstraints]),拦截 UI/迁移 bug。
   IntColumn get amountCents => integer()();
 
-  /// 支出 / 收入。textEnum 按 name 存储(见 Categories.type 说明)。
+  /// 支出 / 收入 / 还款。textEnum 按 name 存储(见 Categories.type 说明)。
+  ///
+  /// WHY: textEnum 加新枚举值(如 S03 加 `repayment`)无需 ALTER TABLE,SQLite 列定义不变,
+  /// 仅 Dart 层 enum 多一个常量,迁移成本零。决策见 ADR-0017 + ADR-0021。
   TextColumn get type => textEnum<TransactionType>()();
 
   /// 所属分类。
