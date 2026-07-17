@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../home/application/home_providers.dart';
+import '../../category/presentation/category_management_page.dart';
 import '../application/record_form_provider.dart';
 import 'widgets/account_picker.dart';
 import 'widgets/amount_keypad.dart';
@@ -132,6 +133,15 @@ class _StepBody extends StatelessWidget {
         return CategoryGrid(
           selectedCategoryId: form.categoryId,
           onSelected: (c) => notifier.selectCategory(c.id),
+          onManageCategory: () {
+            // 弹层已 isScrollControlled=true,新开页面用普通 push 即可。
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CategoryManagementPage(),
+              ),
+            );
+          },
         );
       case RecordStep.inputAmount:
         return _AmountStep(

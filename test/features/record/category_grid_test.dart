@@ -33,6 +33,7 @@ void main() {
   Widget hostWithGrid({
     required int? selectedId,
     required ValueChanged<CategoryEntry> onSelected,
+    VoidCallback? onManageCategory,
   }) {
     return UncontrolledProviderScope(
       container: container,
@@ -41,6 +42,7 @@ void main() {
           body: CategoryGrid(
             selectedCategoryId: selectedId,
             onSelected: onSelected,
+            onManageCategory: onManageCategory,
           ),
         ),
       ),
@@ -109,5 +111,51 @@ void main() {
     expect(find.text('🍔'), findsWidgets);
     // 选中后同名分类文案仍渲染,测试不打 pumpAndSettle 即可继续验证
     expect(find.text('餐饮'), findsWidgets);
+  });
+
+  // Day 14 (ADR-0019):「+新增」入口 + 长按回调
+
+  testWidgets('有 onManageCategory 时,末尾显示「+新增」tile', (tester) async {
+    await bootContainer();
+    await tester.pumpWidget(
+      hostWithGrid(
+        selectedId: null,
+        onSelected: (_) {},
+        onManageCategory: () {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('category-grid-add')), findsOneWidget);
+    expect(find.text('新增'), findsOneWidget);
+  });
+
+  testWidgets('无 onManageCategory 时,不显示「+新增」tile', (tester) async {
+    await bootContainer();
+    await tester.pumpWidget(
+      hostWithGrid(selectedId: null, onSelected: (_) {}),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('category-grid-add')), findsNothing);
+  });
+
+  testWidgets('长按分类 → 触发 onManageCategory 回调', (tester) async {
+    await bootContainer();
+    var manageCalled = 0;
+
+    await tester.pumpWidget(
+      hostWithGrid(
+        selectedId: null,
+        onSelected: (_) {},
+        onManageCategory: () => manageCalled++,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('🍔'));
+    await tester.pump();
+
+    expect(manageCalled, 1);
   });
 }

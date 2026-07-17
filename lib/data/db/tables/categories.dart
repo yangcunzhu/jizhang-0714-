@@ -15,7 +15,10 @@ class Categories extends Table {
   /// 分类名称,1-20 字。
   TextColumn get name => text().withLength(min: 1, max: 20)();
 
-  /// 图标标识(Material/Cupertino 图标名或 codepoint 别名),UI 层映射为 IconData。
+  /// 图标 = emoji 字符(UTF-16 字符串,如 '🍔' / '🚗'),UI 层用 Text 直接渲染。
+  ///
+  /// 决策:ADR-0019 — 不存 Material Icons codepoint。maxLength=40 足以放下 emoji 序列
+  /// (带 ZWJ 组合如 👨‍👩‍👧‍👦 占 11 个 UTF-16 code unit)。
   TextColumn get iconName => text().withLength(min: 1, max: 40)();
 
   /// 主题色,存 ARGB int(Color.value)。
