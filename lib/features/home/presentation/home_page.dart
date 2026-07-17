@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../record/presentation/record_sheet.dart';
 import '../application/home_providers.dart';
+import 'home_page_keys.dart';
+import 'widgets/confetti_burst.dart';
 import 'widgets/transaction_actions_sheet.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -29,8 +31,14 @@ class HomePage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        key: const Key('record-fab'),
-        onPressed: () => showRecordSheet(context),
+        key: recordFabKey,
+        onPressed: () async {
+          // Day 9:弹层关闭且返回 true(成功保存)→ 从 FAB 位置发射攒攒动画
+          final saved = await showRecordSheet(context);
+          if (saved && context.mounted) {
+            ConfettiBurst.fire(context, originKey: recordFabKey);
+          }
+        },
         icon: const Icon(Icons.add),
         label: const Text('记一笔'),
       ),

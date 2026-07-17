@@ -13,11 +13,16 @@ import 'widgets/category_grid.dart';
 /// WHY: 5 秒 3 步手动记账的入口。HomePage "记一笔"FAB 调用。
 /// [editing] 非 null 时进入"编辑模式":弹层打开后由 [RecordSheet.initState] 调
 /// `loadForEdit` 反向填充表单,走 UPDATE 分支提交。
-Future<void> showRecordSheet(
+///
+/// 返回 `Future<bool>`:
+///   - true:成功保存(create 或 edit 都算)
+///   - false:用户主动关闭(点 X / 上一步退回主页 / 点击外部关闭)
+/// 主页根据返回值决定是否触发攒攒动画 + SnackBar 已记账提示。
+Future<bool> showRecordSheet(
   BuildContext context, {
   TransactionEntry? editing,
 }) {
-  return showModalBottomSheet<void>(
+  return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -26,7 +31,7 @@ Future<void> showRecordSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (sheetContext) => RecordSheet(editing: editing),
-  );
+  ).then((result) => result ?? false);
 }
 
 /// 记账弹层主体。
@@ -92,7 +97,7 @@ class _RecordSheetState extends ConsumerState<RecordSheet> {
             _Header(
               canBack: form.step != RecordStep.selectCategory,
               onBack: notifier.previousStep,
-              onClose: () => Navigator.of(context).pop(),
+              onClose: () => Navigator.of(context).pop(false),
             ),
             const Divider(height: 1),
             Flexible(
@@ -321,7 +326,10 @@ class _PrimaryAction extends ConsumerWidget {
     try {
       await notifier.submit();
       if (context.mounted) {
-        Navigator.of(context).pop();
+        // pop(true) → 主页 showRecordSheet 返回 true → 触发攒攒动画。
+        // SnackBar 仍由 sheet 内触发(ScaffoldMessenger 向上找到主页 Scaffold)，
+        // 动画 + SnackBar 并存不冲突。
+        Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(wasEditing ? '已修改' : '已记账'),

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/db/app_database.dart';
 import '../../../record/application/record_form_provider.dart';
 import '../../../record/presentation/record_sheet.dart';
+import '../home_page_keys.dart';
+import 'confetti_burst.dart';
 
 /// 长按交易项弹出的 ActionSheet(Stage 1 Day 8)。
 ///
@@ -14,7 +16,10 @@ import '../../../record/presentation/record_sheet.dart';
 ///
 /// ADR-0014: 每个动作的 ListTile 都带 Key,Day 9 E2E 可 byKey 定位。
 class TransactionActionsSheet extends ConsumerWidget {
-  const TransactionActionsSheet({super.key, required this.transaction});
+  const TransactionActionsSheet({
+    super.key,
+    required this.transaction,
+  });
 
   final TransactionEntry transaction;
 
@@ -94,6 +99,14 @@ class TransactionActionsSheet extends ConsumerWidget {
               try {
                 await notifier.submitAsRefund(transaction);
                 navigator.pop();
+                // Day 9:退款成功 → 从 FAB 位置发射攒攒动画(primary 色)
+                if (context.mounted) {
+                  ConfettiBurst.fire(
+                    context,
+                    originKey: recordFabKey,
+                    color: colorScheme.primary,
+                  );
+                }
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text('已退款'),
@@ -118,6 +131,14 @@ class TransactionActionsSheet extends ConsumerWidget {
               try {
                 await notifier.deleteTransaction(transaction.id);
                 navigator.pop();
+                // Day 9:删除成功 → 从 FAB 位置发射攒攒动画(error 色 → 警示)
+                if (context.mounted) {
+                  ConfettiBurst.fire(
+                    context,
+                    originKey: recordFabKey,
+                    color: colorScheme.error,
+                  );
+                }
                 messenger.showSnackBar(
                   const SnackBar(
                     content: Text('已删除'),

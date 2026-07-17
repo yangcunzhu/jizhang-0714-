@@ -12,7 +12,8 @@ class Selectors {
   static Finder homeAppBar() => find.text('审计官');
   static Finder homeAssetCard() => find.text('净资产');
   static Finder homeEmpty() => find.byKey(const Key('home-empty'));
-  static Finder recordFab() => find.byKey(const Key('record-fab'));
+  /// FAB:全 app 唯一,用类型找比 GlobalKey 字符串匹配更稳。
+  static Finder recordFab() => find.byType(FloatingActionButton);
 
   /// 交易列表项:Key('txn-{id}')
   static Finder transactionTile(int id) => find.byKey(Key('txn-$id'));
