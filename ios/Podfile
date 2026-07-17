@@ -46,10 +46,22 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    # WHY 强制 pods deployment target = 16.0:跟 Runner.xcodeproj 一致,
-    # 防止某些 pod 默认拉到 13.0 触发 "platform mismatch" 错误
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+    # 单一 pod 临时提升到 iOS 17(只 device_info_plus),不动其它 pod 和 app
+    #
+    # WHY:device_info_plus 13.2.0 在 FPPDeviceInfoPlusPlugin.m:35 直接调
+    # `[NSProcessInfo isiOSAppOnVision]`,这是 iOS 17+ API,且没 @available 守卫,
+    # 用 iOS 16 deployment target 编译报 "no visible @interface"。
+    # 该 pod 是 integration_test 传递依赖,只在 E2E 测试用,app 用户路径不碰,
+    # 所以可以安全把它的 deployment target 提到 17.0(局部)。
+    # 其它 pod 仍保持 16.0(跟 Runner.xcodeproj 一致)。
+    if target.name == 'device_info_plus'
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+      end
+    else
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+      end
     end
   end
 end
