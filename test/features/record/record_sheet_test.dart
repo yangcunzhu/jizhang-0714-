@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:jizhang_app/data/db/app_database.dart';
 import 'package:jizhang_app/data/db/database_provider.dart';
+import 'package:jizhang_app/features/account/application/account_form_provider.dart';
 import 'package:jizhang_app/features/home/application/home_providers.dart';
 import 'package:jizhang_app/features/record/presentation/record_sheet.dart';
 
@@ -21,6 +22,8 @@ void main() {
     await container.read(transactionListProvider.future);
     await container.read(categoryListProvider.future);
     await container.read(defaultAccountProvider.future);
+    // Day 13：AccountPicker 改用 accountListProvider(多账户),预读首事件避免 fake_async 卡死。
+    await container.read(accountListProvider.future);
   }
 
   setUp(() {
@@ -174,7 +177,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Step 3: 显示默认账户 + 保存按钮
-    expect(find.text('现金'), findsOneWidget);
+    // Day 13：AccountPicker 复用 AccountCard,现金账户同时显示名称"现金"与类型标签"现金"。
+    expect(find.text('现金'), findsWidgets);
     expect(find.text('保存'), findsOneWidget);
 
     // 保存

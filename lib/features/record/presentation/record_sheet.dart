@@ -143,6 +143,8 @@ class _StepBody extends StatelessWidget {
         );
       case RecordStep.selectAccount:
         return AccountPicker(
+          selectedAccountId: form.accountId,
+          onAccountSelected: notifier.setAccount,
           initialNote: form.note,
           onNoteChanged: notifier.setNote,
         );
