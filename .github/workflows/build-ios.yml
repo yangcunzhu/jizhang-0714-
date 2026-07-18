@@ -109,4 +109,3 @@ jobs:
             ios/Podfile.lock
           retention-days: 7
           if-no-files-found: error
-          if-no-files-found: ignore
