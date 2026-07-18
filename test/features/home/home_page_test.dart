@@ -49,7 +49,7 @@ void main() {
     expect(find.text('净资产'), findsOneWidget);
     expect(find.text('暂未计算'), findsOneWidget);
     expect(find.text('还没有记账'), findsOneWidget);
-    expect(find.text('记一笔'), findsOneWidget);
+    expect(find.text('记一笔 / 还款'), findsOneWidget);
   });
 
   testWidgets('有数据主页：交易列表渲染分类名 + 金额 + 备注', (tester) async {

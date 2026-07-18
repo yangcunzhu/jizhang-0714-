@@ -37,6 +37,6 @@ void main() {
 
     expect(find.text('审计官'), findsOneWidget);
     expect(find.text('净资产'), findsOneWidget);
-    expect(find.text('记一笔'), findsOneWidget);
+    expect(find.text('记一笔 / 还款'), findsOneWidget);
   });
 }

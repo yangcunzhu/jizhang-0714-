@@ -7,6 +7,8 @@ import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
 import '../../category/presentation/category_template_page.dart';
 import '../../record/presentation/record_sheet.dart';
+import '../../repayment/application/repayment_form_provider.dart';
+import '../../repayment/presentation/repayment_sheet.dart';
 import '../application/home_providers.dart';
 import 'home_page_keys.dart';
 import 'widgets/confetti_burst.dart';
@@ -21,6 +23,59 @@ import 'widgets/transaction_tile.dart';
 /// - 底部"记一笔"按钮：Stage 1 实装记账卡弹层
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
+
+  /// 显示「+」聚合菜单(D20):记账 / 还款。
+  ///
+  /// 还款入口仅当存在 ≥1 信用卡账户时显示,避免还款弹层打开后没卡可选。
+  /// WHY 异步:futureProvider 需要 watch,我们在菜单打开时 watch 一次,根据
+  /// 结果决定显示哪几项。
+  Future<void> _showPlusMenu(BuildContext context, WidgetRef ref) async {
+    final hasCreditCard = await ref
+        .read(creditCardAccountListProvider.future)
+        .then((list) => list.isNotEmpty);
+
+    if (!context.mounted) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const Key('plus-menu-record'),
+              leading: const Text('➕', style: TextStyle(fontSize: 24)),
+              title: const Text('记一笔'),
+              subtitle: const Text('选分类 / 输金额 / 选账户'),
+              onTap: () => Navigator.pop(ctx, 'record'),
+            ),
+            if (hasCreditCard)
+              ListTile(
+                key: const Key('plus-menu-repayment'),
+                leading: const Text('💳', style: TextStyle(fontSize: 24)),
+                title: const Text('还款'),
+                subtitle: const Text('储蓄 → 信用卡 还款'),
+                onTap: () => Navigator.pop(ctx, 'repayment'),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (!context.mounted) return;
+    if (action == 'record') {
+      final saved = await showRecordSheet(context);
+      if (saved && context.mounted) {
+        ConfettiBurst.fire(context, originKey: recordFabKey);
+      }
+    } else if (action == 'repayment') {
+      await showRepaymentSheet(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,15 +106,11 @@ class HomePage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: recordFabKey,
-        onPressed: () async {
-          // Day 9:弹层关闭且返回 true(成功保存)→ 从 FAB 位置发射攒攒动画
-          final saved = await showRecordSheet(context);
-          if (saved && context.mounted) {
-            ConfettiBurst.fire(context, originKey: recordFabKey);
-          }
-        },
+        // D20:主页「+」聚合菜单(记账 / 还款)。还款入口仅当有信用卡账户时显示,
+        // 避免还款弹层打开后没卡可选。
+        onPressed: () => _showPlusMenu(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('记一笔'),
+        label: const Text('记一笔 / 还款'),
       ),
     );
   }
