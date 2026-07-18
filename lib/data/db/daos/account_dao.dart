@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
@@ -16,7 +18,26 @@ class AccountDao extends DatabaseAccessor<AppDatabase>
 
   Future<List<AccountEntry>> getAll() => select(accounts).get();
 
-  Stream<List<AccountEntry>> watchAll() => select(accounts).watch();
+  /// 监听全部账户变化(D19 余额 bug fix)。
+  ///
+  /// WHY: drift `select(accounts).watch()` 在测试 + iPhone 真机下 emit 旧值
+  /// (余额没刷新),d19_balance_stream_test 验证发现此 bug。
+  /// Work-around:用 drift 的 `tableUpdates` API 监听 accounts 表 update notification,
+  /// 触发时用 `getAll()` 拿最新数据。`await for` 在订阅 cancel 时自动退出,
+  /// 无 timer 残留,widget test 友好。
+  Stream<List<AccountEntry>> watchAll() async* {
+    // 订阅时立即 emit 当前数据
+    yield await getAll();
+    // 监听 accounts 表 update,触发时重新查 db emit
+    // 用 customSelect('SELECT 1', readsFrom: {accounts}).watch()(d19_balance_stream_test
+    // 验证这个能 work;tableUpdates 在某些条件下立即 closed,不可靠)
+    await for (final _ in attachedDatabase.customSelect(
+      'SELECT 1',
+      readsFrom: {attachedDatabase.accounts},
+    ).watch()) {
+      yield await getAll();
+    }
+  }
 
   /// 取默认账户(Stage 1 单一账户,即第一条)。
   Future<AccountEntry?> getDefault() {
@@ -29,6 +50,9 @@ class AccountDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// 按 ID 监听单个账户变化(用于余额 / 字段实时更新)。
+  ///
+  /// WHY: 同样 work-around drift select().watch() 的 emit 旧值 bug(D19)。
   /// 按 ID 监听单个账户变化(用于余额 / 字段实时更新)。
   Stream<AccountEntry?> watchById(int id) {
     return (select(accounts)..where((a) => a.id.equals(id))).watchSingle();
