@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../build_info.dart';
 import '../../../data/db/database_provider.dart';
+import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
 import '../../category/presentation/category_template_page.dart';
@@ -99,6 +100,7 @@ class HomePage extends ConsumerWidget {
       ),
       body: const Column(
         children: [
+          _RepaymentReminderCard(),
           _NetWorthCard(),
           Expanded(child: _TransactionList()),
           _BuildVersionFooter(),
@@ -370,5 +372,99 @@ class _BuildVersionFooter extends ConsumerWidget {
     final yuan = cents ~/ 100;
     final fen = cents.abs() % 100;
     return '$yuan.${fen.toString().padLeft(2, '0')}';
+  }
+}
+/// 主页「距离还款日 X 天」提醒卡片(ADR-0024 §1)。
+///
+/// 列出所有欠款账户(信用卡 / 花呗 / 网贷),按 dueDay 排序,显示最近的 1 个。
+/// 不引本地通知(ADR-0021),卡片显示是 v1.0 简化方案,v1.1 加通知(ADR-0025)。
+class _RepaymentReminderCard extends ConsumerWidget {
+  const _RepaymentReminderCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncAccounts = ref.watch(accountListProvider);
+    final theme = Theme.of(context);
+
+    return asyncAccounts.when(
+      data: (accounts) {
+        // 过滤欠款类 + 有 dueDay
+        final debts = accounts.where((a) =>
+            (a.type == AccountType.creditCard ||
+                a.type == AccountType.huabei ||
+                a.type == AccountType.onlineLoan) &&
+            a.dueDay != null).toList();
+        if (debts.isEmpty) return const SizedBox.shrink();
+
+        // 按「距下次还款日天数」升序
+        final now = DateTime.now();
+        debts.sort((a, b) {
+          final daysA = _daysUntilDueDay(now, a.dueDay!);
+          final daysB = _daysUntilDueDay(now, b.dueDay!);
+          return daysA.compareTo(daysB);
+        });
+        final next = debts.first;
+        final daysLeft = _daysUntilDueDay(now, next.dueDay!);
+
+        // 不显示已过期(负数)或超过 30 天的(避免噪音)
+        if (daysLeft < 0 || daysLeft > 30) {
+          return const SizedBox.shrink();
+        }
+
+        final urgencyColor = daysLeft <= 3
+            ? Colors.red[700]
+            : daysLeft <= 7
+                ? Colors.orange[700]
+                : theme.colorScheme.outline;
+        final urgencyText = daysLeft == 0
+            ? '今天'
+            : daysLeft == 1
+                ? '明天'
+                : '$daysLeft 天后';
+
+        return Container(
+          key: const Key('home-repayment-reminder'),
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: urgencyColor!.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: urgencyColor, width: 0.5),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.notifications_outlined, size: 16, color: urgencyColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$urgencyText 还 ${next.type.emoji} ${next.name}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: urgencyColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  /// 计算当前日期到下一个 dueDay 的天数。
+  ///
+  /// 逻辑:如果本月 dueDay 已过,返回下月 dueDay 的差值;否则本月。
+  int _daysUntilDueDay(DateTime now, int dueDay) {
+    final today = DateTime(now.year, now.month, now.day);
+    DateTime nextDue = DateTime(now.year, now.month, dueDay);
+    if (nextDue.isBefore(today)) {
+      // 本月已过,跳到下月
+      final nextMonth = now.month == 12 ? 1 : now.month + 1;
+      final nextYear = now.month == 12 ? now.year + 1 : now.year;
+      nextDue = DateTime(nextYear, nextMonth, dueDay);
+    }
+    return nextDue.difference(today).inDays;
   }
 }

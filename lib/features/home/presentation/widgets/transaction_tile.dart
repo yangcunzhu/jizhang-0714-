@@ -42,8 +42,37 @@ class TransactionTile extends StatelessWidget {
         ),
       ),
       title: Text(category?.name ?? '未知分类'),
-      subtitle: Text(
-        transaction.note.isEmpty ? dateLabel : '$dateLabel · ${transaction.note}',
+      subtitle: Row(
+        children: [
+          Flexible(
+            child: Text(
+              transaction.note.isEmpty
+                  ? dateLabel
+                  : '$dateLabel · ${transaction.note}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // ADR-0024:网贷还款时显示「12 期」徽章
+          if (transaction.installmentPeriod != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              key: const Key('txn-installment-badge'),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.purple[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '${transaction.installmentPeriod} 期',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.purple[900],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
       trailing: Text(
         '$sign¥$formatted',

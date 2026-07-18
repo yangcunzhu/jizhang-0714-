@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_database.dart';
+import '../../../data/db/tables/accounts.dart';
 import '../application/repayment_form_provider.dart';
 
 /// 打开还款弹层(D20 — 信用卡还款)。
@@ -53,6 +54,14 @@ class _RepaymentSheetState extends ConsumerState<RepaymentSheet> {
   Widget build(BuildContext context) {
     final form = ref.watch(repaymentFormProvider);
     final notifier = ref.read(repaymentFormProvider.notifier);
+    // ADR-0024:网贷还款时显示「期数」下拉。
+    // 通过 watch debtAccountListProvider 找到当前选中的 AccountEntry,
+    // 判断 type == onlineLoan 才显示期数。
+    final debtAccounts = ref.watch(debtAccountListProvider).valueOrNull ?? const [];
+    final selectedTo = form.toAccountId == null
+        ? null
+        : debtAccounts.where((a) => a.id == form.toAccountId).firstOrNull;
+    final showInstallmentPicker = selectedTo?.type == AccountType.onlineLoan;
     final mq = MediaQuery.of(context);
     final maxHeight = mq.size.height * 0.85;
 
@@ -88,6 +97,14 @@ class _RepaymentSheetState extends ConsumerState<RepaymentSheet> {
                       selectedId: form.toAccountId,
                       onSelected: notifier.setToAccount,
                     ),
+                    // ADR-0024:网贷还款时显示「期数」下拉(12/24/36 期)
+                    if (showInstallmentPicker) ...[
+                      const SizedBox(height: 8),
+                      _InstallmentPeriodPicker(
+                        selected: form.installmentPeriod,
+                        onChanged: notifier.setInstallmentPeriod,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     _SectionTitle('备注(可选)'),
                     _NoteInput(
@@ -225,7 +242,7 @@ class _CreditCardAccountPicker extends ConsumerWidget {
         selectedId: selectedId,
         onSelected: onSelected,
         keyPrefix: 'to-debt',
-        emptyMessage: '请先在账户管理添加信用卡账户',
+        emptyMessage: '请先在账户管理添加欠款账户(信用卡/花呗/网贷)',
       ),
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -390,6 +407,52 @@ class _SubmitBar extends ConsumerWidget {
             child: Text(form.isSubmitting ? '还款中...' : '还款'),
           ),
         ),
+      ),
+    );
+  }
+}
+/// 网贷期数下拉(ADR-0024)。
+///
+/// 仅网贷还款时显示。预设 12 / 24 / 36 期(中国网贷主流 3 档)。
+class _InstallmentPeriodPicker extends StatelessWidget {
+  const _InstallmentPeriodPicker({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final int? selected;
+  final ValueChanged<int?> onChanged;
+
+  static const _options = [6, 12, 24, 36];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '还款期数',
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            children: _options.map((period) {
+              final isSelected = selected == period;
+              return ChoiceChip(
+                key: Key('installment-period-$period'),
+                label: Text('$period 期'),
+                selected: isSelected,
+                onSelected: (_) => onChanged(period),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
