@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../app_database.dart';
 import '../tables/accounts.dart';
@@ -52,8 +53,10 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   /// WHY: 用户在主页「记一笔」走此路径,余额联动必须保证。
   /// 用 [transaction] {} 包裹保证原子性:insert 失败时余额不变。
   Future<int> insertTransaction(TransactionsCompanion entry) async {
+    debugPrint('[D19-DEBUG] insertTransaction 被调 accountId=${entry.accountId.value} type=${entry.type.value} amount=${entry.amountCents.value}');
     return transaction(() async {
       final id = await into(transactions).insert(entry);
+      debugPrint('[D19-DEBUG] insert 成功 id=$id');
       // 根据 type 判断 delta 方向(支出扣,收入增)
       final type = entry.type.present
           ? entry.type.value
@@ -65,7 +68,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
             'repayment 类型必须用 transferRepayment(双账户事务),不能用 insertTransaction',
           ),
       };
+      debugPrint('[D19-DEBUG] 准备 _updateAccountBalance accountId=${entry.accountId.value} delta=$delta');
       await _updateAccountBalance(entry.accountId.value, delta);
+      debugPrint('[D19-DEBUG] _updateAccountBalance 完成');
       return id;
     });
   }
@@ -168,15 +173,19 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   /// - 余额校验 **不在此处**,而是在 [transferRepayment] 业务方法显式 check
   ///   (避免 S02 既有测试 fixture 默认 0 余额被打破)
   Future<void> _updateAccountBalance(int accountId, int deltaCents) async {
+    debugPrint('[D19-DEBUG] _updateAccountBalance 进入 accountId=$accountId delta=$deltaCents');
     final account = await db.accountDao.getById(accountId);
+    debugPrint('[D19-DEBUG] getById 返回 account=${account?.name} balance=${account?.balanceCents}');
     if (account == null) return; // silent skip
     final newBalance = account.balanceCents + deltaCents;
-    await db.accountDao.updateAccountById(
+    debugPrint('[D19-DEBUG] newBalance=$newBalance 准备 update');
+    final updated = await db.accountDao.updateAccountById(
       AccountsCompanion(
         id: Value(accountId),
         balanceCents: Value(newBalance),
       ),
     );
+    debugPrint('[D19-DEBUG] updateAccountById 返回 updated=$updated');
   }
 
   /// 获取或创建「还款」分类 ID(私有,首次还款时自动 seed)。

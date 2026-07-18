@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../build_info.dart';
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
 import '../../category/presentation/category_template_page.dart';
@@ -44,6 +45,7 @@ class HomePage extends ConsumerWidget {
         children: [
           _NetWorthCard(),
           Expanded(child: _TransactionList()),
+          _BuildVersionFooter(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -206,6 +208,34 @@ class _EmptyState extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 主页底部 build 版本号 + commit SHA 显示(ADR-0023)。
+///
+/// 显示样式:`v0.1.0 · b3b722e · schema v4`
+/// 灰色小字,不抢主界面视觉。
+/// 用户装机后一眼对比 GitHub commit 列表,立刻知道是不是新版本。
+class _BuildVersionFooter extends StatelessWidget {
+  const _BuildVersionFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Text(
+          BuildInfo.displayVersion,
+          key: const Key('home-build-version'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+                fontSize: 10,
+              ),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

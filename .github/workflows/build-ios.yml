@@ -56,9 +56,14 @@ jobs:
 
       # 0 成本方案:产出未签名 .ipa,由 AltStore 在 iPhone 上用免费 Apple ID 自动签名
       # 见 docs/product-design-v4.html §2.12 部署架构 + §8.48 AltStore 部署
+      # WHY --dart-define=GIT_SHA: 让 Runner.ipa 主页底部显示 commit SHA(ADR-0023),
+      #   装机后一眼对比 GitHub commit 列表,立刻知道是不是新版本
       - name: Build unsigned .ipa
         run: |
-          flutter build ios --release --no-codesign --verbose 2>&1 | tee build.log
+          flutter build ios --release --no-codesign --verbose \
+            --dart-define=GIT_SHA=${{ github.sha }} \
+            --dart-define=BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            2>&1 | tee build.log
           mkdir -p build/Payload
           cp -R build/ios/iphoneos/Runner.app build/Payload/
           cd build && zip -r ../Runner.ipa Payload
