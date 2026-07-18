@@ -36,6 +36,7 @@ class AccountEditSheet extends ConsumerStatefulWidget {
 
 class _AccountEditSheetState extends ConsumerState<AccountEditSheet> {
   late final TextEditingController _nameController;
+  late final TextEditingController _balanceController;
   late final TextEditingController _creditLimitController;
   late final TextEditingController _billingDayController;
   late final TextEditingController _dueDayController;
@@ -48,6 +49,12 @@ class _AccountEditSheetState extends ConsumerState<AccountEditSheet> {
     super.initState();
     final state = ref.read(accountFormProvider(widget.existingId));
     _nameController = TextEditingController(text: state.name);
+    // D19 余额管理:初始余额输入框,从 state.balanceCents 转 ¥xxx.xx
+    _balanceController = TextEditingController(
+      text: state.balanceCents != null
+          ? (state.balanceCents! / 100).toStringAsFixed(2)
+          : '0.00',
+    );
     _creditLimitController = TextEditingController(
       text: state.creditLimitCents != null
           ? (state.creditLimitCents! / 100).toStringAsFixed(2)
@@ -64,6 +71,7 @@ class _AccountEditSheetState extends ConsumerState<AccountEditSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _balanceController.dispose();
     _creditLimitController.dispose();
     _billingDayController.dispose();
     _dueDayController.dispose();
@@ -126,6 +134,33 @@ class _AccountEditSheetState extends ConsumerState<AccountEditSheet> {
                   ),
                   onChanged: controller.changeName,
                   maxLength: 20,
+                ),
+                const SizedBox(height: 8),
+                // D19 余额管理:初始余额输入框(所有类型都显示)
+                TextField(
+                  key: const Key('account-edit-balance'),
+                  controller: _balanceController,
+                  decoration: InputDecoration(
+                    labelText: widget.existingId == null ? '初始余额' : '当前余额',
+                    hintText: '比如:5000',
+                    border: const OutlineInputBorder(),
+                    prefixText: '¥ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  onChanged: (v) {
+                    final trimmed = v.trim();
+                    if (trimmed.isEmpty) {
+                      controller.changeBalanceCents(null);
+                    } else {
+                      final yuan = double.tryParse(trimmed);
+                      controller.changeBalanceCents(
+                        yuan == null ? null : (yuan * 100).round(),
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 // 信用卡字段(动态显隐)

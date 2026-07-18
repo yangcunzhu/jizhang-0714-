@@ -13,13 +13,14 @@ class AccountFormState {
   const AccountFormState({
     required this.type,
     required this.name,
+    this.balanceCents,
     this.creditLimitCents,
     this.billingDay,
     this.dueDay,
     this.includeInNetWorth = true,
   });
 
-  /// 默认初始值(新建现金账户)。
+  /// 默认初始值(新建现金账户,余额 0)。
   static const AccountFormState initial =
       AccountFormState(type: AccountType.cash, name: '');
 
@@ -28,6 +29,12 @@ class AccountFormState {
 
   /// 账户名称(必填,1-20 字)。
   final String name;
+
+  /// 初始余额(分)。新建时填入,编辑时可调整(D19 余额管理补丁)。
+  ///
+  /// WHY: S02 阶段漏了这个字段,导致首次建账户时余额默认 0,用户没法直接设
+  /// 「我有 ¥5000」。本字段补这个缺口,允许 UI 主动设置初始余额。
+  final int? balanceCents;
 
   /// 信用卡额度(分)。仅 [type] == [AccountType.creditCard] 有意义。
   final int? creditLimitCents;
@@ -47,6 +54,9 @@ class AccountFormState {
   String? validate() {
     if (name.trim().isEmpty) return '账户名称不能为空';
     if (name.trim().length > 20) return '账户名称不能超过 20 字';
+    if (balanceCents != null && balanceCents! < 0) {
+      return '初始余额不能为负数';
+    }
     if (isCreditCard) {
       if (creditLimitCents != null && creditLimitCents! <= 0) {
         return '信用卡额度必须大于 0';
@@ -72,6 +82,7 @@ class AccountFormState {
       type: type ?? this.type,
       name: name ?? this.name,
       includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+      balanceCents: balanceCents,
       creditLimitCents: creditLimitCents,
       billingDay: billingDay,
       dueDay: dueDay,
@@ -82,6 +93,7 @@ class AccountFormState {
   factory AccountFormState.from(AccountEntry acc) => AccountFormState(
         type: acc.type,
         name: acc.name,
+        balanceCents: acc.balanceCents,
         creditLimitCents: acc.creditLimit,
         billingDay: acc.billingDay,
         dueDay: acc.dueDay,
@@ -133,12 +145,26 @@ class AccountFormController extends StateNotifier<AccountFormState> {
   void changeIncludeInNetWorth(bool include) =>
       state = state.copyWith(includeInNetWorth: include);
 
+  /// 初始余额 setter(D19 余额管理补丁)。
+  void changeBalanceCents(int? cents) {
+    state = AccountFormState(
+      type: state.type,
+      name: state.name,
+      includeInNetWorth: state.includeInNetWorth,
+      balanceCents: cents,
+      creditLimitCents: state.creditLimitCents,
+      billingDay: state.billingDay,
+      dueDay: state.dueDay,
+    );
+  }
+
   /// 信用卡字段单独 setter(可能传 null 视为清空)。
   void changeCreditLimitCents(int? cents) {
     state = AccountFormState(
       type: state.type,
       name: state.name,
       includeInNetWorth: state.includeInNetWorth,
+      balanceCents: state.balanceCents,
       creditLimitCents: cents,
       billingDay: state.billingDay,
       dueDay: state.dueDay,
@@ -150,6 +176,7 @@ class AccountFormController extends StateNotifier<AccountFormState> {
       type: state.type,
       name: state.name,
       includeInNetWorth: state.includeInNetWorth,
+      balanceCents: state.balanceCents,
       creditLimitCents: state.creditLimitCents,
       billingDay: day,
       dueDay: state.dueDay,
@@ -161,6 +188,7 @@ class AccountFormController extends StateNotifier<AccountFormState> {
       type: state.type,
       name: state.name,
       includeInNetWorth: state.includeInNetWorth,
+      balanceCents: state.balanceCents,
       creditLimitCents: state.creditLimitCents,
       billingDay: state.billingDay,
       dueDay: day,
@@ -181,6 +209,7 @@ class AccountFormController extends StateNotifier<AccountFormState> {
             name: state.name.trim(),
             type: Value(state.type),
             includeInNetWorth: Value(state.includeInNetWorth),
+            balanceCents: Value(state.balanceCents ?? 0),
             creditLimit: Value(state.creditLimitCents),
             billingDay: Value(state.billingDay),
             dueDay: Value(state.dueDay),
@@ -196,6 +225,7 @@ class AccountFormController extends StateNotifier<AccountFormState> {
             name: Value(state.name.trim()),
             type: Value(state.type),
             includeInNetWorth: Value(state.includeInNetWorth),
+            balanceCents: Value(state.balanceCents ?? 0),
             creditLimit: Value(state.creditLimitCents),
             billingDay: Value(state.billingDay),
             dueDay: Value(state.dueDay),
