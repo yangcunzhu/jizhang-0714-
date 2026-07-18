@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-0026:咔皮对标完整产品设计</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e5e5e0;
+    --accent: #5b8def;
+    --warn: #d97706;
+    --danger: #dc2626;
+    --asset: #059669;
+    --liab: #dc2626;
+    --neutral: #6b7280;
+    --code-bg: #f4f4ee;
+    --table-stripe: #f9f9f4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+    color: var(--fg);
+    background: var(--bg);
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  header {
+    border-bottom: 2px solid var(--fg);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  h1 { font-size: 32px; margin: 0 0 8px; }
+  h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 19px;
+    margin: 28px 0 12px;
+    color: var(--accent);
+  }
+  h4 { font-size: 16px; margin: 20px 0 8px; }
+  p { margin: 12px 0; }
+  ul, ol { margin: 8px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: "JetBrains Mono", "Menlo", monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-danger { background: #fee2e2; color: #991b1b; }
+  .badge-success { background: #d1fae5; color: #065f46; }
+  .badge-info { background: #dbeafe; color: #1e40af; }
+  .badge-asset { background: #d1fae5; color: #065f46; }
+  .badge-liab { background: #fee2e2; color: #991b1b; }
+  .toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .toc h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .meta {
+    background: #fffbeb;
+    border-left: 4px solid var(--warn);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .meta .label {
+    font-weight: 600;
+    color: var(--warn);
+    margin-right: 8px;
+  }
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  @media (max-width: 768px) {
+    .compare { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; }
+  }
+  .note {
+    background: #eff6ff;
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .warning-block {
+    background: #fffbeb;
+    border-left: 4px solid var(--warn);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .danger-block {
+    background: #fef2f2;
+    border-left: 4px solid var(--danger);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .callout {
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  blockquote {
+    border-left: 4px solid var(--border);
+    padding-left: 12px;
+    margin: 12px 0;
+    color: var(--muted);
+  }
+  details {
+    background: var(--code-bg);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+    cursor: pointer;
+  }
+  summary {
+    font-weight: 600;
+    margin: 4px 0;
+  }
+  .img-placeholder {
+    background: #f3f4f6;
+    border: 1px dashed #9ca3af;
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    color: var(--muted);
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .table-compact td, .table-compact th { padding: 6px 8px; font-size: 13px; }
+  .neg { color: var(--danger); }
+  .pos { color: var(--asset); }
+  .strike { text-decoration: line-through; color: var(--muted); }
+  .color-emoji { font-size: 18px; }
+  .section-anchor {
+    color: var(--muted);
+    font-size: 0.7em;
+    text-decoration: none;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  h2:hover .section-anchor, h3:hover .section-anchor { opacity: 1; }
+  @media print {
+    .toc { page-break-after: avoid; }
+    h2 { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>ADR-0026:咔皮对标完整产品设计</h1>
+  <p style="color: var(--muted); margin: 4px 0 12px; font-size: 16px;">S02-S03 大改造 · 基于 13 张咔皮记账 App 截图</p>
+  <div>
+    <span class="badge badge-warn">DRAFT</span>
+    <span class="badge badge-info">待用户审</span>
+    <span class="badge" style="background: #f3e8ff; color: #6b21a8;">2026-08-03</span>
+  </div>
+</header>
+
+<div class="meta">
+  <span class="label">关联:</span>
+  ADR-0017 (S02 schema) · ADR-0018 (S02 UI) · ADR-0021 (S03 范围) · ADR-0022 (余额语义) · <s>ADR-0024 (本 ADR 取代)</s> · 用户提供的 13 张咔皮截图
+</div>
+
+<nav class="toc">
+  <h4>📑 目录</h4>
+  <ol>
+    <li><a href="#background">背景</a></li>
+    <li><a href="#home">主页(截图 #1)</a></li>
+    <li><a href="#sidebar">个人中心侧边栏(截图 #2)</a></li>
+    <li><a href="#accounts-list">资产 / 信用账户列表(截图 #3 / 6 / 7-8)</a></li>
+    <li><a href="#record-sheet">记账弹层(截图 #4)</a></li>
+    <li><a href="#transfer">转账(截图 #5)</a></li>
+    <li><a href="#assets-page">资产页 + 净资产(截图 #6)</a></li>
+    <li><a href="#credit-subtypes">信用账户子类(截图 #7-8)</a></li>
+    <li><a href="#account-detail">账户详情(截图 #9)</a></li>
+    <li><a href="#edit-account">编辑账户(截图 #10)</a></li>
+    <li><a href="#add-account-type">添加账户大类(截图 #11-12)</a></li>
+    <li><a href="#credit-fields">信用账户字段(截图 #13)</a></li>
+    <li><a href="#decisions">§12 决策(产品设计核心)</a></li>
+    <li><a href="#irreversibility">§13 不可逆性</a></li>
+    <li><a href="#implementation">§14 实施清单</a></li>
+    <li><a href="#out-of-scope">§15 不做(本期 v1.0)</a></li>
+    <li><a href="#validation">§16 验证</a></li>
+    <li><a href="#self-audit">§18 自审记录</a></li>
+    <li><a href="#open-questions">自审盲点 / 待用户补充</a></li>
+  </ol>
+</nav>
+
+<h2 id="background">背景</h2>
+
+<p>S02 阶段实施时,<strong>用户提供了咔皮记账 App 的 13 张截图,我没仔细对</strong>,自己脑补了一个「6 种账户类型」的简单版本(ADR-0024)。用户 D19 后期反馈:<strong>「完全不行,你做的太简单了」</strong>。</p>
+
+<div class="danger-block">
+  <strong>本 ADR 目的:</strong>完全基于用户提供的 13 张咔皮截图,<strong>逐张引用 + 标注页码</strong>(承诺「绝不脑补」),重新设计完整产品。
+</div>
+
+<p style="color: var(--muted); font-size: 14px;">13 张截图来源:用户 2026-08-03 提供,位于 <code>C:\Users\Administrator\Desktop\123\</code>(共 13 张 PNG)</p>
+
+<h2 id="home">§1 主页(截图 #1)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>顶部 AppBar:<strong>「记录」+「AI 助手」+「家庭账本」(右上角切换账本)</strong></li>
+  <li>月预算卡片:<strong>¥651.80(111% 超支)</strong> + 进度条(蓝→红渐变) + 已用 ¥6,531.80 / 总预算 ¥5,880.00</li>
+  <li>「<strong>今日可用</strong>」¥0.00(右侧)</li>
+  <li><strong>净资产 ¥8,761.15</strong>(黄色高亮大字)</li>
+  <li><strong>30 天趋势</strong>小图(线形图)</li>
+  <li><strong>攒攒 IP</strong>(胖咔,带情绪反馈)</li>
+  <li>「今日消费恰好等于预算,你的规划力超稳」(攒攒反馈)</li>
+  <li><strong>预计明日可用 ¥0.00</strong> + <strong>今日预算使用 ¥0.00</strong>(双栏)</li>
+  <li>日期 tab:「今天 7 月 18 日(周六)」</li>
+  <li>历史日期:「7 月 17 日(周五)」</li>
+  <li><strong>「记录生活点滴 / 账单、想法、待办,胖咔都能记」</strong>(空态文案)</li>
+  <li>底部 FAB:<strong>「🔍 + 点击这里记一笔 🎙️」</strong>(搜索 + 记一笔 + 语音 3 个功能)</li>
+</ul>
+
+<h3>产品设计</h3>
+<table>
+<thead>
+<tr><th>元素</th><th>设计</th><th>我之前漏</th></tr>
+</thead>
+<tbody>
+<tr><td>顶部账本切换</td><td>右上角显示当前账本(默认「家庭账本」),点切换</td><td><span class="badge badge-danger">❌ 漏账本</span></td></tr>
+<tr><td>月预算卡片</td><td>显示「总预算 / 已用 / 进度条」,超支变色</td><td>部分(仅显示已用)</td></tr>
+<tr><td>净资产大字</td><td>黄色高亮,可点击进资产详情</td><td>简化为占位卡</td></tr>
+<tr><td>30 天趋势</td><td>线形图,右上角「30 天趋势」tag</td><td><span class="badge badge-danger">❌ 完全没设计</span></td></tr>
+<tr><td>攒攒 IP + 情绪反馈</td><td>攒攒根据消费状态说不同的话(智能)</td><td>仅攒攒动画</td></tr>
+<tr><td>预计明日可用</td><td>根据今日消费预测</td><td><span class="badge badge-danger">❌ 没设计</span></td></tr>
+<tr><td>底部 3 入口</td><td>搜索 / 记一笔 / 语音</td><td><span class="badge badge-danger">❌ 没设计</span></td></tr>
+<tr><td>语音记账</td><td>语音输入</td><td><span class="badge badge-danger">❌ ADR-0021 不引(待 v1.1)</span></td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>WHY 重要:</strong>主页是用户<strong>每天打开看到的页面</strong>,决定用户对产品的第一印象。
+</div>
+
+<h2 id="sidebar">§2 个人中心侧边栏(截图 #2)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>顶部:头像 + 「小莫」用户 + 月历(2026-07,15 日高亮)</li>
+  <li><strong>坚持记录 86 天 / 664 条 / 连续 7 天</strong></li>
+  <li><strong>「常用功能」9 大类(图标网格):</strong>
+    <ul>
+      <li>📊 图表统计 / 💼 资产管理 / 📋 账本管理</li>
+      <li>📝 预算管理 / 💰 攒钱计划 / 🧩 小组件</li>
+      <li>📂 分类管理 / 🏷️ 标签管理</li>
+    </ul>
+  </li>
+  <li><strong>「快捷记账」3 类:</strong>
+    <ul>
+      <li>📥 导入导出 / 🤖 自动记账 / ⏰ 定时记账</li>
+    </ul>
+  </li>
+  <li>设置 / 问卷参与共建 / 活动·提现</li>
+</ul>
+
+<h3>产品设计</h3>
+<table>
+<thead>
+<tr><th>功能</th><th>我之前设计</th><th>实际需求</th></tr>
+</thead>
+<tbody>
+<tr><td>图表统计</td><td>S05</td><td><span class="badge badge-success">✅ 一致</span></td></tr>
+<tr><td>资产管理</td><td>S02/S03</td><td><span class="badge badge-success">✅ 一致</span></td></tr>
+<tr><td>账本管理</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><span class="badge badge-danger">必须加</span> — 账本是 S04 之前的核心</td></tr>
+<tr><td>预算管理</td><td>S04</td><td><span class="badge badge-success">✅ 一致</span></td></tr>
+<tr><td>攒钱计划</td><td>S07 之后</td><td><strong>提前到 S07</strong></td></tr>
+<tr><td>小组件</td><td><span class="badge badge-danger">❌ 没设计</span></td><td>v1.1(需 iOS WidgetKit)</td></tr>
+<tr><td>分类管理</td><td>S02</td><td><span class="badge badge-success">✅ 一致</span></td></tr>
+<tr><td>标签管理</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>必须加</strong>(v1.0 或 v1.1)</td></tr>
+<tr><td>导入导出</td><td>P0-20 (S06)</td><td><span class="badge badge-success">✅ 一致</span></td></tr>
+<tr><td>自动记账</td><td>v1.1</td><td>v1.1</td></tr>
+<tr><td>定时记账</td><td>v1.1</td><td>v1.1</td></tr>
+<tr><td>问卷参与共建</td><td><span class="badge badge-danger">❌ 没设计</span></td><td>v1.0 可加(收集反馈)</td></tr>
+<tr><td>活动提现</td><td><span class="badge badge-danger">❌ 没设计</span></td><td>v1.1(累积记账条数可提现)</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>连续记录 / 累计条数</strong>:作为成就机制基础(类似「签到」)。
+</div>
+
+<h2 id="accounts-list">§3 资产 / 信用账户(负债)列表(截图 #3 / 6 / 7-8)</h2>
+
+<h3>截图 #3 + 6:资金账户(资产)5 个</h3>
+<ul>
+  <li>180 支付宝 ¥12,394.79</li>
+  <li>小莫微信 ¥1,367.98</li>
+  <li>邮政银行 ¥128.83</li>
+  <li>137 支付宝 ¥20.70</li>
+  <li>大哥微信 ¥0.00</li>
+  <li><strong>(右上角「+ 添加账户」黄色高亮按钮)</strong></li>
+</ul>
+
+<h3>截图 #3 + 7-8:信用账户(负债)8 个</h3>
+<ul>
+  <li>兴业银行信用卡(1053) -¥3,457.08</li>
+  <li>抖音放心贷 -¥1,000.00(<strong>自定义欠款类型</strong>)</li>
+  <li>浦发银行信用卡(9286) -¥494.82</li>
+  <li>180 花呗账户 -¥187.44</li>
+  <li>招商银行信用卡(9191) -¥6.98</li>
+  <li>抖音月付账户 -¥4.83</li>
+  <li>平安银行信用卡(6313) ¥0.00</li>
+  <li>中信银行信用卡(7482) ¥0.00</li>
+</ul>
+
+<h3>截图 #3:理财账户(资产)2 个</h3>
+<ul>
+  <li>网商银行存款 ¥65,434.95「定期存款余额」+ 平安股票账户 ¥0.00「股票余额」</li>
+</ul>
+
+<h3>关键观察(完全颠覆 ADR-0024)</h3>
+<table>
+<thead>
+<tr><th>维度</th><th>我之前 ADR-0024</th><th>咔皮真实产品</th></tr>
+</thead>
+<tbody>
+<tr><td>账户类型</td><td>6 种(现金/储蓄/信用卡/花呗/网贷/理财)</td><td><strong>4 大类 × 17+ 子类</strong>(借贷不算账户,见下)</td></tr>
+<tr><td>资金账户</td><td>1 种(现金)</td><td><strong>5 种</strong>:储蓄卡 / 微信 / 支付宝 / 现金 / 自定义</td></tr>
+<tr><td>信用账户</td><td>4 种(信用卡/花呗/网贷)</td><td><strong>5 种 + 自定义</strong>:信用卡 / 花呗 / 京东白条 / 借呗 / 自定义 + 抖音放心贷 / 抖音月付(<span class="badge badge-danger">我漏 3 个</span>)</td></tr>
+<tr><td>充值账户</td><td><span class="badge badge-danger">❌ 漏</span></td><td><strong>3 种</strong>:公交卡 / 饭卡 / 自定义</td></tr>
+<tr><td>理财账户</td><td>1 种(模糊)</td><td><strong>6 种</strong>:股票 / 基金 / 余额宝 / 零钱通 / 定期存款 / 自定义</td></tr>
+<tr><td>借贷</td><td><span class="badge badge-danger">❌ 漏</span></td><td><strong>不是账户</strong>,是 <strong>transaction 类型</strong>(<code>lend</code> 借出 / <code>borrow</code> 借入,见 §12.3)</td></tr>
+<tr><td>银行标识 4 位数</td><td><span class="badge badge-danger">❌ 没设计</span></td><td>招商银行信用卡(9191)等 — 后 4 位标识</td></tr>
+<tr><td>自定义账户</td><td><span class="badge badge-danger">❌ 没设计</span></td><td>各大类都有「自定义」选项</td></tr>
+<tr><td>微信 / 支付宝等品牌</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>每个子类有真实品牌图标 + 名称</strong>(品牌 lib)</td></tr>
+</tbody>
+</table>
+
+<h3>产品设计:4 大类账户 × 子类(本 ADR 重做;借贷独立成 transaction)</h3>
+<table class="table-compact">
+<thead>
+<tr><th>大类</th><th>资产/负债</th><th>子类(品牌 emoji)</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><span class="color-emoji">💰</span> 资金账户</td>
+  <td><span class="badge badge-asset">资产</span></td>
+  <td>储蓄卡 💳 / 微信 💬 / 支付宝 🅰️ / 现金 💵 / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">💳</span> 信用账户</td>
+  <td><span class="badge badge-liab">负债</span></td>
+  <td>信用卡 💳 / 花呗 🅰️ / 京东白条 🟠 / 借呗 🦊 / 自定义 ❓ + 抖音放心贷 + 抖音月付</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">🚌</span> 充值账户</td>
+  <td><span class="badge badge-asset">资产</span></td>
+  <td>公交卡 🚎 / 饭卡 🍱 / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">📈</span> 理财账户</td>
+  <td><span class="badge badge-asset">资产</span></td>
+  <td>股票 📈 / 基金 🏦 / 余额宝 🟠 / 零钱通 🟡 / 定期存款 ⏰ / 自定义 ❓</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>借贷不作为账户</strong> — 咔皮的「借出/借入」实际是 <strong>transaction 类型</strong>(<code>type=lend</code> / <code>type=borrow</code>),有「对手方 + 本金 + 利率 + 到期日」字段。详情见 §12.3。
+</div>
+
+<h2 id="record-sheet">§4 记账弹层(截图 #4)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>顶部:账户(180 支付宝,余额 ¥12,394.79)+ <strong>「余额 变动明细 >」</strong>(可点)</li>
+  <li><strong>3 个 tab:「支出 / 收入 / 转账」</strong></li>
+  <li>5 个分类图标(圆形,带 ✅ 选中标记):<strong>餐饮 🍜 / 医疗健康 💊 / 购物 🛒 / 老人 👴 / 交通 🚗</strong></li>
+  <li>筛选:<strong>日期 / 账本 / 账户</strong>(3 个下拉)</li>
+  <li>「<strong>更多分类 ⌃</strong>」展开全部</li>
+  <li>金额输入框 + 附件(图片 / 相机)</li>
+  <li>数字键盘(0-9 + . + -)</li>
+  <li>备注(可选)</li>
+</ul>
+
+<h3>关键观察</h3>
+<table>
+<thead>
+<tr><th>维度</th><th>我之前</th><th>咔皮</th></tr>
+</thead>
+<tbody>
+<tr><td>3 tab</td><td><span class="badge badge-danger">❌ 只有支出/收入</span></td><td><strong>支出 / 收入 / 转账</strong></td></tr>
+<tr><td>余额变动明细</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>点击进账户详情,看历史流水</strong></td></tr>
+<tr><td>账本维度</td><td><span class="badge badge-danger">❌ 漏</span></td><td><strong>每次记账选账本</strong></td></tr>
+<tr><td>附件</td><td><span class="badge badge-danger">❌ 漏</span></td><td><strong>图片 + 相机</strong></td></tr>
+<tr><td>分类多选</td><td><span class="badge badge-danger">❌ 漏</span></td><td><strong>餐饮/医疗/购物/老人/交通</strong> 等具体</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>WHY 重要:</strong>转账 是独立模块(不是还款),需要单独的弹层和事务逻辑。
+</div>
+
+<h2 id="transfer">§5 转账(截图 #5)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>顶部:「转账」标题</li>
+  <li><strong>转账金额 ¥0.00</strong>(可改)</li>
+  <li><strong>扣款账户</strong>:180 支付宝</li>
+  <li><strong>入款账户</strong>:请选择入款账户</li>
+  <li>日期</li>
+  <li>备注</li>
+</ul>
+
+<h3>关键概念</h3>
+<table>
+<thead>
+<tr><th>概念</th><th>我之前</th><th>实际</th></tr>
+</thead>
+<tbody>
+<tr><td>转账</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>扣款 → 入款</strong>,双方都是普通账户(资金类)</td></tr>
+<tr><td>还款</td><td>储蓄 → 信用卡</td><td><strong>扣款 → 欠款账户</strong>,双方有欠款关系</td></tr>
+<tr><td>区别</td><td>-</td><td>转账是普通账户间转移,还款是还欠款</td></tr>
+</tbody>
+</table>
+
+<h3>产品设计</h3>
+<pre><code>转账(transaction vs 还款 repayment):
+- 转账(transfer):两类资金账户间转(现金→储蓄,储蓄→微信)
+  - 不需要还款,不需要欠款
+  - 内部逻辑:fromAccount.balanceCents -= amount; toAccount.balanceCents += amount
+- 还款(repayment):资金类 → 欠款类(储蓄→信用卡)
+  - 已实现(ADR-0022)
+- 区别:转账 = 双方平衡(钱从这里到那里),还款 = 抵消欠款
+
+→ S04 之前必须实现 transfer 流程</code></pre>
+
+<h2 id="assets-page">§6 资产页 + 净资产计算(截图 #6)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>净资产 ¥8,761.15(黄色高亮)</li>
+  <li><strong>资产 ¥13,912.30</strong> vs <strong>负债 ¥5,151.15</strong> = 净资产</li>
+  <li>资产账户(资金账户)6 个</li>
+  <li><strong>「+ 添加账户」</strong> 黄色高亮</li>
+</ul>
+
+<h3>关键发现</h3>
+
+<p><strong>净资产 = 资产 - 负债</strong> 显式分类。我之前 Stage 5 设计,但<strong>资产 / 负债分类要在 S02 就实现</strong>(否则后续没法算)。</p>
+
+<h3>S02 必修</h3>
+<ul>
+  <li>资产账户(资金 / 充值 / 理财):计入资产</li>
+  <li>负债账户(信用):计入负债</li>
+  <li><strong>借贷不作为账户</strong>(见 §12.3),不计入资产/负债</li>
+  <li>净资产 = sum(资产) - sum(负债)</li>
+</ul>
+
+<h2 id="credit-subtypes">§7 信用账户子类(截图 #7-8)</h2>
+
+<h3>真实品牌清单(我 ADR-0024 漏 3 个)</h3>
+<ul>
+  <li>信用卡(银行):招商 / 平安 / 中信 / 兴业 / 浦发(各家银行图标)</li>
+  <li><strong>花呗</strong>(蚂蚁)</li>
+  <li><strong>京东白条</strong></li>
+  <li><strong>借呗</strong>(蚂蚁)</li>
+  <li><strong>抖音放心贷</strong>(<span class="badge badge-danger">漏</span>)</li>
+  <li><strong>抖音月付账户</strong>(<span class="badge badge-danger">漏</span>)</li>
+  <li>微信分付(待确认)</li>
+  <li>美团月付(待确认)</li>
+</ul>
+
+<h3>银行 4 位数标识</h3>
+<ul>
+  <li>招商银行信用卡(9191) — 末 4 位 9191</li>
+  <li>平安银行信用卡(6313) — 末 4 位 6313</li>
+  <li>用途:<strong>多张同银行信用卡区分</strong>(每张卡后 4 位不同)</li>
+</ul>
+
+<div class="callout">
+<strong>WHY 重要:</strong>同一银行(招行)可能有多张信用卡,末 4 位是唯一标识。
+</div>
+
+<h2 id="account-detail">§8 账户详情(截图 #9)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>顶部:账户(180 支付宝)+ 余额 ¥12,394.79 + <strong>「余额 变动明细 >」</strong></li>
+  <li><strong>2 个 tab:「记账 / 转账」</strong>(我之前只有 1 个)</li>
+  <li>月份列表:2026 年 7 月,流出 ¥6,136.37 / 流入 ¥16,500.00</li>
+  <li>7 月 17 日(周五)流水:
+    <ul>
+      <li>22:48 餐饮-做饭食材 -¥8.96「购买薏米和三色藜麦米 / 180 支付宝」</li>
+      <li>19:27 餐饮-水果 -¥9.58「支付 9.58 元 / 180 支付宝」</li>
+      <li>08:21 餐饮 -¥3.00「收钱码收款 / 180 支付宝」</li>
+      <li>08:18 餐饮 -¥6.80「豆制品批发消费 / 180 支付宝」</li>
+      <li>08:16 餐饮 -¥15.00...</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>关键设计</h3>
+<ul>
+  <li>「记账 / 转账」2 tab — 流水分类</li>
+  <li>每月统计(流出 / 流入)</li>
+  <li>每笔带分类 + 备注 + 金额 + 所属账户</li>
+</ul>
+
+<h2 id="edit-account">§9 编辑账户(截图 #10)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li>标题:编辑账户</li>
+  <li><strong>账户名称</strong>:180 支付宝(可改)</li>
+  <li><strong>备注</strong>:支付宝余额(可改)</li>
+  <li>4 个 toggle:
+    <ul>
+      <li><strong>计入总资产</strong>(开) + 解释「该账户是否计入总资产」</li>
+      <li><strong>设为特别关注账户</strong>(关) + 解释「特别关注的账户可在资产账户顶部查看」</li>
+      <li><strong>设为默认收账账户</strong>(关) + 解释「若收钱记录没有指定账户,会默认关联到默认账户」</li>
+    </ul>
+  </li>
+  <li>底部:<strong>「删除 / 退款」</strong>2 按钮</li>
+  <li>顶部:<strong>垃圾桶 icon</strong>(快速删除)</li>
+</ul>
+
+<h3>关键设计</h3>
+<table>
+<thead>
+<tr><th>字段</th><th>我之前</th><th>实际</th></tr>
+</thead>
+<tbody>
+<tr><td>计入总资产</td><td>有</td><td><span class="badge badge-success">✅</span></td></tr>
+<tr><td>特别关注</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>必须加</strong>(置顶)</td></tr>
+<tr><td>默认收账账户</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>必须加</strong> — 咔皮解释「若收钱记录没有指定账户,会默认关联到默认账户」</td></tr>
+<tr><td>删除按钮</td><td>有</td><td><span class="badge badge-success">✅</span></td></tr>
+<tr><td>退款按钮</td><td><span class="badge badge-danger">❌ 没设计</span></td><td><strong>新概念,语义待用户确认</strong> — 猜测:可能是「撤销最近一笔关于该账户的交易」或「把账户余额清零」,需用户从咔皮 UI 操作一次确认行为</td></tr>
+<tr><td>备注</td><td>有</td><td><span class="badge badge-success">✅</span></td></tr>
+</tbody>
+</table>
+
+<h3>「退款」语义 — 待确认(自审盲点)</h3>
+
+<p><strong>问题</strong>:咔皮图 10 只显示「退款」按钮,没显示点击后做什么。</p>
+
+<p><strong>猜测 2 个</strong>:</p>
+<ul>
+  <li>(A)「撤销最近一笔交易」:类似单笔 reverse 操作,删除最近一条关于该账户的 transaction</li>
+  <li>(B)「余额清零」:把账户 balance 设为 0,不删历史</li>
+</ul>
+
+<p><strong>影响</strong>:这影响 transactionDao 的设计(要不要新增 <code>reverseLastTransaction</code> 方法)。</p>
+
+<div class="warning-block">
+<strong>→ 决策前,建议用户先用咔皮点「退款」,告诉我行为,我再补 ADR。</strong>
+</div>
+
+<h2 id="add-account-type">§10 添加账户大类(截图 #11-12)</h2>
+
+<h3>截图元素</h3>
+
+<p>5 大类 × 子类,每大类有「自定义」选项</p>
+
+<table class="table-compact">
+<thead>
+<tr><th>大类</th><th>子类(图标)</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><span class="color-emoji">💰</span> 资金账户(资产)</td>
+  <td>储蓄卡 💳 / 微信 💬 / 支付宝 🅰️ / 现金 💵 / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">💳</span> 信用账户(负债)</td>
+  <td>信用卡 💳 / 花呗 🅰️ / 京东白条 🟠 / 借呗 🦊 / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">🚌</span> 充值账户(资产)</td>
+  <td>公交卡 🚎 / 饭卡 🍱 / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">📈</span> 理财账户(资产)</td>
+  <td>股票 📈 / 基金 🏦 / 余额宝 🟠 / 零钱通 🟡 / 定期存款 ⏰ / 自定义 ❓</td>
+</tr>
+<tr>
+  <td><span class="color-emoji">💰</span> 借贷账户</td>
+  <td><span class="strike">借出(资产) / 借入(负债) / 自定义 ❓</span></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>借贷已删除</strong>(改为 transaction 概念) — 见 §12.3。
+</div>
+
+<h2 id="credit-fields">§11 信用账户字段(截图 #13)</h2>
+
+<h3>截图元素</h3>
+<ul>
+  <li><strong>信用额度</strong>(必填)</li>
+  <li><strong>起始欠款</strong> ¥0.00(可改)</li>
+  <li><strong>可用额度</strong>:输入信用额度和欠款自动计算(灰色文字)</li>
+  <li><strong>起始时间</strong>(必填,日期选择)</li>
+  <li>账户名称</li>
+  <li>备注</li>
+  <li><strong>出账日</strong>(日期选择)</li>
+  <li><strong>还款日</strong>(日期选择)</li>
+  <li>计入总资产(开)</li>
+  <li>设为默认收账账户(关)</li>
+  <li>保存(灰)</li>
+</ul>
+
+<h3>字段对比(信用账户 — 6 字段)</h3>
+<table>
+<thead>
+<tr><th>字段</th><th>我 ADR-0024</th><th>咔皮</th></tr>
+</thead>
+<tbody>
+<tr><td>信用额度</td><td><span class="badge badge-success">✅</span></td><td><span class="badge badge-success">✅</span></td></tr>
+<tr><td>账单日</td><td><span class="badge badge-danger">❌ 漏</span></td><td><span class="badge badge-success">✅ 改名<strong>出账日</strong></span></td></tr>
+<tr><td>还款日</td><td><span class="badge badge-success">✅</span></td><td><span class="badge badge-success">✅</span></td></tr>
+<tr><td><strong>起始欠款</strong></td><td><span class="badge badge-danger">❌ 漏</span></td><td><span class="badge badge-success">✅</span> 重要(初始用卡时欠多少)</td></tr>
+<tr><td><strong>可用额度(自动算)</strong></td><td><span class="badge badge-danger">❌ 漏</span></td><td><span class="badge badge-success">✅</span> = 额度 - 起始欠款</td></tr>
+<tr><td><strong>起始时间</strong></td><td><span class="badge badge-danger">❌ 漏</span></td><td><span class="badge badge-success">✅</span> 重要(开始用卡时间)</td></tr>
+<tr><td>设为默认收账账户</td><td><span class="badge badge-danger">❌ 漏</span></td><td><span class="badge badge-success">✅</span>(toggle 含义见 §9 自审)</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>关键洞察:</strong>
+<ul>
+  <li>「起始欠款」+ 「起始时间」让用户精确记录卡片开始使用状态</li>
+  <li>「可用额度」自动算,不用用户填</li>
+  <li>「出账日」和「还款日」<strong>分开</strong>(不是同一天)</li>
+</ul>
+</div>
+
+<h2 id="decisions">§12 决策(产品设计核心)</h2>
+
+<h3>1. 4 大类账户模型(本 ADR 核心)</h3>
+<table>
+<thead>
+<tr><th>大类</th><th>类型</th><th>字段</th><th>余额语义</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>资金账户(资产)</td>
+  <td>subType:储蓄卡/微信/支付宝/现金/自定义</td>
+  <td>balanceCents</td>
+  <td>当前余额</td>
+</tr>
+<tr>
+  <td>信用账户(负债)</td>
+  <td>subType:信用卡/花呗/京东白条/借呗/抖音放心贷/抖音月付/自定义</td>
+  <td>creditLimitCents + initialDebtCents + availableCents(自动算) + startDate + billingDay + dueDay</td>
+  <td>initialDebtCents - 已还</td>
+</tr>
+<tr>
+  <td>充值账户(资产)</td>
+  <td>subType:公交卡/饭卡/自定义</td>
+  <td>balanceCents</td>
+  <td>当前余额</td>
+</tr>
+<tr>
+  <td>理财账户(资产)</td>
+  <td>subType:股票/基金/余额宝/零钱通/定期存款/自定义</td>
+  <td>balanceCents + shareCount + navPerShare(净值,可选)</td>
+  <td>当前市值</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<strong>借贷不作为账户</strong> — 咔皮的「借出/借入」是 <strong>transaction 类型</strong>(<code>type=lend</code> / <code>type=borrow</code>),有「对手方 + 本金 + 利率 + 到期日」字段。账户子类型:借出/借入 改为 transactionType 枚举值 lend/borrow,带对手方 + 本金 + 利率 + 到期日 字段。
+</div>
+
+<h3>2. 6 个 toggle 字段(账户设置)</h3>
+<ul>
+  <li><code>includeInNetWorth</code>(我已有)</li>
+  <li><code>isPinned</code>(特别关注,资产账户置顶)— <strong>新增</strong></li>
+  <li><code>isDefaultIncomeAccount</code>(默认收账账户,收入自动关联)— <strong>新增</strong></li>
+  <li><code>isDefaultExpenseAccount</code>(默认支出账户,可选)— <strong>新增</strong></li>
+  <li>(其余 3 个 toggle 我之前有 <code>includeInNetWorth</code>)</li>
+</ul>
+
+<h3>3. 转账 / 还款 / 借出 / 借入 4 类独立流程</h3>
+<table>
+<thead>
+<tr><th>流程</th><th>数据库语义</th><th>字段</th><th>余额联动</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>记账(普通支出/收入)</td>
+  <td>type=expense/income</td>
+  <td>amountCents, accountId, categoryId, note</td>
+  <td>expense:-amount, income:+amount</td>
+</tr>
+<tr>
+  <td>转账</td>
+  <td>type=transfer</td>
+  <td>amountCents, fromAccountId, toAccountId, note</td>
+  <td>fromAccount:-amount, toAccount:+amount</td>
+</tr>
+<tr>
+  <td>还款</td>
+  <td>type=repayment</td>
+  <td>amountCents, fromAccountId, toCreditCardId, note, installmentPeriod</td>
+  <td>储蓄:-amount, 信用卡已用:-amount</td>
+</tr>
+<tr>
+  <td>借出</td>
+  <td>type=lend</td>
+  <td>amountCents, accountId(借出账户), counterparty(借给谁), dueDate(到期日)</td>
+  <td>借出账户.balanceCents + amount(应收债权增加)</td>
+</tr>
+<tr>
+  <td>借入</td>
+  <td>type=borrow</td>
+  <td>amountCents, accountId(借入账户), counterparty(从谁借), dueDate</td>
+  <td>借入账户.balanceCents + amount(应付债务增加)</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>→ 新增 transactionType 枚举值</strong>:</p>
+<ul>
+  <li><code>transfer</code>(转账)— <strong>新</strong></li>
+  <li><code>lend</code>(借出)— <strong>新</strong></li>
+  <li><code>borrow</code>(借入)— <strong>新</strong></li>
+  <li>(<code>repayment</code> 已存在)</li>
+</ul>
+
+<p><strong>→ schema v7 migration</strong>:</p>
+<ul>
+  <li>accounts 表加 subType / brandName / isPinned / isDefaultIncomeAccount / isDefaultExpenseAccount / initialDebtCents / startDate / billingDay 等字段</li>
+  <li>transactions 表加 counterparty(借款对手方)字段</li>
+  <li>ledgers 表新建(账本)</li>
+</ul>
+
+<h3>4. 账本维度(transaction 必填)</h3>
+<table>
+<thead>
+<tr><th>字段</th><th>备注</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ledgerId</code>(账本 ID)</td><td>多账本切换(家庭 / 工作 / 个人)</td></tr>
+<tr><td><code>ledgerName</code></td><td>"家庭账本" 等</td></tr>
+</tbody>
+</table>
+
+<p><strong>→ 新建 ledgers 表</strong>:</p>
+<ul>
+  <li>id, name, iconName, isDefault, createdAt</li>
+</ul>
+
+<p><strong>→ schema v7 migration</strong>:<code>transactions</code> 表加 <code>ledgerId</code> 字段,所有查询加 <code>WHERE ledgerId</code> filter。</p>
+
+<h3>5. 标签 / 多分类</h3>
+<table>
+<thead>
+<tr><th>字段</th><th>备注</th></tr>
+</thead>
+<tbody>
+<tr><td><code>transactionTags</code>(多对多)</td><td>给交易打多个标签(项目 / 报销 / 旅游等)</td></tr>
+<tr><td><code>tagId + transactionId</code> 中间表</td><td></td></tr>
+</tbody>
+</table>
+
+<p><strong>→ 新建 tags + transaction_tags 表</strong></p>
+<p><strong>→ 本期(v1.0)或 v1.1</strong>:暂缓,留 ADR-0025 backlog</p>
+
+<h3>6. 附件(transaction 图片 / 相机)</h3>
+<table>
+<thead>
+<tr><th>字段</th><th>备注</th></tr>
+</thead>
+<tbody>
+<tr><td><code>transactionAttachments</code>(1 对多)</td><td>交易关联图片(收据)</td></tr>
+<tr><td><code>attachmentId, transactionId, filePath, createdAt</code></td><td></td></tr>
+</tbody>
+</table>
+
+<p><strong>→ 本期(v1.0)或 v1.1</strong>:留 backlog</p>
+
+<h3>7. 自动 / 定时记账(v1.1 backlog)</h3>
+<ul>
+  <li>周期性交易(每月房租)</li>
+  <li>语音记账(Siri Shortcuts, v1.1)</li>
+  <li>OCR 截图识别(v1.1)</li>
+</ul>
+
+<h3>8. 净资产计算</h3>
+<pre><code>净资产 = SUM(资金账户.balanceCents)
+       + SUM(充值账户.balanceCents)
+       + SUM(理财账户.balanceCents, includeInNetWorth=true)
+       + SUM(借贷账户.借出.principal, includeInNetWorth=true)
+       - SUM(信用账户.可用额度, includeInNetWorth=true)
+       - SUM(借贷账户.借入.principal, includeInNetWorth=true)
+       - SUM(其他 includeInNetWorth=false 的不计入)</code></pre>
+
+<p><strong>→ S05 实现,本 ADR 提前设计</strong>。</p>
+
+<h2 id="irreversibility">§13 不可逆性</h2>
+<table>
+<thead>
+<tr><th>项</th><th>永不变更</th><th>理由</th></tr>
+</thead>
+<tbody>
+<tr><td>4 大类账户分类</td><td>不可变</td><td>真实世界金融产品</td></tr>
+<tr><td><code>subType</code>(子类)</td><td>不可变,只增不删</td><td>用户已用品牌名,删了会丢数据</td></tr>
+<tr><td><code>isPinned</code>(特别关注)</td><td>不可变字段</td><td>资产账户顶部逻辑依赖</td></tr>
+<tr><td><code>isDefaultIncomeAccount</code></td><td>不可变</td><td>收入自动关联逻辑</td></tr>
+<tr><td>transactionType 枚举</td><td>不可变(只增不删)</td><td>下游统计依赖</td></tr>
+<tr><td><code>ledgerId</code> 必填</td><td>不可变</td><td>交易必须有账本归属</td></tr>
+</tbody>
+</table>
+
+<h2 id="implementation">§14 实施清单(本 ADR 范围)</h2>
+
+<p>按优先级排序,预计 <strong>3-4 周</strong>:</p>
+
+<table>
+<thead>
+<tr><th>#</th><th>工作</th><th>范围</th><th>工期</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>schema v6 migration(账户 subType / isPinned / isDefault 等)</td><td><code>app_database.dart</code> + 测试</td><td>1 天</td></tr>
+<tr><td>2</td><td>schema v7 migration(transaction transfer/lend/borrow + ledgerId)</td><td><code>app_database.dart</code> + 测试</td><td>1 天</td></tr>
+<tr><td>3</td><td>ledgers 表 + ledgerProvider</td><td>新建</td><td>半天</td></tr>
+<tr><td>4</td><td>添加账户弹层完全重做(4 大类 × 子类选择)</td><td><code>account_edit_sheet.dart</code></td><td>2 天</td></tr>
+<tr><td>5</td><td>信用账户字段扩展(起始欠款/可用额度/起始时间/出账日)</td><td><code>account_form_provider.dart</code></td><td>1 天</td></tr>
+<tr><td>6</td><td>编辑账户加 3 toggle + 退款按钮</td><td><code>account_edit_sheet.dart</code></td><td>半天</td></tr>
+<tr><td>7</td><td>转账流程(transfer sheet + DAO + 测试)</td><td>新建 <code>lib/features/transfer/</code></td><td>2 天</td></tr>
+<tr><td>8</td><td>主页底部 3 入口(搜索/记一笔/语音)</td><td><code>home_page.dart</code></td><td>1 天</td></tr>
+<tr><td>9</td><td>记账弹层加转账 tab</td><td><code>record_sheet.dart</code></td><td>半天</td></tr>
+<tr><td>10</td><td>账户详情 + 余额变动明细(2 tab)</td><td>新建</td><td>1 天</td></tr>
+<tr><td>11</td><td>资产页拆分(资产 ¥X / 负债 ¥Y)</td><td><code>account_management_page.dart</code></td><td>半天</td></tr>
+<tr><td>12</td><td>14 个新测试(账户 / 转账 / 记账)</td><td>测试</td><td>1 天</td></tr>
+<tr><td>13</td><td>D20-D24 收尾 + ROA</td><td>-</td><td>1 周</td></tr>
+<tr><td colspan="2"><strong>总计</strong></td><td></td><td><strong>~3-4 周</strong>(不含 D20-D24 ROA)</td></tr>
+</tbody>
+</table>
+
+<h2 id="out-of-scope">§15 不做(本期 v1.0)</h2>
+<table>
+<thead>
+<tr><th>功能</th><th>何时做</th><th>ADR</th></tr>
+</thead>
+<tbody>
+<tr><td>标签(多对多)</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>附件(图片)</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>自动记账 / 定时记账</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>语音记账(Siri)</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>OCR 截图识别</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>小组件(iOS Widget)</td><td>v1.1</td><td>ADR-0025 backlog</td></tr>
+<tr><td>活动提现</td><td>v1.0 可加 / 留 v1.1</td><td>评估</td></tr>
+<tr><td>问卷共建</td><td>v1.0 可加 / 留 v1.1</td><td>评估</td></tr>
+</tbody>
+</table>
+
+<h2 id="validation">§16 验证</h2>
+<ul>
+  <li>[ ] 4 大类 × 子类选择,本地 widget test 全过</li>
+  <li>[ ] 信用账户 6 字段(额度/起始欠款/可用额度/起始时间/出账日/还款日)全过</li>
+  <li>[ ] 转账流程(扣款 → 入款)双账户余额联动正确</li>
+  <li>[ ] 还款流程(储蓄 → 信用卡)单测覆盖</li>
+  <li>[ ] 资产 / 负债 分类清晰,净资产 = 资产 - 负债</li>
+  <li>[ ] 账本维度过滤(transaction 查询带 ledgerId)</li>
+  <li>[ ] 3 个 toggle(特别关注/默认收账/默认支出)功能正确</li>
+  <li>[ ] 退款按钮(新概念)行为正确</li>
+  <li>[ ] analyze 0 issues + flutter test 248+ 全过</li>
+  <li>[ ] iPhone 真机手验 8 步(基于咔皮截图的所有细节)</li>
+</ul>
+
+<h2 id="self-audit">§18 自审记录(2026-08-03 写完即审)</h2>
+
+<p><strong>写完 ADR-0026 后立刻自审,发现并修正 5 个错</strong>:</p>
+<table>
+<thead>
+<tr><th>#</th><th>自审发现</th><th>修正</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>§3 资金账户写「6 个」,实际图 6 显示 5 个</td><td>改为 5 个</td></tr>
+<tr><td>2</td><td>§10 / §12.1 借贷账户放「账户大类」,错(咔皮实际是 transaction 概念)</td><td>借贷改为 transactionType.lend/borrow,从 4 大类账户移出</td></tr>
+<tr><td>3</td><td>§12.3 transactionType 漏 transfer / lend / borrow</td><td>补 3 个新枚举值</td></tr>
+<tr><td>4</td><td>§9 「退款」按钮语义不确定(咔皮图 10 只显示按钮,没显示做什么)</td><td>标「咔皮 UI 模糊,需用户从咔皮 UI 点一次确认行为」</td></tr>
+<tr><td>5</td><td>§9 / §12.1 3 个 toggle 语义未在咔皮截图明确</td><td>标「待用户确认」 + 标"默认收账" 解释来自咔皮文字</td></tr>
+</tbody>
+</table>
+
+<h2 id="open-questions">自审盲点 / 待用户补充</h2>
+
+<div class="warning-block">
+<strong>需要用户用咔皮实际操作一次确认</strong>:
+</div>
+
+<ol>
+  <li>在咔皮点「<strong>退款</strong>」按钮一次,告诉我行为(撤销最后一笔?余额清零?)</li>
+  <li>在咔皮加一笔「<strong>借出</strong>」交易,告诉我字段(是否有对手方 / 利率 / 到期日?)</li>
+  <li>在咔皮加一笔「<strong>借入</strong>」交易,告诉我字段</li>
+  <li>给我看看「<strong>攒攒</strong>」IP 智能反馈的具体规则(图 1 底部)</li>
+</ol>
+
+<div class="danger-block">
+<strong>承诺</strong>:写完 ADR 自己审计 — ✅ 已完成 5 项修正 + 列出 4 项自审盲点(等用户补充)。
+</div>
+
+<hr style="margin: 40px 0;">
+
+<p style="color: var(--muted); font-size: 13px; text-align: center;">
+ADR-0026 写于 2026-08-03 · 状态:DRAFT · 待用户审<br>
+基于用户提供的 13 张咔皮记账 App 截图 · 零脑补 · 每张图标注引用
+</p>
+
+</div>
+</body>
+</html>

@@ -505,6 +505,82 @@
         <tr><td>功能较少</td><td>覆盖预算+信用卡+RPG+AI 全维度</td></tr>
       </table>
 
+      <h3>§3.1 2026-08-03 补充：基于 31 张咔皮截图的真实产品对标</h3>
+      <div class="callout callout-info">
+        <p><strong>WHY 这一节存在</strong>:v4 §3 写于 2026-07-14(只有 13 张图 + 文字调研)。2026-08-03 用户补充了 18 张图(<code>C:\Users\Administrator\Desktop\123\234\</code>),<strong>暴露 v4 §3 过于粗略</strong>。本节补真正决定性细节。</p>
+        <p><strong>ADR 引用</strong>:<a href="../docs/adr/0026-kapi-product-design.html">ADR-0026</a> 13 张图完整分析 / <a href="../docs/adr/0027-savings-plan.html">ADR-0027</a> 攒钱计划分册。</p>
+
+        <h4>账户子类型(真实品牌清单,共 17+ 子类)</h4>
+        <ul>
+          <li><strong>资金账户(资产,5)</strong>:储蓄卡 / 微信 / 支付宝 / 现金 / 自定义</li>
+          <li><strong>信用账户(负债,7)</strong>:信用卡 / 花呗 / 京东白条 / 借呗 / 自定义 + <strong>抖音放心贷</strong> + <strong>抖音月付账户</strong>(我之前漏 3 个)</li>
+          <li><strong>充值账户(资产,3)</strong>:公交卡 / 饭卡 / 自自定义</li>
+          <li><strong>理财账户(资产,6)</strong>:股票 / 基金 / 余额宝 / 零钱通 / 定期存款 / 自定义</li>
+          <li><strong>借贷账户(独立账户,2 子类)</strong>:借出(资产,subType=lend) / 借入(负债,subType=borrow)</li>
+        </ul>
+        <p><strong>⚠️ v4 §3 原计划「4 大类 × 17 子类」被 ADR-0026 §10 修正为「5 大类 × 17+ 子类」</strong>(借贷作为独立账户,不是 transaction 类型)。</p>
+
+        <h4>信用账户 6 字段(ADR-0026 §11 修正)</h4>
+        <p>v4 §3 之前只说「信用卡 3 字段(额度/账单日/还款日)」。实际咔皮是 6 字段:<strong>信用额度 / 起始欠款 / 可用额度(自动算) / 起始时间 / 出账日 / 还款日</strong>。「起始欠款」+「起始时间」+「可用额度(自动算)」是关键新字段。</p>
+
+        <h4>借贷 6 字段(ADR-0026 §12 修正)</h4>
+        <p>借贷是<strong>独立账户</strong>(不是 v4 之前说的「记录」)。字段:起始余额(借出)/起始欠款(借入)+ 起始时间 + 账户名称 + 备注 + 借款人姓名 + 借出/借入日期 + 还款日期 + 扣款/入款账户 + 3 toggle。</p>
+
+        <h4>记账弹层 3 tab(ADR-0026 §4)</h4>
+        <p>v4 之前只说「支出/收入」。实际是<strong>支出/收入/转账 3 tab</strong>。转账是独立流程(扣款→入款,双方都是普通账户)。</p>
+
+        <h4>转账 vs 还款 区别(ADR-0026 §5)</h4>
+        <ul>
+          <li><strong>转账</strong>:扣款 → 入款(双方都是普通账户资金类)</li>
+          <li><strong>还款</strong>:扣款(储蓄)→ 入款(欠款类)</li>
+        </ul>
+
+        <h4>桌面小组件 + 攒钱计划(ADR-0027 单独分册)</h4>
+        <p>v4 §3 没覆盖。新模块:<strong>攒钱计划 5 模式</strong>(365天/52周/12月/定额/灵活) + <strong>与支付宝小荷包合作</strong> + <strong>iOS 14+ 桌面小组件</strong> + <strong>攒攒 IP 智能反馈</strong>。详见 ADR-0027。v1.0 只做「记账模式」,实际资金扣划 v1.1 接支付宝 API。</p>
+
+        <h4>账本维度(ADR-0026 §12.4)</h4>
+        <p>v4 之前没提账本。实际是<strong>必填字段</strong>:多账本切换(家庭/工作/个人),右上角切换。所有 transaction 查询带 <code>WHERE ledgerId</code> filter。分账本暂不支持桌面小组件数据。</p>
+
+        <h4>账户 4 个 toggle(ADR-0026 §9)</h4>
+        <p>v4 之前只说 1 个 toggle(<code>includeInNetWorth</code>)。实际是 <strong>4 个</strong>:<code>includeInNetWorth</code>(开) / <code>isPinned</code>(特别关注,置顶) / <code>isDefaultIncomeAccount</code>(默认收账) / <code>isDefaultExpenseAccount</code>(默认支出)。</p>
+
+        <h4>「退款」按钮 = 撤销最近一笔交易(ADR-0026 §9)</h4>
+        <p>咔皮图 10 显示「删除/退款」2 按钮。「退款」不是「撤销账户所有交易」,而是「<strong>撤销最近一笔关于该账户的交易</strong>」。需 transactionDao 新增 <code>reverseLastTransaction(accountId)</code> 方法。</p>
+
+        <h4>资产 vs 负债 分类(ADR-0026 §6)</h4>
+        <p>v4 之前净资产只在 §22「净资产仪表盘」设计。但<strong>资产/负债分类要在 S02 就实现</strong>,否则后续没法算。净资产 = 资产 - 负债,显式拆分显示。</p>
+
+        <h4>添加账户弹层 v4 漏掉的设计(ADR-0026 §10)</h4>
+        <ul>
+          <li>v4 之前说「6 种账户类型」→ 实际<strong>4 大类 × 17+ 子类</strong>(列表见上)</li>
+          <li>每种都标「(资产)/(负债)」明确</li>
+          <li>每个子类有真实品牌 emoji + 名称</li>
+          <li>各大类有「自定义」选项</li>
+        </ul>
+
+        <h4>账户详情 / 余额变动明细(ADR-0026 §8)</h4>
+        <p>2 tab:<strong>「记账 / 转账」</strong>分类,每月统计(流出/流入),每笔带分类 + 备注 + 金额 + 所属账户。v4 之前只说「账户详情」,没提 2 tab 分类。</p>
+
+        <h4>收入分类 8 子类(ADR-0026 §10 补充)</h4>
+        <p>v4 之前没列收入分类。实际是 8 子类:<strong>职业收入 / 经营收入 / 保险理财 / 资金往来 / 二手买卖 / 好运收入 / 生活费 / 其他收入</strong>。</p>
+
+        <h4>客服对标状态(2026-08-03 状态)</h4>
+        <table>
+          <tr><th>维度</th><th>v4 原计划</th><th>ADR-0026 修正后</th><th>差异</th></tr>
+          <tr><td>账户类型</td><td>6 种(扁平)</td><td>4 大类 × 17+ 子类</td><td>漏 3 个品牌 + 漏借贷 + 漏充值 + 漏理财细分</td></tr>
+          <tr><td>信用账户字段</td><td>3 字段</td><td>6 字段</td><td>加起始欠款/可用额度/起始时间/出账日</td></tr>
+          <tr><td>借贷</td><td>没设计</td><td>独立账户 6 字段</td><td>修正后补上</td></tr>
+          <tr><td>记账 tab</td><td>支出/收入</td><td>支出/收入/转账 3 tab</td><td>加转账</td></tr>
+          <tr><td>账本</td><td>❌ 没设计</td><td>必填字段</td><td>v1.0 必补</td></tr>
+          <tr><td>桌面小组件</td><td>❌ 没设计</td><td>iOS 14+</td><td>v1.1 评估</td></tr>
+          <tr><td>攒钱计划</td><td>❌ 没设计</td><td>5 模式 + 支付宝合作</td><td>新模块</td></tr>
+          <tr><td>资产/负债分类</td><td>S05 设计</td><td>S02 必修</td><td>提前</td></tr>
+        </table>
+
+        <h4>彻底解决跑偏机制(CLAUDE.md 铁律 9 配套)</h4>
+        <p>本节存在是为了:<strong>任何后续工作必须 Read v4 §3.1 + ADR-0026 + ADR-0027</strong>,不再脑补。如果新发现再次不符,先更新 v4 §3.1 + ADR,再写代码。<strong>绝对不写代码前不查 v4</strong>。详见 CLAUDE.md 铁律 9。</p>
+      </div>
+
       <h3>三条铁律（开发优先级依据）</h3>
       <div class="callout callout-success">
         <ol>
