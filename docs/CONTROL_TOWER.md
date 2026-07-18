@@ -2,7 +2,7 @@
 
 > 状态：`DERIVED / DO NOT EDIT / NOT_SSOT`
 > 创建：2026-07-14
-> 最后派生：2026-07-31（Day 17 收尾时 — Stage 2 ROA 待签）
+> 最后派生:2026-08-03(S03 D20 完成 + ADR-0026 修订 + 护栏机制建立)
 
 ⚠️ **本文件由 git log + daily/ + stages/ + 实际代码 + 运行证据派生。状态冲突时显示 UNKNOWN/CONFLICT。**
 
