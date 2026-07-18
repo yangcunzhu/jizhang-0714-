@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../build_info.dart';
+import '../../../data/db/database_provider.dart';
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
 import '../../category/presentation/category_template_page.dart';
@@ -218,25 +219,105 @@ class _EmptyState extends StatelessWidget {
 /// 显示样式:`v0.1.0 · b3b722e · schema v4`
 /// 灰色小字,不抢主界面视觉。
 /// 用户装机后一眼对比 GitHub commit 列表,立刻知道是不是新版本。
-class _BuildVersionFooter extends StatelessWidget {
+///
+/// 右侧 🐛 按钮:D19 期间调试入口,显示数据库真实状态(账户余额 + 最近交易),
+/// 装机后无需 Xcode console 即可定位 updateAccountBalance / insertTransaction
+/// 是否真的执行,排查 D19 余额 bug。
+class _BuildVersionFooter extends ConsumerWidget {
   const _BuildVersionFooter();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Text(
-          BuildInfo.displayVersion,
-          key: const Key('home-build-version'),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-                fontSize: 10,
-              ),
-          textAlign: TextAlign.center,
+        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                BuildInfo.displayVersion,
+                key: const Key('home-build-version'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+            ),
+            IconButton(
+              key: const Key('home-debug-button'),
+              icon: const Icon(Icons.bug_report_outlined, size: 18),
+              tooltip: '数据库实时状态(调试)',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: () => _showDebugDialog(context, ref),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  /// 显示数据库实时状态对话框(D19 调试用)。
+  ///
+  /// 内容:
+  /// - 所有账户(id + name + type + balanceCents)
+  /// - 最近 5 笔 transaction(id + categoryId + type + amountCents + note + occurredAt)
+  Future<void> _showDebugDialog(BuildContext context, WidgetRef ref) async {
+    final db = ref.read(databaseProvider);
+    final accounts = await db.accountDao.getAll();
+    final transactions = await db.transactionDao.getAll();
+    final recent = transactions.take(5).toList();
+
+    if (!context.mounted) return;
+
+    final content = StringBuffer();
+    content.writeln('=== 数据库实时状态 ===\n');
+    content.writeln('【账户】(共 ${accounts.length} 条)');
+    if (accounts.isEmpty) {
+      content.writeln('  (空)');
+    } else {
+      for (final a in accounts) {
+        content.writeln(
+          '  • #${a.id} ${a.type.emoji} ${a.name} | type=${a.type.name} | balance=${a.balanceCents} 分 (¥${_formatYuan(a.balanceCents)})',
+        );
+      }
+    }
+    content.writeln('\n【最近 ${recent.length} 笔交易】(共 ${transactions.length} 条)');
+    if (recent.isEmpty) {
+      content.writeln('  (空)');
+    } else {
+      for (final t in recent) {
+        content.writeln(
+          '  • #${t.id} ${t.type.name} ¥${_formatYuan(t.amountCents)} acct=${t.accountId} cat=${t.categoryId} note="${t.note}" ${t.occurredAt.toIso8601String()}',
+        );
+      }
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('数据库状态(调试)'),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            content.toString(),
+            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatYuan(int cents) {
+    final yuan = cents ~/ 100;
+    final fen = cents.abs() % 100;
+    return '$yuan.${fen.toString().padLeft(2, '0')}';
   }
 }
