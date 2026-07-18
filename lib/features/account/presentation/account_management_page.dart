@@ -125,6 +125,8 @@ class AccountManagementPage extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await ref.read(databaseProvider).accountDao.deleteAccount(acc.id);
+      // D19 修复:删除账户后 invalidate,刷新列表
+      ref.invalidate(accountListProvider);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

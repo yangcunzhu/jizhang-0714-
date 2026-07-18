@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/categories.dart';
+import '../../account/application/account_form_provider.dart';
 import 'haptics.dart';
 
 /// 记账表单的步骤（单页内切换，不是真 3 屏）。
@@ -205,6 +206,8 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
   Future<int> deleteTransaction(int id) async {
     final db = ref.read(databaseProvider);
     final rows = await db.transactionDao.deleteById(id);
+    // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
+    ref.invalidate(accountListProvider);
     await Haptics.heavy();
     return rows;
   }
@@ -243,6 +246,8 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           note: state.note,
         );
         await db.transactionDao.updateTransaction(updated);
+        // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
+        ref.invalidate(accountListProvider);
         // 编辑成功:100ms 长振(成功完成档)
         await Haptics.heavy();
         return state.editingTransactionId!;
@@ -257,6 +262,8 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           note: Value(state.note),
         ),
       );
+      // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
+      ref.invalidate(accountListProvider);
       // 新建成功:50ms 短振(输入确认档 — 与"分类点击""数字点击"同一档)
       await Haptics.light();
       return id;
@@ -307,6 +314,8 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           note: Value(refundNote),
         ),
       );
+      // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
+      ref.invalidate(accountListProvider);
       // 退款成功:100ms 长振(成功完成档)
       await Haptics.heavy();
       return id;

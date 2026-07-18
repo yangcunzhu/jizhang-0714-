@@ -186,6 +186,8 @@ class AccountFormController extends StateNotifier<AccountFormState> {
             dueDay: Value(state.dueDay),
           ),
         );
+        // D19 修复:主动 invalidate accountListProvider,刷新账户卡片列表
+        _ref.invalidate(accountListProvider);
       } else {
         // 更新
         await db.accountDao.updateAccountById(
@@ -199,6 +201,8 @@ class AccountFormController extends StateNotifier<AccountFormState> {
             dueDay: Value(state.dueDay),
           ),
         );
+        // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
+        _ref.invalidate(accountListProvider);
       }
       return true;
     } catch (_) {
