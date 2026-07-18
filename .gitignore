@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# AI 工作目录(临时文件 + 截图 + 构建产物,绝不进 git)
+# WHY: Stage 0 / S03 期间被误 add 过一次(含 Runner.ipa / 微信截图 / Sideloadly.exe),
+#      紧急加此规则挡敏感临时文件,公开仓库前必修。
+.ai-work/
+/.ai-work/

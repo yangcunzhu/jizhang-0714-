@@ -100,7 +100,7 @@ Error: Could not find Dart in 'C:\Program Files\...'
 **解决**：把 Flutter SDK 装到**无空格路径**
 ```
 ✅ C:\src\flutter
-✅ E:\jizhang-0714
+✅ [REPO_PATH]
 ❌ C:\Program Files\flutter
 ❌ C:\Users\My User\flutter
 ```

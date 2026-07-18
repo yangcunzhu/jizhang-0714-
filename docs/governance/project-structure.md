@@ -18,7 +18,7 @@
 ## 📁 完整目录结构
 
 ```
-E:\jizhang-0714\
+[REPO_PATH]/
 ├── docs/                          ← 文档（已在 docs/README.md）
 │
 ├── product-design-v4.html         ← v4 方案（不在 git 中修改）

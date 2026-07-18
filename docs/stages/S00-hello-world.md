@@ -83,7 +83,7 @@
 ## 📂 允许文件（write-set）
 
 ```
-E:\jizhang-0714\
+[REPO_PATH]/
 ├── README.md                    （新建）
 ├── .gitignore                   （新建）
 ├── pubspec.yaml                 （flutter create 生成）
@@ -104,9 +104,9 @@ E:\jizhang-0714\
 ```
 
 **禁止写入**：
-- ❌ `E:\jizhang-0714\product-design-v4.html`（产品方案，未授权不可改）
-- ❌ `E:\jizhang-0714\docs\PLAN.md`（主计划，未授权不可改）
-- ❌ `E:\jizhang-0714\docs\ROADMAP.md`（同上）
+- ❌ `[REPO_PATH]/product-design-v4.html`（产品方案，未授权不可改）
+- ❌ `[REPO_PATH]/docs/PLAN.md`（主计划，未授权不可改）
+- ❌ `[REPO_PATH]/docs/ROADMAP.md`（同上）
 
 ---
 

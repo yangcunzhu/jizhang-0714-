@@ -2,7 +2,7 @@
 
 > 项目：iOS 自用记账 App · 路线：AltStore + GitHub Actions 0 成本方案
 > 创建：2026-07-14 · 维护者：Claude（执行）+ 用户（决策）
-> 上位文档：`E:\jizhang-0714\product-design-v4.html`（v4 完整方案，52 章）
+> 上位文档：`[REPO_PATH]/product-design-v4.html`（v4 完整方案，52 章）
 
 ---
 

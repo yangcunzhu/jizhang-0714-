@@ -59,8 +59,8 @@ Stage 0 真机验证期间,经历了多次方案迭代:
 |---|---|
 | **Apple ID** | `[APPLE_ID_EMAIL]`(免费,非 $99 付费) |
 | **Bundle ID** | iMazing 暂用 `com.shenjiguan.jizhang`,SideStore 自动调整 |
-| **iPhone** | 16 Pro Max / iOS 18.6.2 / UDID [IPHONE_UDID] |
-| **Runner.ipa** | `E:\jizhang-0714\.ai-work\Runner.ipa`(5.80 MB,gitignored) |
+| **iPhone** | 16 Pro Max / iOS 18.6.2 / UDID `[IPHONE_UDID]` |
+| **Runner.ipa** | `[REPO_PATH]/.ai-work/Runner.ipa`(5.80 MB,gitignored) |
 | **首次工具** | 爱思助手 i4Tools9 v9.16.038 |
 | **长期续签** | SideStore(首次装后接管) |
 | **旧电脑角色** | **完全退役**(不再需要 7×24 在线) |

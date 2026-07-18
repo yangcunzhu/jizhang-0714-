@@ -15,7 +15,7 @@ iPhone 上能启动《审计官》App,显示 "Hello 审计官"。后续无需任
 
 | 项 | 路径 |
 |---|---|
-| Runner.ipa | `E:\jizhang-0714\.ai-work\Runner.ipa`(5.80 MB,gitignored) |
+| Runner.ipa | `[REPO_PATH]/.ai-work/Runner.ipa`(5.80 MB,gitignored) |
 
 ## 📦 必备工具
 
@@ -62,7 +62,7 @@ iPhone 上能启动《审计官》App,显示 "Hello 审计官"。后续无需任
 ```
 1. 爱思助手顶部菜单 → "工具箱"(Tools)
 2. 找 "IPA 签名" 或 "Install IPA" → 点
-3. 点 "添加 IPA" / "选择文件" → 选 E:\jizhang-0714\.ai-work\Runner.ipa
+3. 点 "添加 IPA" / "选择文件" → 选 [REPO_PATH]/.ai-work/Runner.ipa
 4. 签名方式 → 选 "Apple ID 签名"
 5. 填写:
    - Apple ID: [APPLE_ID_EMAIL](确认真实 Apple ID)

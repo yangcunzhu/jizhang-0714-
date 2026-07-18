@@ -76,7 +76,7 @@
 ## 📂 允许文件(write-set)
 
 ```
-E:\jizhang-0714\
+[REPO_PATH]/
 ├── pubspec.yaml                   (添加依赖:riverpod, drift, intl, vibration, integration_test[Day 7 加班])
 ├── lib/
 │   ├── main.dart                  (Riverpod ProviderScope)
