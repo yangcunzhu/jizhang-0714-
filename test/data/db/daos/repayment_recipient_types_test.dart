@@ -11,7 +11,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jizhang_app/data/db/app_database.dart';
 import 'package:jizhang_app/data/db/tables/accounts.dart';
-import 'package:jizhang_app/data/db/tables/categories.dart';
 
 void main() {
   late AppDatabase db;
@@ -71,12 +70,6 @@ void main() {
   tearDown(() async {
     await db.close();
   });
-
-  // 工具:获取一个分类 ID(用于写 transaction 引用)
-  Future<int> _mealCategoryId() async {
-    final cats = await db.categoryDao.getAll();
-    return cats.firstWhere((c) => c.name == '餐饮').id;
-  }
 
   group('1. 信用卡收款 × 3 场景', () {
     test('正常:储蓄 -500 + 信用卡已用 -500', () async {
