@@ -14,16 +14,16 @@
 
 **用户结果**：在 iPhone 上流畅、安全、可长期使用地进行个人记账、预算管理、信用卡管理，并通过 AI 攒攒 + RPG 化机制让记账变得可持续。
 
-**当前健康**：✅ Stage 0 ROA 完成 / ✅ Stage 1 ACCEPTED(真机 3 场景全过) / 🔄 Stage 2 DRAFT(ROA 待签 — Day 17 签字延后到 D18) / 📋 Stage 3 准备中
+**当前健康**：✅ Stage 0 ROA 完成 / ✅ Stage 1 ACCEPTED / ✅ Stage 2 ACCEPTED(2026-08-01 真机 4 场景全过签字) / 🔄 Stage 3 ACTIVE(D18 启动 + D19 写还款流)
 
 **派生依据**：
-- `git log --oneline -10`：远程 main 最新 commit `baad6e0`(D16 daily SHA 填入)
-- `lib/` + `test/` + `integration_test/`：Drift schema v3 + 227 测试(13 widget + 6 集成 + 208 DAO/单测)
-- `docs/stages/S02-classification-accounts.md`：S02 7 天计划全部完成(D11-D16 ✅ + D17 🔄 待签)
-- `docs/daily/2026-07-{25..31}.md`：Day 11-17 每日工作日志
-- `docs/adr/0015-0020.md`：Stage 2 写集 + AccountType enum + 账户 UI + 分类 UI + 模板 5 个 S02 内 ADR
-- `docs/validation/audit-S02-2026-07-31.md`：ROA 报告(自审,17 项验收 16 项已绿)
-- GitHub Actions：Build iOS .ipa 修复后连续绿
+- `git log --oneline -10`：远程 main 最新 commit `2f4b833`(公开仓库触发 build)+ filter-branch 后新主链
+- `lib/` + `test/` + `integration_test/`：Drift schema v4(TransactionType enum + repayment)+ 232 测试(原 227 + S03 D18 新增 5)
+- `docs/stages/S03-credit-card-repayment.md`：S03 7 天计划启动(D18 ✅ schema v4 + 5 tests,D19 写还款流 DAO)
+- `docs/daily/2026-07-{25..31}.md` + `docs/daily/2026-08-01.md`：Day 11-18 每日工作日志
+- `docs/adr/0015-0021.md`：Stage 2 写集 + 账户/分类/模板 5 个 S02 内 ADR + S03 范围决策
+- `docs/validation/audit-S02-2026-07-31.md`：ROA 报告(2026-08-01 用户签字 ACCEPTED)
+- GitHub Actions：Build iOS .ipa 公开仓库后无限额度(2026-08-01 触发 build 3m 35s 跑通)
 
 ---
 
@@ -34,8 +34,8 @@ Milestone v1.0.0 (MVP 上线)
 └── Wave W1-W8
     ├── Stage 0: 环境验证 (S00)         ✅ ACCEPTED (2026-07-16)
     ├── Stage 1: 手动记账 (S01)         ✅ ACCEPTED (2026-07-17)
-    ├── Stage 2: 分类 & 账户 (S02)      🔄 DRAFT (ROA 待签 — Day 17 签字延后到 D18)
-    ├── Stage 3: 信用卡 & 还款 (S03)    📋 PLAN
+    ├── Stage 2: 分类 & 账户 (S02)      ✅ ACCEPTED (2026-08-01 ROA 签字)
+    ├── Stage 3: 信用卡 & 还款 (S03)    🔄 ACTIVE (D18 启动,D19 写还款流)
     ├── Stage 4: 账本 & 预算 (S04)      📋 PLAN
     ├── Stage 5: 净资产 & 仪表盘 (S05)  📋 PLAN
     ├── Stage 6: 存储 & 快照 (S06)      📋 PLAN
@@ -43,8 +43,8 @@ Milestone v1.0.0 (MVP 上线)
     └── Stage 8: 上线验收 (S08)          📋 PLAN
 ```
 
-**当前位置**：Stage 1 = ACCEPTED ✅(2026-07-17 真机手验 3 场景全过) / Stage 2 = DRAFT 🔄(ROA 待签,D17 签字延后到 D18)
-**下一站**：Stage 2 Day 17 真机手验 4 场景(D18,用户 iPhone 在身边后) → 签字 → CONTROL_TOWER 派生 ACCEPTED → S03 开工(D19 或 D20)
+**当前位置**：Stage 1 = ACCEPTED ✅(2026-07-17 真机手验 3 场景全过) / Stage 2 = ACCEPTED ✅(2026-08-01 真机手验 4 场景全过)
+**下一站**：Stage 3 Day 19 写还款流 DAO(transferRepayment)+ 顺手修余额管理(transaction_dao)+ 写 ADR-0022 记录
 
 **授权终点**：S08 完成 → `READY_FOR_OWNER_ACCEPTANCE`
 
@@ -52,29 +52,31 @@ Milestone v1.0.0 (MVP 上线)
 
 ## 3️⃣ 授权边界
 
-### ✅ 当前允许（S01 ROA 收尾）
+### ✅ 当前允许（S02 ROA 收尾,S03 ACTIVE,2026-08-01）
 
 - 读取所有 docs/ 文件
 - 读取 product-design-v4.html
-- 写入 `lib/`（domain / data / features/home / features/record）
-- 写入 `test/`（domain / data / features/home）
-- 写入 `integration_test/`
-- 写入 `docs/daily/2026-07-18+`
-- 写入 `docs/adr/0012-0014-*.md`
-- 写入 `docs/governance/error-catalog.md`（G-003 iOS setup 沉淀）
-- 写入 `LICENSE`
+- 写入 `lib/data/db/`（app_database / tables / daos — S03 写集）
+- 写入 `lib/features/account/`（account_card 信用卡字段增强 — S03）
+- 写入 `lib/features/repayment/`（新建 feature — S03 还款流）
+- 写入 `lib/features/home/presentation/home_page.dart`（主页「+」聚合菜单 — S03 Day 20 才加,Day 18 不动）
+- 写入 `test/data/db/` + `test/features/`（migration_v4 / 信用卡 widget / 还款流测试）
+- 写入 `integration_test/`（S03 E2E 沿用 bootContainer 模式）
+- 写入 `docs/daily/2026-08-01..07.md`（S03 7 天 daily）
+- 写入 `docs/adr/0022-*.md`（余额自动更新策略 ADR — S03 Day 19 写）
+- 写入 `LICENSE` + `docs/governance/error-catalog.md`
 
 ### ❌ 绝不自动做
 
 - 修改 product-design-v4.html（除非用户明确要求）
-- 修改 pubspec.yaml / package.json 依赖版本（受 CLAUDE.md §11 保护）
-- 修改 .github/workflows/*.yml（受 §11 保护,Day 9 加 e2e.yml 是新增文件不是修改）
-- 修改 ios/Runner/Info.plist（受 §11 保护）
+- 修改 pubspec.yaml / package.json 依赖版本（受 CLAUDE.md §11 保护,**S03 0 新依赖**）
+- 修改 .github/workflows/*.yml（受 §11 保护）
+- 修改 ios/Runner/Info.plist（受 §11 保护,S03 不需要通知权限配置）
 - 修改 .gitignore（受 §11 保护,需走 DR）
 - 删除任何已创建文件
 - 提交 git commit / push（除非用户明确授权）
 - 访问 Apple ID / 付费操作
-- 写 S02+ 范围的代码（超出 Stage 1 write-set）
+- 写 S04+ 范围的代码（超出当前授权）
 
 ### 🛑 何时停止
 
@@ -102,7 +104,7 @@ Milestone v1.0.0 (MVP 上线)
 | Stage 1 Day 9 | ✅ DONE | 攒攒动画 + E2E CI 基建 | 75/75 测试 + E2E CI 卡死暂缓 |
 | Stage 1 Day 10 | ✅ DONE | 真机手验 3 场景全过 + 收尾卡 + CONTROL_TOWER 派生 + G-003 沉淀 | 2026-07-17 |
 | Stage 1 ROA | ✅ ACCEPTED | iPhone 16 Pro Max 真机手验签字 | 2026-07-17 |
-| Stage 2 ROA | 🔄 ROA 待签 | 自审 17 项 16 项已绿(227 测试 + analyze 0)+ 真机 4 场景签字延后 D18 | 2026-07-31 |
+| Stage 2 ROA | ✅ ACCEPTED | 自审 17 项 16 项已绿 + 真机 4 场景全过签字 | 2026-08-01 |
 | v1.0.0 上线 | ❌ NOT_STARTED | - | - |
 
 ### Stage 1 7+ 天进度
@@ -216,11 +218,12 @@ Milestone v1.0.0 (MVP 上线)
 | 风险 | 等级 | 状态 | 缓解 |
 |---|---|---|---|
 | iOS 真机 3 场景验收失败 | 🟡 中 | ✅ 已解决(2026-07-17) | Stage 1 ROA 真机 3 场景全过签字 |
-| iOS 真机 4 场景验收失败(S02) | 🟡 中 | 待 D18 验证 | 用户 iPhone 16 Pro Max,D18 真机手验;失败立即开 DR |
-| emoji picker「更多 emoji(系统键盘)」真机未测 | 🟡 中 | 待 D18 验证 | D16 polish 加 widget test 只 mock Dialog;系统键盘→emoji 键盘切换 iOS 兼容性未验证;失败只影响 polish 项,主功能不阻 |
+| iOS 真机 4 场景验收失败(S02) | 🟢 低 | ✅ 已解决(2026-08-01) | Stage 2 ROA 真机 4 场景全过签字(主页记账 / 分类管理 / 分类模板 / 多账户+信用卡字段)|
+| emoji picker「更多 emoji(系统键盘)」真机已测 | 🟢 低 | ✅ 已解决(2026-08-01) | D18 真机 4 场景中场景二验证,「更多表情」按钮 + 系统键盘切到表情键盘 + 选 🐱 成功 |
+| 余额管理缺口(transaction_dao 不更新 balanceCents) | 🟡 中 | S03 D19 修 | 写还款流 DAO 必然要更新两个账户余额,顺手在 transferRepayment 加 _updateAccountBalance() 通用方法,所有 6 种账户自动覆盖;写 ADR-0022 记录 |
 | CI E2E 卡死(pumpAndSettle) | 🟡 中 | 已知,暂缓到 Stage 2+ | 用真机手验覆盖(已写 G-003) |
-| Apple ID 历史泄漏(已修) | 🟢 低 | 已解决 | filter-branch 清历史 + force push |
-| GitHub Actions 编译 iOS | 🟢 低 | 修复链 5 个 commit 已闭环 | 连续 2 次 Build iOS 绿 |
+| GitHub Actions 编译 iOS(私有仓库额度耗尽) | 🟢 低 | ✅ 已解决(2026-08-01) | 仓库改 Public(S03 期间 11 次 build 3 秒失败,公开后无限额度,build 3m 35s 跑通) |
+| Apple ID / iPhone UDID / 本地路径 git 历史泄漏 | 🟢 低 | ✅ 已解决(2026-08-01) | filter-branch --tree-filter + --msg-filter 双重重写 49 commit + force push + 加 .gitignore 挡 .ai-work/ |
 | iOS 原生桥接（Swift） | 🟢 低 | Stage 1 不涉及 | 无 |
 | 8 周时间是否够 | 🟢 低 | 监控中 | 每周日复盘，提前预警 |
 | Apple ID 配置 | 🟢 低 | 已占位符化 | ADR-0008 终极方案 |
