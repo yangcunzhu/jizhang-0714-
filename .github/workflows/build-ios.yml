@@ -60,14 +60,27 @@ jobs:
       #   装机后一眼对比 GitHub commit 列表,立刻知道是不是新版本
       - name: Build unsigned .ipa
         run: |
+          # WHY 2026-08-03 改 tee 写法:
+          #   之前 `flutter build ios ... 2>&1 | tee build.log`,如果 flutter build
+          #   失败,tee 命令可能不创建 build.log,后续 Upload build logs 步骤就没
+          #   日志可下载(用户反馈:build-logs.zip 解压只有 Podfile.lock,没 build.log)。
+          #   现在先 `: > build.log` 创建空文件,tee 追加。这样 build 失败也有 build.log
+          #   (可能只有 flutter build 的部分输出,至少有日志痕迹)。
+          : > build.log
           flutter build ios --release --no-codesign --verbose \
             --dart-define=GIT_SHA=${{ github.sha }} \
             --dart-define=BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-            2>&1 | tee build.log
+            2>&1 | tee -a build.log || true
           mkdir -p build/Payload
-          cp -R build/ios/iphoneos/Runner.app build/Payload/
-          cd build && zip -r ../Runner.ipa Payload
-          ls -la ../Runner.ipa
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            cp -R build/ios/iphoneos/Runner.app build/Payload/
+            cd build && zip -r ../Runner.ipa Payload
+            ls -la ../Runner.ipa
+          else
+            echo "::error::flutter build ios 失败:build/ios/iphoneos/Runner.app 不存在" | tee -a build.log
+            echo "flutter build ios 失败 — 查看 build.log 顶部" | tee -a build.log
+            exit 1
+          fi
 
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
@@ -78,6 +91,12 @@ jobs:
 
       # WHY 始终上传日志(成功失败都传):
       #   失败日志 7 天(用户截图后我可以定位),成功日志 1 天(轻量)
+      #
+      # WHY if-no-files-found: error(2026-08-03 改):
+      #   之前用 `ignore` 时,如果 build 在 `tee build.log` 之前失败,build.log 不存在,
+      #   artifact 上传被忽略,用户下载后只有 Podfile.lock / Manifest.lock,没有错误日志。
+      #   改成 `error` 强制让 artifact 包含 build.log(即使空文件,至少有 stub)。
+      #   配合前面 `: > build.log` 先建空文件,build 失败时也能看到 build.log。
       - name: Upload build logs (always)
         if: always()
         uses: actions/upload-artifact@v4
@@ -88,5 +107,6 @@ jobs:
             build/
             ios/Pods/Manifest.lock
             ios/Podfile.lock
-          retention-days: 3
+          retention-days: 7
+          if-no-files-found: error
           if-no-files-found: ignore
