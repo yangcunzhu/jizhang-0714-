@@ -1179,6 +1179,17 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _installmentPeriodMeta = const VerificationMeta(
+    'installmentPeriod',
+  );
+  @override
+  late final GeneratedColumn<int> installmentPeriod = GeneratedColumn<int>(
+    'installment_period',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1190,6 +1201,7 @@ class $TransactionsTable extends Transactions
     occurredAt,
     createdAt,
     updatedAt,
+    installmentPeriod,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1257,6 +1269,15 @@ class $TransactionsTable extends Transactions
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('installment_period')) {
+      context.handle(
+        _installmentPeriodMeta,
+        installmentPeriod.isAcceptableOrUnknown(
+          data['installment_period']!,
+          _installmentPeriodMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1304,6 +1325,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      installmentPeriod: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}installment_period'],
+      ),
     );
   }
 
@@ -1325,7 +1350,10 @@ class TransactionEntry extends DataClass
   /// 非负由表级 CHECK 约束强制(见 [customConstraints]),拦截 UI/迁移 bug。
   final int amountCents;
 
-  /// 支出 / 收入。textEnum 按 name 存储(见 Categories.type 说明)。
+  /// 支出 / 收入 / 还款。textEnum 按 name 存储(见 Categories.type 说明)。
+  ///
+  /// WHY: textEnum 加新枚举值(如 S03 加 `repayment`)无需 ALTER TABLE,SQLite 列定义不变,
+  /// 仅 Dart 层 enum 多一个常量,迁移成本零。决策见 ADR-0017 + ADR-0021。
   final TransactionType type;
 
   /// 所属分类。
@@ -1341,6 +1369,15 @@ class TransactionEntry extends DataClass
   final DateTime occurredAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// 还款期数(S03 D20 + ADR-0024 增)。
+  ///
+  /// 仅网贷还款(type=repayment + toAccountId=网贷账户)有意义。
+  /// 普通还款(信用卡 / 花呗)为 null。Nullable 让现有数据无需 backfill。
+  ///
+  /// WHY: 网贷有「12 期 / 24 期 / 36 期」概念,记账流水需要记录,下游 S05 净资产
+  /// / S07 AI 攒攒会基于此判断还款提醒是否值得。
+  final int? installmentPeriod;
   const TransactionEntry({
     required this.id,
     required this.amountCents,
@@ -1351,6 +1388,7 @@ class TransactionEntry extends DataClass
     required this.occurredAt,
     required this.createdAt,
     required this.updatedAt,
+    this.installmentPeriod,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1368,6 +1406,9 @@ class TransactionEntry extends DataClass
     map['occurred_at'] = Variable<DateTime>(occurredAt);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || installmentPeriod != null) {
+      map['installment_period'] = Variable<int>(installmentPeriod);
+    }
     return map;
   }
 
@@ -1382,6 +1423,9 @@ class TransactionEntry extends DataClass
       occurredAt: Value(occurredAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      installmentPeriod: installmentPeriod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(installmentPeriod),
     );
   }
 
@@ -1402,6 +1446,7 @@ class TransactionEntry extends DataClass
       occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      installmentPeriod: serializer.fromJson<int?>(json['installmentPeriod']),
     );
   }
   @override
@@ -1419,6 +1464,7 @@ class TransactionEntry extends DataClass
       'occurredAt': serializer.toJson<DateTime>(occurredAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'installmentPeriod': serializer.toJson<int?>(installmentPeriod),
     };
   }
 
@@ -1432,6 +1478,7 @@ class TransactionEntry extends DataClass
     DateTime? occurredAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<int?> installmentPeriod = const Value.absent(),
   }) => TransactionEntry(
     id: id ?? this.id,
     amountCents: amountCents ?? this.amountCents,
@@ -1442,6 +1489,9 @@ class TransactionEntry extends DataClass
     occurredAt: occurredAt ?? this.occurredAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    installmentPeriod: installmentPeriod.present
+        ? installmentPeriod.value
+        : this.installmentPeriod,
   );
   TransactionEntry copyWithCompanion(TransactionsCompanion data) {
     return TransactionEntry(
@@ -1460,6 +1510,9 @@ class TransactionEntry extends DataClass
           : this.occurredAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      installmentPeriod: data.installmentPeriod.present
+          ? data.installmentPeriod.value
+          : this.installmentPeriod,
     );
   }
 
@@ -1474,7 +1527,8 @@ class TransactionEntry extends DataClass
           ..write('note: $note, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('installmentPeriod: $installmentPeriod')
           ..write(')'))
         .toString();
   }
@@ -1490,6 +1544,7 @@ class TransactionEntry extends DataClass
     occurredAt,
     createdAt,
     updatedAt,
+    installmentPeriod,
   );
   @override
   bool operator ==(Object other) =>
@@ -1503,7 +1558,8 @@ class TransactionEntry extends DataClass
           other.note == this.note &&
           other.occurredAt == this.occurredAt &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.installmentPeriod == this.installmentPeriod);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
@@ -1516,6 +1572,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
   final Value<DateTime> occurredAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int?> installmentPeriod;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.amountCents = const Value.absent(),
@@ -1526,6 +1583,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.occurredAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.installmentPeriod = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1537,6 +1595,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.occurredAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.installmentPeriod = const Value.absent(),
   }) : amountCents = Value(amountCents),
        type = Value(type),
        categoryId = Value(categoryId),
@@ -1551,6 +1610,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Expression<DateTime>? occurredAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? installmentPeriod,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1562,6 +1622,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       if (occurredAt != null) 'occurred_at': occurredAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (installmentPeriod != null) 'installment_period': installmentPeriod,
     });
   }
 
@@ -1575,6 +1636,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Value<DateTime>? occurredAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int?>? installmentPeriod,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -1586,6 +1648,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       occurredAt: occurredAt ?? this.occurredAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      installmentPeriod: installmentPeriod ?? this.installmentPeriod,
     );
   }
 
@@ -1621,6 +1684,9 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (installmentPeriod.present) {
+      map['installment_period'] = Variable<int>(installmentPeriod.value);
+    }
     return map;
   }
 
@@ -1635,7 +1701,8 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
           ..write('note: $note, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('installmentPeriod: $installmentPeriod')
           ..write(')'))
         .toString();
   }
@@ -2818,6 +2885,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<DateTime> occurredAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int?> installmentPeriod,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -2830,6 +2898,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<DateTime> occurredAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int?> installmentPeriod,
     });
 
 final class $$TransactionsTableReferences
@@ -2914,6 +2983,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get installmentPeriod => $composableBuilder(
+    column: $table.installmentPeriod,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3008,6 +3082,11 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get installmentPeriod => $composableBuilder(
+    column: $table.installmentPeriod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3088,6 +3167,11 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get installmentPeriod => $composableBuilder(
+    column: $table.installmentPeriod,
+    builder: (column) => column,
+  );
 
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
@@ -3173,6 +3257,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> occurredAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int?> installmentPeriod = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 amountCents: amountCents,
@@ -3183,6 +3268,7 @@ class $$TransactionsTableTableManager
                 occurredAt: occurredAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                installmentPeriod: installmentPeriod,
               ),
           createCompanionCallback:
               ({
@@ -3195,6 +3281,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> occurredAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int?> installmentPeriod = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 amountCents: amountCents,
@@ -3205,6 +3292,7 @@ class $$TransactionsTableTableManager
                 occurredAt: occurredAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                installmentPeriod: installmentPeriod,
               ),
           withReferenceMapper: (p0) => p0
               .map(

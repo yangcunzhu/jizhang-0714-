@@ -72,9 +72,9 @@ void main() {
     expect(find.text('还款'), findsWidgets);
 
     // 4 个区段标题(注意:section title 和 TextField label 文字相同,都至少 1 个 widget)
-    expect(find.text('储蓄账户(扣款)'), findsWidgets);
+    expect(find.text('扣款账户'), findsWidgets);
     expect(find.text('还款金额'), findsWidgets);
-    expect(find.text('信用卡账户(收款)'), findsWidgets);
+    expect(find.text('欠款账户'), findsWidgets);
     expect(find.text('备注(可选)'), findsWidgets);
 
     // 还款按钮存在但 disabled
@@ -105,9 +105,9 @@ void main() {
       tester.element(find.byType(RepaymentSheet)),
     );
     final notifier = innerContainer.read(repaymentFormProvider.notifier);
-    notifier.setFromSavingsAccount(1); // 现金账户 ID
+    notifier.setFromAccount(1); // 现金账户 ID
     notifier.setAmount(50000); // 500 元
-    notifier.setToCreditCardAccount(2); // 招行信用卡 ID
+    notifier.setToAccount(2); // 招行信用卡 ID
     await tester.pump();
 
     // 现在 enabled

@@ -71,10 +71,10 @@ class _RepaymentSheetState extends ConsumerState<RepaymentSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SectionTitle('储蓄账户(扣款)'),
+                    _SectionTitle('扣款账户'),
                     _SavingsAccountPicker(
-                      selectedId: form.fromSavingsAccountId,
-                      onSelected: notifier.setFromSavingsAccount,
+                      selectedId: form.fromAccountId,
+                      onSelected: notifier.setFromAccount,
                     ),
                     const SizedBox(height: 16),
                     _SectionTitle('还款金额'),
@@ -83,10 +83,10 @@ class _RepaymentSheetState extends ConsumerState<RepaymentSheet> {
                       onChanged: (cents) => notifier.setAmount(cents),
                     ),
                     const SizedBox(height: 16),
-                    _SectionTitle('信用卡账户(收款)'),
+                    _SectionTitle('欠款账户'),
                     _CreditCardAccountPicker(
-                      selectedId: form.toCreditCardAccountId,
-                      onSelected: notifier.setToCreditCardAccount,
+                      selectedId: form.toAccountId,
+                      onSelected: notifier.setToAccount,
                     ),
                     const SizedBox(height: 16),
                     _SectionTitle('备注(可选)'),
@@ -191,7 +191,7 @@ class _SavingsAccountPicker extends ConsumerWidget {
         accounts: accounts,
         selectedId: selectedId,
         onSelected: onSelected,
-        keyPrefix: 'from-savings',
+        keyPrefix: 'from-debit',
         emptyMessage: '请先在账户管理添加储蓄账户',
       ),
       loading: () => const Padding(
@@ -206,7 +206,7 @@ class _SavingsAccountPicker extends ConsumerWidget {
   }
 }
 
-/// 信用卡账户选择器(从 creditCardAccountListProvider 读数据)。
+/// 信用卡账户选择器(从 debtAccountListProvider 读数据)。
 class _CreditCardAccountPicker extends ConsumerWidget {
   const _CreditCardAccountPicker({
     required this.selectedId,
@@ -218,13 +218,13 @@ class _CreditCardAccountPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAccounts = ref.watch(creditCardAccountListProvider);
+    final asyncAccounts = ref.watch(debtAccountListProvider);
     return asyncAccounts.when(
       data: (accounts) => _AccountSelector(
         accounts: accounts,
         selectedId: selectedId,
         onSelected: onSelected,
-        keyPrefix: 'to-credit-card',
+        keyPrefix: 'to-debt',
         emptyMessage: '请先在账户管理添加信用卡账户',
       ),
       loading: () => const Padding(

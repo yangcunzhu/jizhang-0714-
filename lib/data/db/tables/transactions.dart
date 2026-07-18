@@ -42,6 +42,15 @@ class Transactions extends Table {
   DateTimeColumn get updatedAt =>
       dateTime().withDefault(currentDateAndTime)();
 
+  /// 还款期数(S03 D20 + ADR-0024 增)。
+  ///
+  /// 仅网贷还款(type=repayment + toAccountId=网贷账户)有意义。
+  /// 普通还款(信用卡 / 花呗)为 null。Nullable 让现有数据无需 backfill。
+  ///
+  /// WHY: 网贷有「12 期 / 24 期 / 36 期」概念,记账流水需要记录,下游 S05 净资产
+  /// / S07 AI 攒攒会基于此判断还款提醒是否值得。
+  IntColumn get installmentPeriod => integer().nullable()();
+
   /// 表级约束:金额恒正。用表级 CHECK 而非列级 .check(),避免列 getter 自引用。
   @override
   List<String> get customConstraints => const ['CHECK (amount_cents > 0)'];

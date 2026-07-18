@@ -31,7 +31,7 @@ class BuildInfo {
   /// 数据库 schema 版本(随 migration 升级)。
   /// **必须** 与 `AppDatabase.schemaVersion` getter 保持一致!
   /// 同步检查点:每次升级 schema 时同时改两处(本常量 + AppDatabase.schemaVersion)。
-  static const int schemaVersion = 4; // S03 D18 升至 4,TransactionType enum 加 repayment
+  static const int schemaVersion = 5; // S03 D18 升至 4,TransactionType enum 加 repayment
 
   /// commit SHA 前 7 位(GitHub commit 列表用 7 位)。
   /// 本地 'dev' 返回 'dev'。

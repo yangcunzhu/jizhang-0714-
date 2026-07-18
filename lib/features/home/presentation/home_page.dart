@@ -31,7 +31,7 @@ class HomePage extends ConsumerWidget {
   /// 结果决定显示哪几项。
   Future<void> _showPlusMenu(BuildContext context, WidgetRef ref) async {
     final hasCreditCard = await ref
-        .read(creditCardAccountListProvider.future)
+        .read(debtAccountListProvider.future)
         .then((list) => list.isNotEmpty);
 
     if (!context.mounted) return;

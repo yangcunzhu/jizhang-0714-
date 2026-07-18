@@ -26,6 +26,7 @@ part 'app_database.g.dart';
 /// - v2 (Stage 2):accounts 加 5 字段 — ADR-0017
 /// - v3 (Stage 2 Day 15):新增 category_templates 表 — ADR-0020
 /// - v4 (Stage 3 Day 18):TransactionType enum 加 repayment 值 — ADR-0021
+/// - v5 (Stage 3 Day 20 + ADR-0024):transactions 表加 installmentPeriod 列(网贷期数)
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
   daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
@@ -37,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -78,6 +79,13 @@ class AppDatabase extends _$AppDatabase {
         // 仍可读(向下兼容)。`repayment` 名称不可变更(下游统计依赖字符串匹配)。
         if (from < 4) {
           // 占位:无需 SQL,仅作版本标记 + 注释意图。下游 migration_v4_test 断言此路径通过。
+        }
+        // Stage 3 → Stage 3 (Day 20, ADR-0024):transactions 表加 installmentPeriod 列。
+        //
+        // WHY: 网贷还款需要记录期数(12/24/36 期),下游 S05 净资产 / S07 AI 攒攒
+        // 会基于此判断还款提醒。Nullable 列,现有数据自动为 null。
+        if (from < 5) {
+          await m.addColumn(transactions, transactions.installmentPeriod);
         }
       },
       beforeOpen: (details) async {

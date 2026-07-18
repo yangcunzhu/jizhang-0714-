@@ -67,8 +67,8 @@ void main() {
 
     test('储蓄 + 信用卡 + 金额 → canSubmit = true', () {
       const state = RepaymentFormState(
-        fromSavingsAccountId: 1,
-        toCreditCardAccountId: 2,
+        fromAccountId: 1,
+        toAccountId: 2,
         amountCents: 50000,
       );
       expect(state.canSubmit, isTrue);
@@ -76,8 +76,8 @@ void main() {
 
     test('金额 = 0 → canSubmit = false', () {
       const state = RepaymentFormState(
-        fromSavingsAccountId: 1,
-        toCreditCardAccountId: 2,
+        fromAccountId: 1,
+        toAccountId: 2,
         amountCents: 0,
       );
       expect(state.canSubmit, isFalse);
@@ -85,8 +85,8 @@ void main() {
 
     test('提交中 → canSubmit = false', () {
       const state = RepaymentFormState(
-        fromSavingsAccountId: 1,
-        toCreditCardAccountId: 2,
+        fromAccountId: 1,
+        toAccountId: 2,
         amountCents: 50000,
         isSubmitting: true,
       );
@@ -95,17 +95,17 @@ void main() {
   });
 
   group('RepaymentFormController', () {
-    test('setAmount / setFromSavingsAccount / setToCreditCardAccount setter 有效',
+    test('setAmount / setFromAccount / setToAccount setter 有效',
         () {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
+      controller.setFromAccount(cashAccountId);
       controller.setAmount(50000);
-      controller.setToCreditCardAccount(creditCardId);
+      controller.setToAccount(creditCardId);
       controller.setNote('还 8 月账单');
 
-      expect(controller.state.fromSavingsAccountId, cashAccountId);
+      expect(controller.state.fromAccountId, cashAccountId);
       expect(controller.state.amountCents, 50000);
-      expect(controller.state.toCreditCardAccountId, creditCardId);
+      expect(controller.state.toAccountId, creditCardId);
       expect(controller.state.note, '还 8 月账单');
       expect(controller.state.canSubmit, isTrue);
     });
@@ -113,8 +113,8 @@ void main() {
     test('submit 成功路径:扣储蓄 + 减信用卡已用 + 写 repayment transaction',
         () async {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
-      controller.setToCreditCardAccount(creditCardId);
+      controller.setFromAccount(cashAccountId);
+      controller.setToAccount(creditCardId);
       controller.setAmount(50000); // 500 元
 
       final ok = await controller.submit();
@@ -136,21 +136,21 @@ void main() {
 
     test('submit 后 state 重置,避免下次打开弹层残留上次输入', () async {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
-      controller.setToCreditCardAccount(creditCardId);
+      controller.setFromAccount(cashAccountId);
+      controller.setToAccount(creditCardId);
       controller.setAmount(50000);
 
       await controller.submit();
 
-      expect(controller.state.fromSavingsAccountId, isNull);
-      expect(controller.state.toCreditCardAccountId, isNull);
+      expect(controller.state.fromAccountId, isNull);
+      expect(controller.state.toAccountId, isNull);
       expect(controller.state.amountCents, 0);
     });
 
     test('submit 边界:储蓄账户余额不足 → 失败 + 状态保留', () async {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
-      controller.setToCreditCardAccount(creditCardId);
+      controller.setFromAccount(cashAccountId);
+      controller.setToAccount(creditCardId);
       controller.setAmount(99999999); // 远超储蓄余额
 
       final ok = await controller.submit();
@@ -162,8 +162,8 @@ void main() {
 
     test('submit 边界:同一账户 = 储蓄 + 信用卡 → 失败', () async {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
-      controller.setToCreditCardAccount(cashAccountId); // 同一个!
+      controller.setFromAccount(cashAccountId);
+      controller.setToAccount(cashAccountId); // 同一个!
       controller.setAmount(1000);
 
       final ok = await controller.submit();
@@ -174,8 +174,8 @@ void main() {
     test('submit 边界:amount = 0 → canSubmit = false, 不调 transferRepayment',
         () async {
       final controller = container.read(repaymentFormProvider.notifier);
-      controller.setFromSavingsAccount(cashAccountId);
-      controller.setToCreditCardAccount(creditCardId);
+      controller.setFromAccount(cashAccountId);
+      controller.setToAccount(creditCardId);
       controller.setAmount(0);
 
       final ok = await controller.submit();
@@ -204,8 +204,8 @@ void main() {
       expect(list.any((a) => a.type == AccountType.creditCard), isFalse);
     });
 
-    test('creditCardAccountListProvider 只含信用卡', () async {
-      final list = await container.read(creditCardAccountListProvider.future);
+    test('debtAccountListProvider 只含信用卡', () async {
+      final list = await container.read(debtAccountListProvider.future);
       expect(list, hasLength(1));
       expect(list.single.type, AccountType.creditCard);
       expect(list.single.name, '招行信用卡');

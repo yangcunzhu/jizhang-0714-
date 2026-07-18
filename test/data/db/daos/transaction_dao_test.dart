@@ -142,8 +142,8 @@ void main() {
     group('transferRepayment 双账户事务', () {
       test('成功路径:储蓄 -500 + 信用卡已用 -500 + 写 repayment transaction', () async {
         final repaymentTxId = await db.transactionDao.transferRepayment(
-          fromSavingsAccountId: cashAccountId,
-          toCreditCardAccountId: creditCardAccountId,
+          fromAccountId: cashAccountId,
+          toAccountId: creditCardAccountId,
           amountCents: 50000, // 500 元
         );
 
@@ -171,14 +171,14 @@ void main() {
         // 储蓄只有 1000 元,尝试还 5000 元
         await expectLater(
           db.transactionDao.transferRepayment(
-            fromSavingsAccountId: cashAccountId,
-            toCreditCardAccountId: creditCardAccountId,
+            fromAccountId: cashAccountId,
+            toAccountId: creditCardAccountId,
             amountCents: 500000,
           ),
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('储蓄账户余额不足'),
+            contains('扣款账户余额不足'),
           )),
         );
 
@@ -194,32 +194,32 @@ void main() {
             reason: '事务回滚,repayment transaction 不应写入');
       });
 
-      test('信用卡账户不存在 → StateError', () async {
+      test('收款账户不存在 → StateError', () async {
         await expectLater(
           db.transactionDao.transferRepayment(
-            fromSavingsAccountId: cashAccountId,
-            toCreditCardAccountId: 999, // 不存在
+            fromAccountId: cashAccountId,
+            toAccountId: 999, // 不存在
             amountCents: 1000,
           ),
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('信用卡账户不存在'),
+            contains('收款账户不存在'),
           )),
         );
       });
 
-      test('储蓄账户不存在 → StateError', () async {
+      test('扣款账户不存在 → StateError', () async {
         await expectLater(
           db.transactionDao.transferRepayment(
-            fromSavingsAccountId: 999, // 不存在
-            toCreditCardAccountId: creditCardAccountId,
+            fromAccountId: 999, // 不存在
+            toAccountId: creditCardAccountId,
             amountCents: 1000,
           ),
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('储蓄账户不存在'),
+            contains('扣款账户不存在'),
           )),
         );
       });
@@ -228,14 +228,14 @@ void main() {
         // 故意把现金账户作为还款目标
         await expectLater(
           db.transactionDao.transferRepayment(
-            fromSavingsAccountId: cashAccountId,
-            toCreditCardAccountId: cashAccountId, // 现金账户不是信用卡
+            fromAccountId: cashAccountId,
+            toAccountId: cashAccountId, // 现金账户不是信用卡
             amountCents: 1000,
           ),
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('目标账户不是信用卡类型'),
+            contains('收款账户必须是信用卡/花呗/网贷'),
           )),
         );
       });
@@ -243,8 +243,8 @@ void main() {
       test('amountCents <= 0 → ArgumentError', () async {
         expect(
           () => db.transactionDao.transferRepayment(
-            fromSavingsAccountId: cashAccountId,
-            toCreditCardAccountId: creditCardAccountId,
+            fromAccountId: cashAccountId,
+            toAccountId: creditCardAccountId,
             amountCents: 0,
           ),
           throwsArgumentError,
@@ -252,8 +252,8 @@ void main() {
 
         expect(
           () => db.transactionDao.transferRepayment(
-            fromSavingsAccountId: cashAccountId,
-            toCreditCardAccountId: creditCardAccountId,
+            fromAccountId: cashAccountId,
+            toAccountId: creditCardAccountId,
             amountCents: -100,
           ),
           throwsArgumentError,
@@ -273,8 +273,8 @@ void main() {
 
         // 首次还款
         await db.transactionDao.transferRepayment(
-          fromSavingsAccountId: cashAccountId,
-          toCreditCardAccountId: creditCardAccountId,
+          fromAccountId: cashAccountId,
+          toAccountId: creditCardAccountId,
           amountCents: 1000,
         );
 
@@ -288,8 +288,8 @@ void main() {
 
         // 第二次还款,不应该再创建新分类
         await db.transactionDao.transferRepayment(
-          fromSavingsAccountId: cashAccountId,
-          toCreditCardAccountId: creditCardAccountId,
+          fromAccountId: cashAccountId,
+          toAccountId: creditCardAccountId,
           amountCents: 500,
         );
 
@@ -310,8 +310,8 @@ void main() {
         );
 
         await db.transactionDao.transferRepayment(
-          fromSavingsAccountId: cashAccountId,
-          toCreditCardAccountId: creditCardAccountId,
+          fromAccountId: cashAccountId,
+          toAccountId: creditCardAccountId,
           amountCents: 1000,
         );
 

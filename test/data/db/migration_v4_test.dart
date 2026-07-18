@@ -126,12 +126,12 @@ void main() {
       return AppDatabase.forTesting(NativeDatabase(File(dbPath)));
     }
 
-    test('schemaVersion = 4', () {
-      // WHY: textEnum 加 enum 值不需 schemaVersion 升级也能编译,但为了一致性
-      // 仍 +1,让 Drift 知道 schema 演进到 v4,未来再加 enum 值不会混乱。
+    test('schemaVersion = 5(从 4 升到 5,加 installment_period 列)', () {
+      // WHY: v3→v4 +1 是 ADR-0021(textEnum 加 repayment),v4→v5 +1 是 ADR-0024
+      // (加 installment_period 列)。本测试验证当前 schemaVersion = 5。
       final db = AppDatabase.forTesting(NativeDatabase.memory());
-      expect(db.schemaVersion, 4,
-          reason: 'ADR-0021:TransactionType enum 加 repayment,版本升至 4');
+      expect(db.schemaVersion, 5,
+          reason: 'ADR-0024:加 installment_period 列,版本升至 5');
       db.close();
     });
 

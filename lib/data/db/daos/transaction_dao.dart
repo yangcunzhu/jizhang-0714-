@@ -98,65 +98,96 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
 
   // ────────────────────────────────────────────────────────────────────
   // Day 19 (Stage 3):还款流 + 余额自动更新(ADR-0022)
+  // Day 20 (Stage 3):还款流扩展,支持 4 种收款类型 + 网贷期数(ADR-0024)
   // ────────────────────────────────────────────────────────────────────
 
-  /// 信用卡还款(储蓄账户 → 信用卡账户,事务原子化)。
+  /// 还款(任意现金类账户 → 欠款类账户,事务原子化)。
   ///
-  /// 语义(ADR-0022):
-  /// - 储蓄账户.balanceCents -= amountCents(钱少了)
-  /// - 信用卡账户.balanceCents -= amountCents(已用减少,即可用增加)
+  /// 语义(ADR-0022 + ADR-0024):
+  /// - [fromAccountId] 扣款方:现金 / 储蓄 / 网贷账户(目前只允许储蓄类,网贷可选)
+  /// - [toAccountId] 收款方:信用卡 / 花呗 / 网贷(欠款类)
+  /// - fromAccountId.balanceCents -= amountCents(钱少了)
+  /// - toAccountId.balanceCents -= amountCents(欠款减少,即可用增加)
   /// - 写 1 条 repayment transaction 记录流水,引用「还款」分类(自动 seed)
+  /// - 网贷还款可传 [installmentPeriod](12 / 24 / 36 期),其他类型忽略
   ///
-  /// 边界:
-  /// - 储蓄账户余额不足 → 抛 [StateError],事务回滚
-  /// - 信用卡账户不存在 / 不是信用卡类型 → 抛 [StateError]
-  /// - amountCents <= 0 → 抛 [ArgumentError]
+  /// 边界(ADR-0024 §实施清单第 4 项 — 3 类场景全覆盖):
+  /// - **正常**:储蓄够 + 收款账户合法 → 成功
+  /// - **异常(余额不足)**:储蓄余额 < amountCents → 抛 [StateError],事务回滚
+  /// - **边界(amount=0)**:amountCents <= 0 → 抛 [ArgumentError]
+  /// - 收款账户不存在 / 不是欠款类型 → 抛 [StateError]
+  /// - 网贷还款 + installmentPeriod 必须 ≥ 1
   Future<int> transferRepayment({
-    required int fromSavingsAccountId,
-    required int toCreditCardAccountId,
+    required int fromAccountId,
+    required int toAccountId,
     required int amountCents,
     String? note,
+    int? installmentPeriod,
   }) async {
     return transaction(() async {
-      // Step 1: 校验(避免事务内失败回滚成本)
+      // Step 1: 校验
       if (amountCents <= 0) {
         throw ArgumentError('还款金额必须 > 0(当前: $amountCents)');
       }
-      final savings = await db.accountDao.getById(fromSavingsAccountId);
-      final creditCard = await db.accountDao.getById(toCreditCardAccountId);
-      if (savings == null) {
-        throw StateError('储蓄账户不存在: $fromSavingsAccountId');
+      final from = await db.accountDao.getById(fromAccountId);
+      final to = await db.accountDao.getById(toAccountId);
+      if (from == null) {
+        throw StateError('扣款账户不存在: $fromAccountId');
       }
-      if (creditCard == null) {
-        throw StateError('信用卡账户不存在: $toCreditCardAccountId');
+      if (to == null) {
+        throw StateError('收款账户不存在: $toAccountId');
       }
-      if (creditCard.type != AccountType.creditCard) {
+      // 扣款方:现金 / 储蓄(网贷可还款自身,本期不支持)
+      final fromIsCashLike = from.type == AccountType.cash ||
+          from.type == AccountType.savings;
+      if (!fromIsCashLike) {
         throw StateError(
-          '目标账户不是信用卡类型: ${creditCard.name} '
-          '(实际类型: ${creditCard.type.displayName})',
+          '扣款账户必须是现金或储蓄: ${from.name} '
+          '(实际类型: ${from.type.displayName})',
         );
       }
-      if (savings.balanceCents < amountCents) {
+      // 收款方:信用卡 / 花呗 / 网贷(欠款类)
+      final toIsDebtLike = to.type == AccountType.creditCard ||
+          to.type == AccountType.huabei ||
+          to.type == AccountType.onlineLoan;
+      if (!toIsDebtLike) {
         throw StateError(
-          '储蓄账户余额不足: ${savings.name} '
-          '(余额 ¥${_formatYuan(savings.balanceCents)},还款额 ¥${_formatYuan(amountCents)})',
+          '收款账户必须是信用卡/花呗/网贷: ${to.name} '
+          '(实际类型: ${to.type.displayName})',
+        );
+      }
+      // 网贷还款必须传 installmentPeriod ≥ 1(ADR-0024 §1)
+      if (to.type == AccountType.onlineLoan) {
+        if (installmentPeriod == null || installmentPeriod < 1) {
+          throw ArgumentError(
+            '网贷还款必须传期数(>=1): ${to.name},当前 installmentPeriod=$installmentPeriod',
+          );
+        }
+      }
+      if (from.balanceCents < amountCents) {
+        throw StateError(
+          '扣款账户余额不足: ${from.name} '
+          '(余额 ¥${_formatYuan(from.balanceCents)},还款额 ¥${_formatYuan(amountCents)})',
         );
       }
 
-      // Step 2: 更新余额(储蓄 -amount,信用卡已用 -amount)
-      await _updateAccountBalance(fromSavingsAccountId, -amountCents);
-      await _updateAccountBalance(toCreditCardAccountId, -amountCents);
+      // Step 2: 更新余额(扣款 -amount,收款已用 -amount)
+      await _updateAccountBalance(fromAccountId, -amountCents);
+      await _updateAccountBalance(toAccountId, -amountCents);
 
       // Step 3: 写还款 transaction(直接走底层 insertTransaction,
       // 不走 insertTransaction 以避免重复扣储蓄余额)
       final repaymentCategoryId = await _getOrCreateRepaymentCategoryId();
       return await into(transactions).insert(
         TransactionsCompanion.insert(
-          accountId: fromSavingsAccountId, // 主账户 = 储蓄(扣款方)
+          accountId: fromAccountId, // 主账户 = 扣款方
           categoryId: repaymentCategoryId,
           type: TransactionType.repayment,
           amountCents: amountCents,
-          note: Value(note ?? '还${creditCard.name}'),
+          note: Value(note ?? '还${to.name}'),
+          installmentPeriod: installmentPeriod != null
+              ? Value(installmentPeriod)
+              : const Value.absent(),
         ),
       );
     });

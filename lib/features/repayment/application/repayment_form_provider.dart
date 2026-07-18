@@ -5,15 +5,21 @@ import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
 
-/// 还款表单状态(D20 — 信用卡还款流)。
+/// 还款表单状态(D20 — 信用卡还款流 + ADR-0024)。
 ///
-/// 与 recordFormProvider 类似,但语义不同:不是记账支出,而是从储蓄账户
-/// 转账到信用卡账户(语义:还款),生成 1 条 type=repayment 的 transaction。
+/// 与 recordFormProvider 类似,但语义不同:不是记账支出,而是从扣款账户
+/// 转账到收款账户(语义:还款),生成 1 条 type=repayment 的 transaction。
+///
+/// ADR-0024 改名:
+/// - fromSavingsAccountId → fromAccountId(扣款方,任意现金类:现金/储蓄)
+/// - toCreditCardAccountId → toAccountId(收款方,任意欠款类:信用卡/花呗/网贷)
+/// - 新增 installmentPeriod(网贷专属,其他类型忽略)
 class RepaymentFormState {
   const RepaymentFormState({
-    this.fromSavingsAccountId,
-    this.toCreditCardAccountId,
+    this.fromAccountId,
+    this.toAccountId,
     this.amountCents = 0,
+    this.installmentPeriod,
     this.note = '',
     this.isSubmitting = false,
     this.errorMessage,
@@ -22,14 +28,17 @@ class RepaymentFormState {
   /// 默认初始值。
   static const RepaymentFormState initial = RepaymentFormState();
 
-  /// 储蓄账户 ID(扣款方)。
-  final int? fromSavingsAccountId;
+  /// 扣款账户 ID(现金/储蓄)。
+  final int? fromAccountId;
 
-  /// 信用卡账户 ID(收款方)。
-  final int? toCreditCardAccountId;
+  /// 收款账户 ID(信用卡/花呗/网贷)。
+  final int? toAccountId;
 
   /// 还款金额(分)。
   final int amountCents;
+
+  /// 网贷期数(可选,仅网贷还款需要)。
+  final int? installmentPeriod;
 
   /// 备注(可选)。
   final String note;
@@ -41,30 +50,30 @@ class RepaymentFormState {
   final String? errorMessage;
 
   bool get canSubmit =>
-      fromSavingsAccountId != null &&
-      toCreditCardAccountId != null &&
+      fromAccountId != null &&
+      toAccountId != null &&
       amountCents > 0 &&
       !isSubmitting;
 
   RepaymentFormState copyWith({
-    int? fromSavingsAccountId,
-    int? toCreditCardAccountId,
+    int? fromAccountId,
+    int? toAccountId,
     int? amountCents,
+    int? installmentPeriod,
     String? note,
     bool? isSubmitting,
     String? errorMessage,
-    bool clearFromSavings = false,
-    bool clearToCreditCard = false,
+    bool clearFromAccount = false,
+    bool clearToAccount = false,
     bool clearError = false,
   }) {
     return RepaymentFormState(
-      fromSavingsAccountId: clearFromSavings
-          ? null
-          : (fromSavingsAccountId ?? this.fromSavingsAccountId),
-      toCreditCardAccountId: clearToCreditCard
-          ? null
-          : (toCreditCardAccountId ?? this.toCreditCardAccountId),
+      fromAccountId:
+          clearFromAccount ? null : (fromAccountId ?? this.fromAccountId),
+      toAccountId:
+          clearToAccount ? null : (toAccountId ?? this.toAccountId),
       amountCents: amountCents ?? this.amountCents,
+      installmentPeriod: installmentPeriod ?? this.installmentPeriod,
       note: note ?? this.note,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -72,35 +81,36 @@ class RepaymentFormState {
   }
 }
 
-/// 还款表单 controller(D20 — 信用卡还款流)。
+/// 还款表单 controller(D20 + ADR-0024)。
 ///
-/// 调用 [AccountDao.getAll] 过滤出「储蓄 / 现金 / 网贷」(扣款方候选)和
-/// 「信用卡 / 花呗」(收款方候选),提交时调 [TransactionDao.transferRepayment]。
+/// 调用 [accountListProvider] 读账户,提交时调 [TransactionDao.transferRepayment]。
 class RepaymentFormController extends AutoDisposeNotifier<RepaymentFormState> {
   @override
   RepaymentFormState build() => RepaymentFormState.initial;
 
-  void setFromSavingsAccount(int? accountId) {
+  void setFromAccount(int? accountId) {
     state = state.copyWith(
-      fromSavingsAccountId: accountId,
-      clearFromSavings: accountId == null,
+      fromAccountId: accountId,
+      clearFromAccount: accountId == null,
       clearError: true,
     );
   }
 
-  void setToCreditCardAccount(int? accountId) {
+  void setToAccount(int? accountId) {
     state = state.copyWith(
-      toCreditCardAccountId: accountId,
-      clearToCreditCard: accountId == null,
+      toAccountId: accountId,
+      clearToAccount: accountId == null,
       clearError: true,
     );
   }
 
-  /// 输入金额(分)。
-  ///
-  /// 仿 recordFormProvider 的数字键盘逻辑:每次 digit 触发,支持小数点。
   void setAmount(int cents) {
     state = state.copyWith(amountCents: cents, clearError: true);
+  }
+
+  /// 设置网贷期数(可选)。
+  void setInstallmentPeriod(int? period) {
+    state = state.copyWith(installmentPeriod: period, clearError: true);
   }
 
   void setNote(String note) {
@@ -116,8 +126,8 @@ class RepaymentFormController extends AutoDisposeNotifier<RepaymentFormState> {
   /// 返回 true 表示成功,false 表示失败(校验不过或运行时异常)。
   Future<bool> submit() async {
     if (!state.canSubmit) return false;
-    if (state.fromSavingsAccountId == state.toCreditCardAccountId) {
-      state = state.copyWith(errorMessage: '储蓄账户和信用卡不能是同一个');
+    if (state.fromAccountId == state.toAccountId) {
+      state = state.copyWith(errorMessage: '扣款账户和收款账户不能是同一个');
       return false;
     }
 
@@ -125,10 +135,11 @@ class RepaymentFormController extends AutoDisposeNotifier<RepaymentFormState> {
     final db = ref.read(databaseProvider);
     try {
       await db.transactionDao.transferRepayment(
-        fromSavingsAccountId: state.fromSavingsAccountId!,
-        toCreditCardAccountId: state.toCreditCardAccountId!,
+        fromAccountId: state.fromAccountId!,
+        toAccountId: state.toAccountId!,
         amountCents: state.amountCents,
         note: state.note.isEmpty ? null : state.note,
+        installmentPeriod: state.installmentPeriod,
       );
       // D19 修复:主动 invalidate,刷新账户卡片余额
       ref.invalidate(accountListProvider);
@@ -159,21 +170,24 @@ final savingsAccountListProvider =
     FutureProvider<List<AccountEntry>>((ref) async {
   final db = ref.watch(databaseProvider);
   final all = await db.accountDao.getAll();
-  // 储蓄 / 现金 / 网贷 都可以作为扣款方(都是「现金类」账户,有余额可扣)
+  // 储蓄 / 现金 都可以作为扣款方(都是「现金类」账户,有余额可扣)
   return all
       .where((a) =>
-          a.type == AccountType.savings ||
-          a.type == AccountType.cash ||
-          a.type == AccountType.onlineLoan)
+          a.type == AccountType.savings || a.type == AccountType.cash)
       .toList();
 });
 
-/// 信用卡账户候选 provider(用于收款方下拉)。
+/// 欠款账户候选 provider(用于收款方下拉)。
 ///
-/// 仅显示 type=creditCard(花呗语义类似但当前 MVP 暂不开放,避免用户混淆)。
-final creditCardAccountListProvider =
+/// 信用卡 / 花呗 / 网贷 都是欠款类(ADR-0024 §1 6 种账户类型产品定位)。
+final debtAccountListProvider =
     FutureProvider<List<AccountEntry>>((ref) async {
   final db = ref.watch(databaseProvider);
   final all = await db.accountDao.getAll();
-  return all.where((a) => a.type == AccountType.creditCard).toList();
+  return all
+      .where((a) =>
+          a.type == AccountType.creditCard ||
+          a.type == AccountType.huabei ||
+          a.type == AccountType.onlineLoan)
+      .toList();
 });
