@@ -4273,6 +4273,60 @@ await PerfMonitor.measure(
         <tr><td>ADR（架构决策记录）</td><td>每次重大决策</td></tr>
       </table>
 
+      <h3>52.7 模块进度看板(2026-08-03 起,实际时间)</h3>
+      <div class="callout callout-info">
+        <p><strong>WHY 这一节存在</strong>:用户每天 18 小时加班,模型做得快,v4 计划时间 ≠ 实际完成时间。本节锁「实际完成时间」+ 「vs 计划差」,避免文档对不齐(CLAUDE.md 铁律 10 配套)。</p>
+        <p><strong>更新规则</strong>:每周五晚更新,标 ⏳→✅ 或加新任务。commit message 末尾标「完成 YYYY-MM-DD,vs v4 计划:提前/落后 X 周」。</p>
+
+        <h4>已实现功能(2026-08-03 截止)</h4>
+        <table>
+          <tr><th>Stage</th><th>功能</th><th>实际完成日</th><th>vs 计划</th><tr>
+          <tr><td>S00</td><td>环境验证 + iOS 真机装机</td><td>2026-07-16</td><td>✅ 准点</td><tr>
+          <tr><td>S01</td><td>手动记账(5 秒 3 步)</td><td>2026-07-17</td><td>✅ 准点</td><tr>
+          <tr><td>S02</td><td>分类自定义 + 模板 + 多账户 + 6 类型</td><td>2026-08-01</td><td>✅ 准点</td><tr>
+          <tr><td>S03.D18</td><td>schema v4(transactionType.lend / transfer)</td><td>2026-08-01</td><td>✅ 准点</td><tr>
+          <tr><td>S03.D19</td><td>transferRepayment DAO + 余额自动更新</td><td>2026-08-02</td><td>✅ 准点</td><tr>
+          <tr><td>S03.D19+</td><td>ref.invalidate(余额 UI 刷新修复)</td><td>2026-08-02</td><td>✅ 准点</td><tr>
+          <tr><td>S03.D20</td><td>还款流 UI(主页「+」聚合菜单)+ 4 大类账户 × 17+ 子类</td><td>2026-08-03</td><td>⏳ 进行中(ADR-0026 修订中)</td><tr>
+        </table>
+
+        <h4>进行中 / 计划中</h4>
+        <ul>
+          <li>⏳ S03.D21:信用卡卡片增强(出账日 / 还款日 / 可用额度 / 距离还款日 X 天)</li>
+          <li>⏳ S03.D22-D24:集成测试 + 真机手验 + ROA</li>
+          <li>📋 S04:账本管理 + 预算(等 S03 ROA 后)</li>
+          <li>📋 S05:净资产仪表盘 + 8 图表 + AI 仪表盘</li>
+          <li>📋 S06:SQLCipher + 快照 + CSV 导出</li>
+          <li>📋 S07:攒攒计划(v1.0 记账模式,v1.1 接支付宝) + 攒攒 IP 智能反馈</li>
+          <li>📋 S08:上线验收 + AltStore 部署</li>
+        </ul>
+
+        <h4>计划 vs 实际对比(2026-08-03)</h4>
+        <table>
+          <tr><th>维度</th><th>v4 计划</th><th>实际</th><th>差异</th><tr>
+          <tr><td>v1.0 上线</td><td>2026-09-09(8 周)</td><td>暂不计划,等 D24 ROA 再定</td><td>用户加班可能 1-2 周完成</td><tr>
+          <tr><td>S02 完成</td><td>2026-07-25 计划</td><td>2026-08-01 实际</td><td>延迟 1 周(用户协调 AD22-24 合并到 ADR-0024,再修正为 ADR-0026)</td><tr>
+          <tr><td>文档</td><td>8 周</td><td>2-3 周(加班)</td><td>用户主动加速</td><tr>
+        </table>
+
+        <h4>完成日期机制(CLAUDE.md 铁律 10)</h4>
+        <ul>
+          <li><strong>commit message</strong>:末尾加「完成 YYYY-MM-DD,vs v4 计划:提前/落后 X 周」</li>
+          <li><strong>daily 末尾</strong>:标今日实际进度 + 累计 vs v4 计划差</li>
+          <li><strong>§52.7 看板</strong>:每周五晚更新 ⏳→✅</li>
+          <li><strong>ADR 标完成日</strong>:ADR 末尾加「完成 2026-08-03」一行</li>
+        </ul>
+      </div>
+
+      <h3>52.8 时间线对账(2026-08-03 起)</h3>
+      <p>每 1-2 周做一次「实际进度 vs v4 计划」对账,避免跑偏:</p>
+      <table>
+        <tr><th>对账日</th><th>v4 计划累计</th><th>实际累计</th><th>差异</th><th>措施</th><tr>
+        <tr><td>2026-07-16</td><td>S00 验收</td><td>S00 验收</td><td>0</td><td>-</td><tr>
+        <tr><td>2026-08-01</td><td>S02 验收</td><td>S02 验收 + D18 schema v4</td><td>超前 1 周</td><td>—</td><tr>
+        <tr><td>2026-08-03</td><td>S03 进行中</td><td>D19 完成,D20 进行中</td><td>超前 0.5 周</td><td>ADR-0026 修订借贷决策</td><tr>
+      </table>
+
       <h3>52.6 长期目标</h3>
       <div class="callout callout-gold">
         <div class="callout-title">🏆 终极愿景</div>
