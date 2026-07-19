@@ -27,6 +27,9 @@ part 'app_database.g.dart';
 /// - v3 (Stage 2 Day 15):新增 category_templates 表 — ADR-0020
 /// - v4 (Stage 3 Day 18):TransactionType enum 加 repayment 值 — ADR-0021
 /// - v5 (Stage 3 Day 20 + ADR-0024):transactions 表加 installmentPeriod 列(网贷期数)
+/// - v6 (Stage 3 ADR-0026):accounts 加 9 列(subType 主模型 + brandName + isPinned +
+///   isDefaultIncome/ExpenseAccount + initialDebtCents + startDate + dueDate +
+///   counterpartyName)+ 回填 subType from type — 5 大类 × 23 子类账户模型
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
   daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
@@ -38,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -87,6 +90,39 @@ class AppDatabase extends _$AppDatabase {
         if (from < 5) {
           await m.addColumn(transactions, transactions.installmentPeriod);
         }
+        // Stage 3 → Stage 3 (ADR-0026):accounts 升级为 5 大类 × 23 子类模型。
+        //
+        // WHY: 咔皮对标(v4 §3.1)暴露扁平 6 种类型不够,补 subType 主模型 + 品牌 +
+        // 4 toggle(补 isPinned / isDefaultIncome / isDefaultExpense)+ 信用/借贷字段
+        // (initialDebtCents / startDate / dueDate / counterpartyName)。
+        //
+        // 向下兼容:保留 type 列不动,新增列全部 nullable 或有 default。老账户 subType
+        // 为 NULL → 用 UPDATE 按旧 type 回填(cash→cash / savings→savingsCard /
+        // creditCard→creditCard / huabei→huabei / onlineLoan→jiebei / investment→mutualFund),
+        // 保证升级后 subType 主模型对老数据也可用。
+        if (from < 6) {
+          await m.addColumn(accounts, accounts.subType);
+          await m.addColumn(accounts, accounts.brandName);
+          await m.addColumn(accounts, accounts.isPinned);
+          await m.addColumn(accounts, accounts.isDefaultIncomeAccount);
+          await m.addColumn(accounts, accounts.isDefaultExpenseAccount);
+          await m.addColumn(accounts, accounts.initialDebtCents);
+          await m.addColumn(accounts, accounts.startDate);
+          await m.addColumn(accounts, accounts.dueDate);
+          await m.addColumn(accounts, accounts.counterpartyName);
+          // 回填 subType(textEnum 存 enum.name 字符串)。
+          await customStatement(
+            "UPDATE accounts SET sub_type = CASE type "
+            "WHEN 'cash' THEN 'cash' "
+            "WHEN 'savings' THEN 'savingsCard' "
+            "WHEN 'creditCard' THEN 'creditCard' "
+            "WHEN 'huabei' THEN 'huabei' "
+            "WHEN 'onlineLoan' THEN 'jiebei' "
+            "WHEN 'investment' THEN 'mutualFund' "
+            "ELSE 'cash' END "
+            "WHERE sub_type IS NULL",
+          );
+        }
       },
       beforeOpen: (details) async {
         // WHY: SQLite 默认每个连接 foreign_keys=OFF,不开则 references() 形同虚设。
@@ -98,7 +134,13 @@ class AppDatabase extends _$AppDatabase {
 
   /// 首次建库时植入默认数据:单一"现金"账户 + 10 个默认分类。
   Future<void> _seedDefaults() async {
-    await into(accounts).insert(const AccountsCompanion(name: Value('现金')));
+    // v6:默认现金账户同时写 subType(fresh install 不走 onUpgrade 回填)。
+    await into(accounts).insert(
+      AccountsCompanion.insert(
+        name: '现金',
+        subType: const Value(AccountSubType.cash),
+      ),
+    );
     await batch((b) => b.insertAll(categories, _defaultCategories));
   }
 

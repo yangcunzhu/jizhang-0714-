@@ -6,9 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:jizhang_app/data/db/app_database.dart';
 import 'package:jizhang_app/data/db/database_provider.dart';
+import 'package:jizhang_app/data/db/tables/accounts.dart';
 import 'package:jizhang_app/data/db/tables/categories.dart';
 import 'package:jizhang_app/features/home/application/home_providers.dart';
 import 'package:jizhang_app/features/home/presentation/home_page.dart';
+import 'package:jizhang_app/features/home/presentation/home_page_keys.dart';
 
 void main() {
   late AppDatabase db;
@@ -107,5 +109,40 @@ void main() {
     expect(find.text('🍔'), findsOneWidget);
     expect(find.byIcon(Icons.label_outline), findsNothing,
         reason: 'Day 6 的占位 Icon 应已被 emoji Text 替代');
+  });
+
+  testWidgets('「+」菜单显示 5 类入口(有欠款 + 可转账账户时)', (tester) async {
+    // seed:默认现金(fund)+ 储蓄卡(fund,→ 可转账 ≥2)+ 信用卡(debt,→ 还款)
+    await db.accountDao.insertAccount(AccountsCompanion.insert(
+      name: '储蓄卡',
+      subType: const Value(AccountSubType.savingsCard),
+      balanceCents: const Value(100000),
+    ));
+    await db.accountDao.insertAccount(AccountsCompanion.insert(
+      name: '信用卡',
+      type: const Value(AccountType.creditCard),
+      subType: const Value(AccountSubType.creditCard),
+      dueDay: const Value(20),
+    ));
+
+    final container = await bootContainer(tester);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: HomePage()),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(recordFabKey));
+    await tester.pump(); // 触发异步 provider 读取
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+
+    expect(find.byKey(const Key('plus-menu-record')), findsOneWidget);
+    expect(find.byKey(const Key('plus-menu-transfer')), findsOneWidget);
+    expect(find.byKey(const Key('plus-menu-repayment')), findsOneWidget);
+    expect(find.byKey(const Key('plus-menu-lend')), findsOneWidget);
+    expect(find.byKey(const Key('plus-menu-borrow')), findsOneWidget);
   });
 }

@@ -529,6 +529,26 @@ class $AccountsTable extends Accounts
         requiredDuringInsert: false,
         defaultValue: const Constant('cash'),
       ).withConverter<AccountType>($AccountsTable.$convertertype);
+  @override
+  late final GeneratedColumnWithTypeConverter<AccountSubType?, String> subType =
+      GeneratedColumn<String>(
+        'sub_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<AccountSubType?>($AccountsTable.$convertersubTypen);
+  static const VerificationMeta _brandNameMeta = const VerificationMeta(
+    'brandName',
+  );
+  @override
+  late final GeneratedColumn<String> brandName = GeneratedColumn<String>(
+    'brand_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _includeInNetWorthMeta = const VerificationMeta(
     'includeInNetWorth',
   );
@@ -544,12 +564,68 @@ class $AccountsTable extends Accounts
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isPinnedMeta = const VerificationMeta(
+    'isPinned',
+  );
+  @override
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+    'is_pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDefaultIncomeAccountMeta =
+      const VerificationMeta('isDefaultIncomeAccount');
+  @override
+  late final GeneratedColumn<bool> isDefaultIncomeAccount =
+      GeneratedColumn<bool>(
+        'is_default_income_account',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_default_income_account" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _isDefaultExpenseAccountMeta =
+      const VerificationMeta('isDefaultExpenseAccount');
+  @override
+  late final GeneratedColumn<bool> isDefaultExpenseAccount =
+      GeneratedColumn<bool>(
+        'is_default_expense_account',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_default_expense_account" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _creditLimitMeta = const VerificationMeta(
     'creditLimit',
   );
   @override
   late final GeneratedColumn<int> creditLimit = GeneratedColumn<int>(
     'credit_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _initialDebtCentsMeta = const VerificationMeta(
+    'initialDebtCents',
+  );
+  @override
+  late final GeneratedColumn<int> initialDebtCents = GeneratedColumn<int>(
+    'initial_debt_cents',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -575,6 +651,39 @@ class $AccountsTable extends Accounts
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+    'due_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _counterpartyNameMeta = const VerificationMeta(
+    'counterpartyName',
+  );
+  @override
+  late final GeneratedColumn<String> counterpartyName = GeneratedColumn<String>(
+    'counterparty_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -593,10 +702,19 @@ class $AccountsTable extends Accounts
     name,
     balanceCents,
     type,
+    subType,
+    brandName,
     includeInNetWorth,
+    isPinned,
+    isDefaultIncomeAccount,
+    isDefaultExpenseAccount,
     creditLimit,
+    initialDebtCents,
     billingDay,
     dueDay,
+    startDate,
+    dueDate,
+    counterpartyName,
     createdAt,
   ];
   @override
@@ -631,6 +749,12 @@ class $AccountsTable extends Accounts
         ),
       );
     }
+    if (data.containsKey('brand_name')) {
+      context.handle(
+        _brandNameMeta,
+        brandName.isAcceptableOrUnknown(data['brand_name']!, _brandNameMeta),
+      );
+    }
     if (data.containsKey('include_in_net_worth')) {
       context.handle(
         _includeInNetWorthMeta,
@@ -640,12 +764,45 @@ class $AccountsTable extends Accounts
         ),
       );
     }
+    if (data.containsKey('is_pinned')) {
+      context.handle(
+        _isPinnedMeta,
+        isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta),
+      );
+    }
+    if (data.containsKey('is_default_income_account')) {
+      context.handle(
+        _isDefaultIncomeAccountMeta,
+        isDefaultIncomeAccount.isAcceptableOrUnknown(
+          data['is_default_income_account']!,
+          _isDefaultIncomeAccountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_default_expense_account')) {
+      context.handle(
+        _isDefaultExpenseAccountMeta,
+        isDefaultExpenseAccount.isAcceptableOrUnknown(
+          data['is_default_expense_account']!,
+          _isDefaultExpenseAccountMeta,
+        ),
+      );
+    }
     if (data.containsKey('credit_limit')) {
       context.handle(
         _creditLimitMeta,
         creditLimit.isAcceptableOrUnknown(
           data['credit_limit']!,
           _creditLimitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_debt_cents')) {
+      context.handle(
+        _initialDebtCentsMeta,
+        initialDebtCents.isAcceptableOrUnknown(
+          data['initial_debt_cents']!,
+          _initialDebtCentsMeta,
         ),
       );
     }
@@ -659,6 +816,27 @@ class $AccountsTable extends Accounts
       context.handle(
         _dueDayMeta,
         dueDay.isAcceptableOrUnknown(data['due_day']!, _dueDayMeta),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('counterparty_name')) {
+      context.handle(
+        _counterpartyNameMeta,
+        counterpartyName.isAcceptableOrUnknown(
+          data['counterparty_name']!,
+          _counterpartyNameMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -694,13 +872,39 @@ class $AccountsTable extends Accounts
           data['${effectivePrefix}type'],
         )!,
       ),
+      subType: $AccountsTable.$convertersubTypen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}sub_type'],
+        ),
+      ),
+      brandName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}brand_name'],
+      ),
       includeInNetWorth: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}include_in_net_worth'],
       )!,
+      isPinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_pinned'],
+      )!,
+      isDefaultIncomeAccount: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default_income_account'],
+      )!,
+      isDefaultExpenseAccount: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default_expense_account'],
+      )!,
       creditLimit: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}credit_limit'],
+      ),
+      initialDebtCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}initial_debt_cents'],
       ),
       billingDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -709,6 +913,18 @@ class $AccountsTable extends Accounts
       dueDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}due_day'],
+      ),
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      ),
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_date'],
+      ),
+      counterpartyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}counterparty_name'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -724,6 +940,10 @@ class $AccountsTable extends Accounts
 
   static JsonTypeConverter2<AccountType, String, String> $convertertype =
       const EnumNameConverter<AccountType>(AccountType.values);
+  static JsonTypeConverter2<AccountSubType, String, String> $convertersubType =
+      const EnumNameConverter<AccountSubType>(AccountSubType.values);
+  static JsonTypeConverter2<AccountSubType?, String?, String?>
+  $convertersubTypen = JsonTypeConverter2.asNullable($convertersubType);
 }
 
 class AccountEntry extends DataClass implements Insertable<AccountEntry> {
@@ -737,35 +957,66 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
   /// WHY: 金额一律用整数分存储,杜绝 double 浮点误差(0.1+0.2 问题)。
   final int balanceCents;
 
-  /// 账户类型 — 6 种之一。
-  ///
-  /// Stage 1 已有 row 自动归类 'cash'(withDefault)。
+  /// 账户类型 — 向下兼容旧 6 种(v6 起由 subType 派生,见 [AccountSubType.legacyType])。
   final AccountType type;
 
+  /// 账户子类型(v6 主模型,23 子类)。Nullable:v5 老数据 migration 回填。
+  final AccountSubType? subType;
+
+  /// 品牌/机构名(自定义子类用户填,如自定义银行名)。Nullable。
+  final String? brandName;
+
   /// 是否计入净资产。
-  ///
-  /// WHY: 理财类账户(已投入本金,未来收益未实现)通常不计入净资产,
-  /// 与现金流账户区分。Stage 5 净资产计算据此过滤。
   final bool includeInNetWorth;
 
-  /// 信用卡额度(分)。Nullable:仅 creditCard 类型有意义。
+  /// 特别关注账户 — 资产列表置顶(ADR-0026 §9)。
+  final bool isPinned;
+
+  /// 默认收账账户 — 收入未指定账户时自动关联(ADR-0026 §9)。
+  final bool isDefaultIncomeAccount;
+
+  /// 默认支出账户 — 支出未指定账户时自动关联(ADR-0026 §9)。
+  final bool isDefaultExpenseAccount;
+
+  /// 信用额度(分)。仅信用类账户有意义。
   final int? creditLimit;
 
-  /// 信用卡账单日(1-31)。Nullable:仅 creditCard 类型有意义。
+  /// 起始欠款(分)。信用类账户初始欠多少(ADR-0026 §11)。Nullable。
+  final int? initialDebtCents;
+
+  /// 出账日/账单日(1-31)。仅信用类账户有意义。
   final int? billingDay;
 
-  /// 信用卡还款日(1-31)。Nullable:仅 creditCard 类型有意义。
+  /// 还款日(1-31)。仅信用类账户有意义。
   final int? dueDay;
+
+  /// 起始时间 — 信用账户开始用卡时间 / 借贷借出借入日期(ADR-0026 §11/§12)。Nullable。
+  final DateTime? startDate;
+
+  /// 到期还款日期 — 借贷账户专用(具体日期,非月度 dueDay)。Nullable。
+  final DateTime? dueDate;
+
+  /// 借款人姓名 — 借贷账户专用(借给谁/从谁借)。Nullable。占位符规则见 CLAUDE §5。
+  final String? counterpartyName;
   final DateTime createdAt;
   const AccountEntry({
     required this.id,
     required this.name,
     required this.balanceCents,
     required this.type,
+    this.subType,
+    this.brandName,
     required this.includeInNetWorth,
+    required this.isPinned,
+    required this.isDefaultIncomeAccount,
+    required this.isDefaultExpenseAccount,
     this.creditLimit,
+    this.initialDebtCents,
     this.billingDay,
     this.dueDay,
+    this.startDate,
+    this.dueDate,
+    this.counterpartyName,
     required this.createdAt,
   });
   @override
@@ -777,15 +1028,38 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     {
       map['type'] = Variable<String>($AccountsTable.$convertertype.toSql(type));
     }
+    if (!nullToAbsent || subType != null) {
+      map['sub_type'] = Variable<String>(
+        $AccountsTable.$convertersubTypen.toSql(subType),
+      );
+    }
+    if (!nullToAbsent || brandName != null) {
+      map['brand_name'] = Variable<String>(brandName);
+    }
     map['include_in_net_worth'] = Variable<bool>(includeInNetWorth);
+    map['is_pinned'] = Variable<bool>(isPinned);
+    map['is_default_income_account'] = Variable<bool>(isDefaultIncomeAccount);
+    map['is_default_expense_account'] = Variable<bool>(isDefaultExpenseAccount);
     if (!nullToAbsent || creditLimit != null) {
       map['credit_limit'] = Variable<int>(creditLimit);
+    }
+    if (!nullToAbsent || initialDebtCents != null) {
+      map['initial_debt_cents'] = Variable<int>(initialDebtCents);
     }
     if (!nullToAbsent || billingDay != null) {
       map['billing_day'] = Variable<int>(billingDay);
     }
     if (!nullToAbsent || dueDay != null) {
       map['due_day'] = Variable<int>(dueDay);
+    }
+    if (!nullToAbsent || startDate != null) {
+      map['start_date'] = Variable<DateTime>(startDate);
+    }
+    if (!nullToAbsent || dueDate != null) {
+      map['due_date'] = Variable<DateTime>(dueDate);
+    }
+    if (!nullToAbsent || counterpartyName != null) {
+      map['counterparty_name'] = Variable<String>(counterpartyName);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -797,16 +1071,37 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       name: Value(name),
       balanceCents: Value(balanceCents),
       type: Value(type),
+      subType: subType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subType),
+      brandName: brandName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(brandName),
       includeInNetWorth: Value(includeInNetWorth),
+      isPinned: Value(isPinned),
+      isDefaultIncomeAccount: Value(isDefaultIncomeAccount),
+      isDefaultExpenseAccount: Value(isDefaultExpenseAccount),
       creditLimit: creditLimit == null && nullToAbsent
           ? const Value.absent()
           : Value(creditLimit),
+      initialDebtCents: initialDebtCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialDebtCents),
       billingDay: billingDay == null && nullToAbsent
           ? const Value.absent()
           : Value(billingDay),
       dueDay: dueDay == null && nullToAbsent
           ? const Value.absent()
           : Value(dueDay),
+      startDate: startDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDate),
+      dueDate: dueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDate),
+      counterpartyName: counterpartyName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counterpartyName),
       createdAt: Value(createdAt),
     );
   }
@@ -823,10 +1118,25 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       type: $AccountsTable.$convertertype.fromJson(
         serializer.fromJson<String>(json['type']),
       ),
+      subType: $AccountsTable.$convertersubTypen.fromJson(
+        serializer.fromJson<String?>(json['subType']),
+      ),
+      brandName: serializer.fromJson<String?>(json['brandName']),
       includeInNetWorth: serializer.fromJson<bool>(json['includeInNetWorth']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
+      isDefaultIncomeAccount: serializer.fromJson<bool>(
+        json['isDefaultIncomeAccount'],
+      ),
+      isDefaultExpenseAccount: serializer.fromJson<bool>(
+        json['isDefaultExpenseAccount'],
+      ),
       creditLimit: serializer.fromJson<int?>(json['creditLimit']),
+      initialDebtCents: serializer.fromJson<int?>(json['initialDebtCents']),
       billingDay: serializer.fromJson<int?>(json['billingDay']),
       dueDay: serializer.fromJson<int?>(json['dueDay']),
+      startDate: serializer.fromJson<DateTime?>(json['startDate']),
+      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      counterpartyName: serializer.fromJson<String?>(json['counterpartyName']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -840,10 +1150,23 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       'type': serializer.toJson<String>(
         $AccountsTable.$convertertype.toJson(type),
       ),
+      'subType': serializer.toJson<String?>(
+        $AccountsTable.$convertersubTypen.toJson(subType),
+      ),
+      'brandName': serializer.toJson<String?>(brandName),
       'includeInNetWorth': serializer.toJson<bool>(includeInNetWorth),
+      'isPinned': serializer.toJson<bool>(isPinned),
+      'isDefaultIncomeAccount': serializer.toJson<bool>(isDefaultIncomeAccount),
+      'isDefaultExpenseAccount': serializer.toJson<bool>(
+        isDefaultExpenseAccount,
+      ),
       'creditLimit': serializer.toJson<int?>(creditLimit),
+      'initialDebtCents': serializer.toJson<int?>(initialDebtCents),
       'billingDay': serializer.toJson<int?>(billingDay),
       'dueDay': serializer.toJson<int?>(dueDay),
+      'startDate': serializer.toJson<DateTime?>(startDate),
+      'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'counterpartyName': serializer.toJson<String?>(counterpartyName),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -853,20 +1176,44 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     String? name,
     int? balanceCents,
     AccountType? type,
+    Value<AccountSubType?> subType = const Value.absent(),
+    Value<String?> brandName = const Value.absent(),
     bool? includeInNetWorth,
+    bool? isPinned,
+    bool? isDefaultIncomeAccount,
+    bool? isDefaultExpenseAccount,
     Value<int?> creditLimit = const Value.absent(),
+    Value<int?> initialDebtCents = const Value.absent(),
     Value<int?> billingDay = const Value.absent(),
     Value<int?> dueDay = const Value.absent(),
+    Value<DateTime?> startDate = const Value.absent(),
+    Value<DateTime?> dueDate = const Value.absent(),
+    Value<String?> counterpartyName = const Value.absent(),
     DateTime? createdAt,
   }) => AccountEntry(
     id: id ?? this.id,
     name: name ?? this.name,
     balanceCents: balanceCents ?? this.balanceCents,
     type: type ?? this.type,
+    subType: subType.present ? subType.value : this.subType,
+    brandName: brandName.present ? brandName.value : this.brandName,
     includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+    isPinned: isPinned ?? this.isPinned,
+    isDefaultIncomeAccount:
+        isDefaultIncomeAccount ?? this.isDefaultIncomeAccount,
+    isDefaultExpenseAccount:
+        isDefaultExpenseAccount ?? this.isDefaultExpenseAccount,
     creditLimit: creditLimit.present ? creditLimit.value : this.creditLimit,
+    initialDebtCents: initialDebtCents.present
+        ? initialDebtCents.value
+        : this.initialDebtCents,
     billingDay: billingDay.present ? billingDay.value : this.billingDay,
     dueDay: dueDay.present ? dueDay.value : this.dueDay,
+    startDate: startDate.present ? startDate.value : this.startDate,
+    dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    counterpartyName: counterpartyName.present
+        ? counterpartyName.value
+        : this.counterpartyName,
     createdAt: createdAt ?? this.createdAt,
   );
   AccountEntry copyWithCompanion(AccountsCompanion data) {
@@ -877,16 +1224,33 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           ? data.balanceCents.value
           : this.balanceCents,
       type: data.type.present ? data.type.value : this.type,
+      subType: data.subType.present ? data.subType.value : this.subType,
+      brandName: data.brandName.present ? data.brandName.value : this.brandName,
       includeInNetWorth: data.includeInNetWorth.present
           ? data.includeInNetWorth.value
           : this.includeInNetWorth,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
+      isDefaultIncomeAccount: data.isDefaultIncomeAccount.present
+          ? data.isDefaultIncomeAccount.value
+          : this.isDefaultIncomeAccount,
+      isDefaultExpenseAccount: data.isDefaultExpenseAccount.present
+          ? data.isDefaultExpenseAccount.value
+          : this.isDefaultExpenseAccount,
       creditLimit: data.creditLimit.present
           ? data.creditLimit.value
           : this.creditLimit,
+      initialDebtCents: data.initialDebtCents.present
+          ? data.initialDebtCents.value
+          : this.initialDebtCents,
       billingDay: data.billingDay.present
           ? data.billingDay.value
           : this.billingDay,
       dueDay: data.dueDay.present ? data.dueDay.value : this.dueDay,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      counterpartyName: data.counterpartyName.present
+          ? data.counterpartyName.value
+          : this.counterpartyName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -898,10 +1262,19 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           ..write('name: $name, ')
           ..write('balanceCents: $balanceCents, ')
           ..write('type: $type, ')
+          ..write('subType: $subType, ')
+          ..write('brandName: $brandName, ')
           ..write('includeInNetWorth: $includeInNetWorth, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('isDefaultIncomeAccount: $isDefaultIncomeAccount, ')
+          ..write('isDefaultExpenseAccount: $isDefaultExpenseAccount, ')
           ..write('creditLimit: $creditLimit, ')
+          ..write('initialDebtCents: $initialDebtCents, ')
           ..write('billingDay: $billingDay, ')
           ..write('dueDay: $dueDay, ')
+          ..write('startDate: $startDate, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('counterpartyName: $counterpartyName, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -913,10 +1286,19 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     name,
     balanceCents,
     type,
+    subType,
+    brandName,
     includeInNetWorth,
+    isPinned,
+    isDefaultIncomeAccount,
+    isDefaultExpenseAccount,
     creditLimit,
+    initialDebtCents,
     billingDay,
     dueDay,
+    startDate,
+    dueDate,
+    counterpartyName,
     createdAt,
   );
   @override
@@ -927,10 +1309,19 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           other.name == this.name &&
           other.balanceCents == this.balanceCents &&
           other.type == this.type &&
+          other.subType == this.subType &&
+          other.brandName == this.brandName &&
           other.includeInNetWorth == this.includeInNetWorth &&
+          other.isPinned == this.isPinned &&
+          other.isDefaultIncomeAccount == this.isDefaultIncomeAccount &&
+          other.isDefaultExpenseAccount == this.isDefaultExpenseAccount &&
           other.creditLimit == this.creditLimit &&
+          other.initialDebtCents == this.initialDebtCents &&
           other.billingDay == this.billingDay &&
           other.dueDay == this.dueDay &&
+          other.startDate == this.startDate &&
+          other.dueDate == this.dueDate &&
+          other.counterpartyName == this.counterpartyName &&
           other.createdAt == this.createdAt);
 }
 
@@ -939,20 +1330,38 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
   final Value<String> name;
   final Value<int> balanceCents;
   final Value<AccountType> type;
+  final Value<AccountSubType?> subType;
+  final Value<String?> brandName;
   final Value<bool> includeInNetWorth;
+  final Value<bool> isPinned;
+  final Value<bool> isDefaultIncomeAccount;
+  final Value<bool> isDefaultExpenseAccount;
   final Value<int?> creditLimit;
+  final Value<int?> initialDebtCents;
   final Value<int?> billingDay;
   final Value<int?> dueDay;
+  final Value<DateTime?> startDate;
+  final Value<DateTime?> dueDate;
+  final Value<String?> counterpartyName;
   final Value<DateTime> createdAt;
   const AccountsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.balanceCents = const Value.absent(),
     this.type = const Value.absent(),
+    this.subType = const Value.absent(),
+    this.brandName = const Value.absent(),
     this.includeInNetWorth = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.isDefaultIncomeAccount = const Value.absent(),
+    this.isDefaultExpenseAccount = const Value.absent(),
     this.creditLimit = const Value.absent(),
+    this.initialDebtCents = const Value.absent(),
     this.billingDay = const Value.absent(),
     this.dueDay = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.counterpartyName = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   AccountsCompanion.insert({
@@ -960,10 +1369,19 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     required String name,
     this.balanceCents = const Value.absent(),
     this.type = const Value.absent(),
+    this.subType = const Value.absent(),
+    this.brandName = const Value.absent(),
     this.includeInNetWorth = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.isDefaultIncomeAccount = const Value.absent(),
+    this.isDefaultExpenseAccount = const Value.absent(),
     this.creditLimit = const Value.absent(),
+    this.initialDebtCents = const Value.absent(),
     this.billingDay = const Value.absent(),
     this.dueDay = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.counterpartyName = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<AccountEntry> custom({
@@ -971,10 +1389,19 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     Expression<String>? name,
     Expression<int>? balanceCents,
     Expression<String>? type,
+    Expression<String>? subType,
+    Expression<String>? brandName,
     Expression<bool>? includeInNetWorth,
+    Expression<bool>? isPinned,
+    Expression<bool>? isDefaultIncomeAccount,
+    Expression<bool>? isDefaultExpenseAccount,
     Expression<int>? creditLimit,
+    Expression<int>? initialDebtCents,
     Expression<int>? billingDay,
     Expression<int>? dueDay,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? dueDate,
+    Expression<String>? counterpartyName,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -982,10 +1409,21 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
       if (name != null) 'name': name,
       if (balanceCents != null) 'balance_cents': balanceCents,
       if (type != null) 'type': type,
+      if (subType != null) 'sub_type': subType,
+      if (brandName != null) 'brand_name': brandName,
       if (includeInNetWorth != null) 'include_in_net_worth': includeInNetWorth,
+      if (isPinned != null) 'is_pinned': isPinned,
+      if (isDefaultIncomeAccount != null)
+        'is_default_income_account': isDefaultIncomeAccount,
+      if (isDefaultExpenseAccount != null)
+        'is_default_expense_account': isDefaultExpenseAccount,
       if (creditLimit != null) 'credit_limit': creditLimit,
+      if (initialDebtCents != null) 'initial_debt_cents': initialDebtCents,
       if (billingDay != null) 'billing_day': billingDay,
       if (dueDay != null) 'due_day': dueDay,
+      if (startDate != null) 'start_date': startDate,
+      if (dueDate != null) 'due_date': dueDate,
+      if (counterpartyName != null) 'counterparty_name': counterpartyName,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -995,10 +1433,19 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     Value<String>? name,
     Value<int>? balanceCents,
     Value<AccountType>? type,
+    Value<AccountSubType?>? subType,
+    Value<String?>? brandName,
     Value<bool>? includeInNetWorth,
+    Value<bool>? isPinned,
+    Value<bool>? isDefaultIncomeAccount,
+    Value<bool>? isDefaultExpenseAccount,
     Value<int?>? creditLimit,
+    Value<int?>? initialDebtCents,
     Value<int?>? billingDay,
     Value<int?>? dueDay,
+    Value<DateTime?>? startDate,
+    Value<DateTime?>? dueDate,
+    Value<String?>? counterpartyName,
     Value<DateTime>? createdAt,
   }) {
     return AccountsCompanion(
@@ -1006,10 +1453,21 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
       name: name ?? this.name,
       balanceCents: balanceCents ?? this.balanceCents,
       type: type ?? this.type,
+      subType: subType ?? this.subType,
+      brandName: brandName ?? this.brandName,
       includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+      isPinned: isPinned ?? this.isPinned,
+      isDefaultIncomeAccount:
+          isDefaultIncomeAccount ?? this.isDefaultIncomeAccount,
+      isDefaultExpenseAccount:
+          isDefaultExpenseAccount ?? this.isDefaultExpenseAccount,
       creditLimit: creditLimit ?? this.creditLimit,
+      initialDebtCents: initialDebtCents ?? this.initialDebtCents,
       billingDay: billingDay ?? this.billingDay,
       dueDay: dueDay ?? this.dueDay,
+      startDate: startDate ?? this.startDate,
+      dueDate: dueDate ?? this.dueDate,
+      counterpartyName: counterpartyName ?? this.counterpartyName,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1031,17 +1489,50 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
         $AccountsTable.$convertertype.toSql(type.value),
       );
     }
+    if (subType.present) {
+      map['sub_type'] = Variable<String>(
+        $AccountsTable.$convertersubTypen.toSql(subType.value),
+      );
+    }
+    if (brandName.present) {
+      map['brand_name'] = Variable<String>(brandName.value);
+    }
     if (includeInNetWorth.present) {
       map['include_in_net_worth'] = Variable<bool>(includeInNetWorth.value);
     }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
+    if (isDefaultIncomeAccount.present) {
+      map['is_default_income_account'] = Variable<bool>(
+        isDefaultIncomeAccount.value,
+      );
+    }
+    if (isDefaultExpenseAccount.present) {
+      map['is_default_expense_account'] = Variable<bool>(
+        isDefaultExpenseAccount.value,
+      );
+    }
     if (creditLimit.present) {
       map['credit_limit'] = Variable<int>(creditLimit.value);
+    }
+    if (initialDebtCents.present) {
+      map['initial_debt_cents'] = Variable<int>(initialDebtCents.value);
     }
     if (billingDay.present) {
       map['billing_day'] = Variable<int>(billingDay.value);
     }
     if (dueDay.present) {
       map['due_day'] = Variable<int>(dueDay.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (counterpartyName.present) {
+      map['counterparty_name'] = Variable<String>(counterpartyName.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -1056,10 +1547,19 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
           ..write('name: $name, ')
           ..write('balanceCents: $balanceCents, ')
           ..write('type: $type, ')
+          ..write('subType: $subType, ')
+          ..write('brandName: $brandName, ')
           ..write('includeInNetWorth: $includeInNetWorth, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('isDefaultIncomeAccount: $isDefaultIncomeAccount, ')
+          ..write('isDefaultExpenseAccount: $isDefaultExpenseAccount, ')
           ..write('creditLimit: $creditLimit, ')
+          ..write('initialDebtCents: $initialDebtCents, ')
           ..write('billingDay: $billingDay, ')
           ..write('dueDay: $dueDay, ')
+          ..write('startDate: $startDate, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('counterpartyName: $counterpartyName, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2501,10 +3001,19 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required String name,
       Value<int> balanceCents,
       Value<AccountType> type,
+      Value<AccountSubType?> subType,
+      Value<String?> brandName,
       Value<bool> includeInNetWorth,
+      Value<bool> isPinned,
+      Value<bool> isDefaultIncomeAccount,
+      Value<bool> isDefaultExpenseAccount,
       Value<int?> creditLimit,
+      Value<int?> initialDebtCents,
       Value<int?> billingDay,
       Value<int?> dueDay,
+      Value<DateTime?> startDate,
+      Value<DateTime?> dueDate,
+      Value<String?> counterpartyName,
       Value<DateTime> createdAt,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -2513,10 +3022,19 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> balanceCents,
       Value<AccountType> type,
+      Value<AccountSubType?> subType,
+      Value<String?> brandName,
       Value<bool> includeInNetWorth,
+      Value<bool> isPinned,
+      Value<bool> isDefaultIncomeAccount,
+      Value<bool> isDefaultExpenseAccount,
       Value<int?> creditLimit,
+      Value<int?> initialDebtCents,
       Value<int?> billingDay,
       Value<int?> dueDay,
+      Value<DateTime?> startDate,
+      Value<DateTime?> dueDate,
+      Value<String?> counterpartyName,
       Value<DateTime> createdAt,
     });
 
@@ -2573,13 +3091,44 @@ class $$AccountsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
+  ColumnWithTypeConverterFilters<AccountSubType?, AccountSubType, String>
+  get subType => $composableBuilder(
+    column: $table.subType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get brandName => $composableBuilder(
+    column: $table.brandName,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get includeInNetWorth => $composableBuilder(
     column: $table.includeInNetWorth,
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefaultIncomeAccount => $composableBuilder(
+    column: $table.isDefaultIncomeAccount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefaultExpenseAccount => $composableBuilder(
+    column: $table.isDefaultExpenseAccount,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get creditLimit => $composableBuilder(
     column: $table.creditLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get initialDebtCents => $composableBuilder(
+    column: $table.initialDebtCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2590,6 +3139,21 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get dueDay => $composableBuilder(
     column: $table.dueDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2653,13 +3217,43 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get subType => $composableBuilder(
+    column: $table.subType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get brandName => $composableBuilder(
+    column: $table.brandName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get includeInNetWorth => $composableBuilder(
     column: $table.includeInNetWorth,
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefaultIncomeAccount => $composableBuilder(
+    column: $table.isDefaultIncomeAccount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefaultExpenseAccount => $composableBuilder(
+    column: $table.isDefaultExpenseAccount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get creditLimit => $composableBuilder(
     column: $table.creditLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get initialDebtCents => $composableBuilder(
+    column: $table.initialDebtCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2670,6 +3264,21 @@ class $$AccountsTableOrderingComposer
 
   ColumnOrderings<int> get dueDay => $composableBuilder(
     column: $table.dueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2702,13 +3311,37 @@ class $$AccountsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<AccountType, String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<AccountSubType?, String> get subType =>
+      $composableBuilder(column: $table.subType, builder: (column) => column);
+
+  GeneratedColumn<String> get brandName =>
+      $composableBuilder(column: $table.brandName, builder: (column) => column);
+
   GeneratedColumn<bool> get includeInNetWorth => $composableBuilder(
     column: $table.includeInNetWorth,
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefaultIncomeAccount => $composableBuilder(
+    column: $table.isDefaultIncomeAccount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDefaultExpenseAccount => $composableBuilder(
+    column: $table.isDefaultExpenseAccount,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get creditLimit => $composableBuilder(
     column: $table.creditLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get initialDebtCents => $composableBuilder(
+    column: $table.initialDebtCents,
     builder: (column) => column,
   );
 
@@ -2719,6 +3352,17 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<int> get dueDay =>
       $composableBuilder(column: $table.dueDay, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2781,20 +3425,38 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> balanceCents = const Value.absent(),
                 Value<AccountType> type = const Value.absent(),
+                Value<AccountSubType?> subType = const Value.absent(),
+                Value<String?> brandName = const Value.absent(),
                 Value<bool> includeInNetWorth = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+                Value<bool> isDefaultIncomeAccount = const Value.absent(),
+                Value<bool> isDefaultExpenseAccount = const Value.absent(),
                 Value<int?> creditLimit = const Value.absent(),
+                Value<int?> initialDebtCents = const Value.absent(),
                 Value<int?> billingDay = const Value.absent(),
                 Value<int?> dueDay = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> dueDate = const Value.absent(),
+                Value<String?> counterpartyName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
                 name: name,
                 balanceCents: balanceCents,
                 type: type,
+                subType: subType,
+                brandName: brandName,
                 includeInNetWorth: includeInNetWorth,
+                isPinned: isPinned,
+                isDefaultIncomeAccount: isDefaultIncomeAccount,
+                isDefaultExpenseAccount: isDefaultExpenseAccount,
                 creditLimit: creditLimit,
+                initialDebtCents: initialDebtCents,
                 billingDay: billingDay,
                 dueDay: dueDay,
+                startDate: startDate,
+                dueDate: dueDate,
+                counterpartyName: counterpartyName,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -2803,20 +3465,38 @@ class $$AccountsTableTableManager
                 required String name,
                 Value<int> balanceCents = const Value.absent(),
                 Value<AccountType> type = const Value.absent(),
+                Value<AccountSubType?> subType = const Value.absent(),
+                Value<String?> brandName = const Value.absent(),
                 Value<bool> includeInNetWorth = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+                Value<bool> isDefaultIncomeAccount = const Value.absent(),
+                Value<bool> isDefaultExpenseAccount = const Value.absent(),
                 Value<int?> creditLimit = const Value.absent(),
+                Value<int?> initialDebtCents = const Value.absent(),
                 Value<int?> billingDay = const Value.absent(),
                 Value<int?> dueDay = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> dueDate = const Value.absent(),
+                Value<String?> counterpartyName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
                 name: name,
                 balanceCents: balanceCents,
                 type: type,
+                subType: subType,
+                brandName: brandName,
                 includeInNetWorth: includeInNetWorth,
+                isPinned: isPinned,
+                isDefaultIncomeAccount: isDefaultIncomeAccount,
+                isDefaultExpenseAccount: isDefaultExpenseAccount,
                 creditLimit: creditLimit,
+                initialDebtCents: initialDebtCents,
                 billingDay: billingDay,
                 dueDay: dueDay,
+                startDate: startDate,
+                dueDate: dueDate,
+                counterpartyName: counterpartyName,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

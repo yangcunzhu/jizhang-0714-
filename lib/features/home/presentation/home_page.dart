@@ -6,10 +6,13 @@ import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
+import '../../account/presentation/widgets/account_edit_sheet.dart';
 import '../../category/presentation/category_template_page.dart';
 import '../../record/presentation/record_sheet.dart';
 import '../../repayment/application/repayment_form_provider.dart';
 import '../../repayment/presentation/repayment_sheet.dart';
+import '../../transfer/application/transfer_form_provider.dart';
+import '../../transfer/presentation/transfer_sheet.dart';
 import '../application/home_providers.dart';
 import 'home_page_keys.dart';
 import 'widgets/confetti_burst.dart';
@@ -25,20 +28,25 @@ import 'widgets/transaction_tile.dart';
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
-  /// 显示「+」聚合菜单(D20):记账 / 还款。
+  /// 显示「+」聚合菜单(ADR-0026):记账 / 转账 / 还款 / 借出 / 借入。
   ///
-  /// 还款入口仅当存在 ≥1 信用卡账户时显示,避免还款弹层打开后没卡可选。
-  /// WHY 异步:futureProvider 需要 watch,我们在菜单打开时 watch 一次,根据
-  /// 结果决定显示哪几项。
+  /// - 记账:任意时候可用
+  /// - 转账:需 ≥2 个可转账资金账户(否则无从转到)
+  /// - 还款:需 ≥1 欠款账户(信用卡/花呗/网贷),否则没卡可选
+  /// - 借出/借入:任意时候可用,路由到账户弹层预选借贷大类
   Future<void> _showPlusMenu(BuildContext context, WidgetRef ref) async {
-    final hasCreditCard = await ref
+    final hasDebt = await ref
         .read(debtAccountListProvider.future)
         .then((list) => list.isNotEmpty);
+    final canTransfer = await ref
+        .read(transferableAccountListProvider.future)
+        .then((list) => list.length >= 2);
 
     if (!context.mounted) return;
 
     final action = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -53,7 +61,15 @@ class HomePage extends ConsumerWidget {
               subtitle: const Text('选分类 / 输金额 / 选账户'),
               onTap: () => Navigator.pop(ctx, 'record'),
             ),
-            if (hasCreditCard)
+            if (canTransfer)
+              ListTile(
+                key: const Key('plus-menu-transfer'),
+                leading: const Text('🔄', style: TextStyle(fontSize: 24)),
+                title: const Text('转账'),
+                subtitle: const Text('资金账户之间转移'),
+                onTap: () => Navigator.pop(ctx, 'transfer'),
+              ),
+            if (hasDebt)
               ListTile(
                 key: const Key('plus-menu-repayment'),
                 leading: const Text('💳', style: TextStyle(fontSize: 24)),
@@ -61,6 +77,20 @@ class HomePage extends ConsumerWidget {
                 subtitle: const Text('储蓄 → 信用卡 还款'),
                 onTap: () => Navigator.pop(ctx, 'repayment'),
               ),
+            ListTile(
+              key: const Key('plus-menu-lend'),
+              leading: const Text('📤', style: TextStyle(fontSize: 24)),
+              title: const Text('借出'),
+              subtitle: const Text('借钱给别人(应收债权)'),
+              onTap: () => Navigator.pop(ctx, 'lend'),
+            ),
+            ListTile(
+              key: const Key('plus-menu-borrow'),
+              leading: const Text('📥', style: TextStyle(fontSize: 24)),
+              title: const Text('借入'),
+              subtitle: const Text('从别人借钱(应付债务)'),
+              onTap: () => Navigator.pop(ctx, 'borrow'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -68,13 +98,22 @@ class HomePage extends ConsumerWidget {
     );
 
     if (!context.mounted) return;
-    if (action == 'record') {
-      final saved = await showRecordSheet(context);
-      if (saved && context.mounted) {
-        ConfettiBurst.fire(context, originKey: recordFabKey);
-      }
-    } else if (action == 'repayment') {
-      await showRepaymentSheet(context);
+    switch (action) {
+      case 'record':
+        final saved = await showRecordSheet(context);
+        if (saved && context.mounted) {
+          ConfettiBurst.fire(context, originKey: recordFabKey);
+        }
+      case 'transfer':
+        await showTransferSheet(context);
+      case 'repayment':
+        await showRepaymentSheet(context);
+      case 'lend':
+        await AccountEditSheet.show(context,
+            initialSubType: AccountSubType.lendOut);
+      case 'borrow':
+        await AccountEditSheet.show(context,
+            initialSubType: AccountSubType.borrowIn);
     }
   }
 

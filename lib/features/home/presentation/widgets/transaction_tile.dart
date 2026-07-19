@@ -27,7 +27,11 @@ class TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = category != null ? Color(category!.colorValue) : Colors.grey;
     final isExpense = transaction.type == TransactionType.expense;
-    final sign = isExpense ? '-' : '+';
+    final isTransfer = transaction.type == TransactionType.transfer;
+    final sign = isTransfer ? '⇄ ' : (isExpense ? '-' : '+');
+    final amountColor = isTransfer
+        ? Colors.blueGrey[600]
+        : (isExpense ? Colors.red[700] : Colors.green[700]);
     final formatted = _formatYuan(transaction.amountCents);
     final dateLabel =
         DateFormat('MM-dd HH:mm').format(transaction.occurredAt);
@@ -79,7 +83,7 @@ class TransactionTile extends StatelessWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: isExpense ? Colors.red[700] : Colors.green[700],
+          color: amountColor,
         ),
       ),
       onLongPress: onLongPress,

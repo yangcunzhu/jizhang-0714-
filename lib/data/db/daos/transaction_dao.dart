@@ -67,6 +67,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         TransactionType.repayment => throw ArgumentError(
             'repayment 类型必须用 transferRepayment(双账户事务),不能用 insertTransaction',
           ),
+        TransactionType.transfer => throw ArgumentError(
+            'transfer 类型必须用 transferMoney(双账户事务),不能用 insertTransaction',
+          ),
       };
       debugPrint('[D19-DEBUG] 准备 _updateAccountBalance accountId=${entry.accountId.value} delta=$delta');
       await _updateAccountBalance(entry.accountId.value, delta);
@@ -193,7 +196,58 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  /// 更新账户余额(私有,所有 6 种账户类型通用)。
+  /// 转账(资金账户 → 资金账户,事务原子化)—— ADR-0026 §5。
+  ///
+  /// 语义(v4 §5):转账 = 两个普通账户间转移,双方平衡(区别于还款「抵消欠款」)。
+  /// - [fromAccountId].balanceCents -= amountCents(转出减少)
+  /// - [toAccountId].balanceCents   += amountCents(转入增加)
+  /// - 写 1 条 type=transfer transaction,引用「转账」分类(自动 seed)
+  ///
+  /// 3 类场景(铁律 8 — 边界必覆盖):
+  /// - **正常**:转出账户余额够 → 成功
+  /// - **异常(余额不足)**:from.balanceCents < amountCents → 抛 [StateError],回滚
+  /// - **边界(amount=0 / 同账户)**:amountCents <= 0 或 from==to → 抛 [ArgumentError]
+  Future<int> transferMoney({
+    required int fromAccountId,
+    required int toAccountId,
+    required int amountCents,
+    String? note,
+  }) async {
+    return transaction(() async {
+      if (amountCents <= 0) {
+        throw ArgumentError('转账金额必须 > 0(当前: $amountCents)');
+      }
+      if (fromAccountId == toAccountId) {
+        throw ArgumentError('转出账户和转入账户不能是同一个');
+      }
+      final from = await db.accountDao.getById(fromAccountId);
+      final to = await db.accountDao.getById(toAccountId);
+      if (from == null) throw StateError('转出账户不存在: $fromAccountId');
+      if (to == null) throw StateError('转入账户不存在: $toAccountId');
+      if (from.balanceCents < amountCents) {
+        throw StateError(
+          '转出账户余额不足: ${from.name} '
+          '(余额 ¥${_formatYuan(from.balanceCents)},转账额 ¥${_formatYuan(amountCents)})',
+        );
+      }
+
+      await _updateAccountBalance(fromAccountId, -amountCents);
+      await _updateAccountBalance(toAccountId, amountCents);
+
+      final categoryId = await _getOrCreateTransferCategoryId();
+      return await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: fromAccountId,
+          categoryId: categoryId,
+          type: TransactionType.transfer,
+          amountCents: amountCents,
+          note: Value(note ?? '转账到${to.name}'),
+        ),
+      );
+    });
+  }
+
+  /// 更新账户余额(私有,所有账户类型通用)。
   ///
   /// WHY: 单点维护余额更新逻辑,所有路径(insertTransaction / transferRepayment)
   /// 走同一套余额计算,避免逻辑分裂。
@@ -236,6 +290,25 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         colorValue: 4286470082, // 紫色 0xFF7E57C2,colorValue 无 default,直接传 int
         type: TransactionType.expense,
         sortOrder: const Value(10),
+      ),
+    );
+  }
+
+  /// 获取或创建「转账」分类 ID(私有,首次转账时自动 seed)。
+  ///
+  /// name='转账' + icon='🔄' + type=transfer + 蓝色 0xFF42A5F5(4282549237)。
+  Future<int> _getOrCreateTransferCategoryId() async {
+    final allCategories = await db.categoryDao.getAll();
+    final existing = allCategories.where((c) => c.name == '转账');
+    if (existing.isNotEmpty) return existing.first.id;
+
+    return await db.categoryDao.insertCategory(
+      CategoriesCompanion.insert(
+        name: '转账',
+        iconName: '🔄',
+        colorValue: 4282549237, // 蓝色 0xFF42A5F5
+        type: TransactionType.transfer,
+        sortOrder: const Value(11),
       ),
     );
   }
