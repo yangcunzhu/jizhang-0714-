@@ -1,7 +1,7 @@
 // Schema migration v5 → v6 测试(Stage 3 — ADR-0026)。
 //
 // 验证:
-// - schemaVersion = 6
+// - schemaVersion = 7(累计升级后当前版本)
 // - accounts 表新增 9 列(subType / brandName / isPinned /
 //   isDefaultIncomeAccount / isDefaultExpenseAccount / initialDebtCents /
 //   startDate / dueDate / counterpartyName)
@@ -31,8 +31,8 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion = 6', () {
-      expect(db.schemaVersion, 6);
+    test('schemaVersion = 7(累计升级)', () {
+      expect(db.schemaVersion, 7);
     });
 
     test('fresh install 默认现金账户 subType = cash', () async {

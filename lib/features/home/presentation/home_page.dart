@@ -6,8 +6,9 @@ import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
 import '../../account/presentation/account_management_page.dart';
-import '../../account/presentation/widgets/account_edit_sheet.dart';
+import '../../borrow/presentation/borrow_record_page.dart';
 import '../../category/presentation/category_template_page.dart';
+import '../../lend/presentation/lend_record_page.dart';
 import '../../record/presentation/record_sheet.dart';
 import '../../repayment/application/repayment_form_provider.dart';
 import '../../repayment/presentation/repayment_sheet.dart';
@@ -109,11 +110,17 @@ class HomePage extends ConsumerWidget {
       case 'repayment':
         await showRepaymentSheet(context);
       case 'lend':
-        await AccountEditSheet.show(context,
-            initialSubType: AccountSubType.lendOut);
+        // D22 修复:借出独立全屏页面,非账户弹层(咔皮截图 §3.1)
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LendRecordPage()),
+        );
       case 'borrow':
-        await AccountEditSheet.show(context,
-            initialSubType: AccountSubType.borrowIn);
+        // D22 修复:借入独立全屏页面
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const BorrowRecordPage()),
+        );
     }
   }
 

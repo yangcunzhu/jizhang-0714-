@@ -1690,6 +1690,50 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _fromAccountIdMeta = const VerificationMeta(
+    'fromAccountId',
+  );
+  @override
+  late final GeneratedColumn<int> fromAccountId = GeneratedColumn<int>(
+    'from_account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _toAccountIdMeta = const VerificationMeta(
+    'toAccountId',
+  );
+  @override
+  late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
+    'to_account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _counterpartyNameMeta = const VerificationMeta(
+    'counterpartyName',
+  );
+  @override
+  late final GeneratedColumn<String> counterpartyName = GeneratedColumn<String>(
+    'counterparty_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1702,6 +1746,10 @@ class $TransactionsTable extends Transactions
     createdAt,
     updatedAt,
     installmentPeriod,
+    fromAccountId,
+    toAccountId,
+    counterpartyName,
+    startDate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1778,6 +1826,39 @@ class $TransactionsTable extends Transactions
         ),
       );
     }
+    if (data.containsKey('from_account_id')) {
+      context.handle(
+        _fromAccountIdMeta,
+        fromAccountId.isAcceptableOrUnknown(
+          data['from_account_id']!,
+          _fromAccountIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('to_account_id')) {
+      context.handle(
+        _toAccountIdMeta,
+        toAccountId.isAcceptableOrUnknown(
+          data['to_account_id']!,
+          _toAccountIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('counterparty_name')) {
+      context.handle(
+        _counterpartyNameMeta,
+        counterpartyName.isAcceptableOrUnknown(
+          data['counterparty_name']!,
+          _counterpartyNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    }
     return context;
   }
 
@@ -1829,6 +1910,22 @@ class $TransactionsTable extends Transactions
         DriftSqlType.int,
         data['${effectivePrefix}installment_period'],
       ),
+      fromAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}from_account_id'],
+      ),
+      toAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}to_account_id'],
+      ),
+      counterpartyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}counterparty_name'],
+      ),
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      ),
     );
   }
 
@@ -1878,6 +1975,34 @@ class TransactionEntry extends DataClass
   /// WHY: 网贷有「12 期 / 24 期 / 36 期」概念,记账流水需要记录,下游 S05 净资产
   /// / S07 AI 攒攒会基于此判断还款提醒是否值得。
   final int? installmentPeriod;
+
+  /// 扣款方账户 ID(v7 D22 + ADR-0026 借贷/转账增)。
+  ///
+  /// 用于 `transfer` / `lend`(资金方) / `repayment`(扣款方)。普通 expense/income 用
+  /// 主 [accountId] 即可,本字段 nullable 让现有数据无需 backfill。
+  ///
+  /// 外键策略:**不显式 references(Accounts, ...)** —— 避免 drift codegen 在 nullable
+  /// + FK 上出现「NOT NULL constraint failed」的迁移陷阱。FK 完整性由调用方保证
+  /// (DAO 的事务里先 insert 再 update)。
+  final int? fromAccountId;
+
+  /// 入款方账户 ID(v7 D22 + ADR-0026 借贷/转账/还款增)。
+  ///
+  /// 用于 `transfer`(入款)/ `borrow`(借入方)/ `repayment`(欠款方)/ `lend`(借出人)。
+  /// Nullable 让现有数据无需 backfill。
+  final int? toAccountId;
+
+  /// 借款对手方姓名(v7 D22 + ADR-0026 借贷增)。
+  ///
+  /// 借出 = 借款人(借给谁);借入 = 出借人(从谁借)。Nullable。
+  /// 存为冗余字段(账户表也有 counterpartyName,这里冗余便于 transaction 直接渲染)。
+  final String? counterpartyName;
+
+  /// 起始时间(借贷记账用,v7 D22 增)。
+  ///
+  /// 用户填借贷账户时输入的「起始时间」会作为该借贷 transaction 的 occurredAt,
+  /// 实现咔皮「该时间之前的记录不计入余额统计」语义。
+  final DateTime? startDate;
   const TransactionEntry({
     required this.id,
     required this.amountCents,
@@ -1889,6 +2014,10 @@ class TransactionEntry extends DataClass
     required this.createdAt,
     required this.updatedAt,
     this.installmentPeriod,
+    this.fromAccountId,
+    this.toAccountId,
+    this.counterpartyName,
+    this.startDate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1909,6 +2038,18 @@ class TransactionEntry extends DataClass
     if (!nullToAbsent || installmentPeriod != null) {
       map['installment_period'] = Variable<int>(installmentPeriod);
     }
+    if (!nullToAbsent || fromAccountId != null) {
+      map['from_account_id'] = Variable<int>(fromAccountId);
+    }
+    if (!nullToAbsent || toAccountId != null) {
+      map['to_account_id'] = Variable<int>(toAccountId);
+    }
+    if (!nullToAbsent || counterpartyName != null) {
+      map['counterparty_name'] = Variable<String>(counterpartyName);
+    }
+    if (!nullToAbsent || startDate != null) {
+      map['start_date'] = Variable<DateTime>(startDate);
+    }
     return map;
   }
 
@@ -1926,6 +2067,18 @@ class TransactionEntry extends DataClass
       installmentPeriod: installmentPeriod == null && nullToAbsent
           ? const Value.absent()
           : Value(installmentPeriod),
+      fromAccountId: fromAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromAccountId),
+      toAccountId: toAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAccountId),
+      counterpartyName: counterpartyName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counterpartyName),
+      startDate: startDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDate),
     );
   }
 
@@ -1947,6 +2100,10 @@ class TransactionEntry extends DataClass
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       installmentPeriod: serializer.fromJson<int?>(json['installmentPeriod']),
+      fromAccountId: serializer.fromJson<int?>(json['fromAccountId']),
+      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
+      counterpartyName: serializer.fromJson<String?>(json['counterpartyName']),
+      startDate: serializer.fromJson<DateTime?>(json['startDate']),
     );
   }
   @override
@@ -1965,6 +2122,10 @@ class TransactionEntry extends DataClass
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'installmentPeriod': serializer.toJson<int?>(installmentPeriod),
+      'fromAccountId': serializer.toJson<int?>(fromAccountId),
+      'toAccountId': serializer.toJson<int?>(toAccountId),
+      'counterpartyName': serializer.toJson<String?>(counterpartyName),
+      'startDate': serializer.toJson<DateTime?>(startDate),
     };
   }
 
@@ -1979,6 +2140,10 @@ class TransactionEntry extends DataClass
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<int?> installmentPeriod = const Value.absent(),
+    Value<int?> fromAccountId = const Value.absent(),
+    Value<int?> toAccountId = const Value.absent(),
+    Value<String?> counterpartyName = const Value.absent(),
+    Value<DateTime?> startDate = const Value.absent(),
   }) => TransactionEntry(
     id: id ?? this.id,
     amountCents: amountCents ?? this.amountCents,
@@ -1992,6 +2157,14 @@ class TransactionEntry extends DataClass
     installmentPeriod: installmentPeriod.present
         ? installmentPeriod.value
         : this.installmentPeriod,
+    fromAccountId: fromAccountId.present
+        ? fromAccountId.value
+        : this.fromAccountId,
+    toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
+    counterpartyName: counterpartyName.present
+        ? counterpartyName.value
+        : this.counterpartyName,
+    startDate: startDate.present ? startDate.value : this.startDate,
   );
   TransactionEntry copyWithCompanion(TransactionsCompanion data) {
     return TransactionEntry(
@@ -2013,6 +2186,16 @@ class TransactionEntry extends DataClass
       installmentPeriod: data.installmentPeriod.present
           ? data.installmentPeriod.value
           : this.installmentPeriod,
+      fromAccountId: data.fromAccountId.present
+          ? data.fromAccountId.value
+          : this.fromAccountId,
+      toAccountId: data.toAccountId.present
+          ? data.toAccountId.value
+          : this.toAccountId,
+      counterpartyName: data.counterpartyName.present
+          ? data.counterpartyName.value
+          : this.counterpartyName,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
     );
   }
 
@@ -2028,7 +2211,11 @@ class TransactionEntry extends DataClass
           ..write('occurredAt: $occurredAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('installmentPeriod: $installmentPeriod')
+          ..write('installmentPeriod: $installmentPeriod, ')
+          ..write('fromAccountId: $fromAccountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('counterpartyName: $counterpartyName, ')
+          ..write('startDate: $startDate')
           ..write(')'))
         .toString();
   }
@@ -2045,6 +2232,10 @@ class TransactionEntry extends DataClass
     createdAt,
     updatedAt,
     installmentPeriod,
+    fromAccountId,
+    toAccountId,
+    counterpartyName,
+    startDate,
   );
   @override
   bool operator ==(Object other) =>
@@ -2059,7 +2250,11 @@ class TransactionEntry extends DataClass
           other.occurredAt == this.occurredAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.installmentPeriod == this.installmentPeriod);
+          other.installmentPeriod == this.installmentPeriod &&
+          other.fromAccountId == this.fromAccountId &&
+          other.toAccountId == this.toAccountId &&
+          other.counterpartyName == this.counterpartyName &&
+          other.startDate == this.startDate);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
@@ -2073,6 +2268,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int?> installmentPeriod;
+  final Value<int?> fromAccountId;
+  final Value<int?> toAccountId;
+  final Value<String?> counterpartyName;
+  final Value<DateTime?> startDate;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.amountCents = const Value.absent(),
@@ -2084,6 +2283,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.installmentPeriod = const Value.absent(),
+    this.fromAccountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.counterpartyName = const Value.absent(),
+    this.startDate = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -2096,6 +2299,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.installmentPeriod = const Value.absent(),
+    this.fromAccountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.counterpartyName = const Value.absent(),
+    this.startDate = const Value.absent(),
   }) : amountCents = Value(amountCents),
        type = Value(type),
        categoryId = Value(categoryId),
@@ -2111,6 +2318,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? installmentPeriod,
+    Expression<int>? fromAccountId,
+    Expression<int>? toAccountId,
+    Expression<String>? counterpartyName,
+    Expression<DateTime>? startDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2123,6 +2334,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (installmentPeriod != null) 'installment_period': installmentPeriod,
+      if (fromAccountId != null) 'from_account_id': fromAccountId,
+      if (toAccountId != null) 'to_account_id': toAccountId,
+      if (counterpartyName != null) 'counterparty_name': counterpartyName,
+      if (startDate != null) 'start_date': startDate,
     });
   }
 
@@ -2137,6 +2352,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int?>? installmentPeriod,
+    Value<int?>? fromAccountId,
+    Value<int?>? toAccountId,
+    Value<String?>? counterpartyName,
+    Value<DateTime?>? startDate,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -2149,6 +2368,10 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       installmentPeriod: installmentPeriod ?? this.installmentPeriod,
+      fromAccountId: fromAccountId ?? this.fromAccountId,
+      toAccountId: toAccountId ?? this.toAccountId,
+      counterpartyName: counterpartyName ?? this.counterpartyName,
+      startDate: startDate ?? this.startDate,
     );
   }
 
@@ -2187,6 +2410,18 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     if (installmentPeriod.present) {
       map['installment_period'] = Variable<int>(installmentPeriod.value);
     }
+    if (fromAccountId.present) {
+      map['from_account_id'] = Variable<int>(fromAccountId.value);
+    }
+    if (toAccountId.present) {
+      map['to_account_id'] = Variable<int>(toAccountId.value);
+    }
+    if (counterpartyName.present) {
+      map['counterparty_name'] = Variable<String>(counterpartyName.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
     return map;
   }
 
@@ -2202,7 +2437,11 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
           ..write('occurredAt: $occurredAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('installmentPeriod: $installmentPeriod')
+          ..write('installmentPeriod: $installmentPeriod, ')
+          ..write('fromAccountId: $fromAccountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('counterpartyName: $counterpartyName, ')
+          ..write('startDate: $startDate')
           ..write(')'))
         .toString();
   }
@@ -3566,6 +3805,10 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int?> installmentPeriod,
+      Value<int?> fromAccountId,
+      Value<int?> toAccountId,
+      Value<String?> counterpartyName,
+      Value<DateTime?> startDate,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -3579,6 +3822,10 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int?> installmentPeriod,
+      Value<int?> fromAccountId,
+      Value<int?> toAccountId,
+      Value<String?> counterpartyName,
+      Value<DateTime?> startDate,
     });
 
 final class $$TransactionsTableReferences
@@ -3668,6 +3915,26 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<int> get installmentPeriod => $composableBuilder(
     column: $table.installmentPeriod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fromAccountId => $composableBuilder(
+    column: $table.fromAccountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get toAccountId => $composableBuilder(
+    column: $table.toAccountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3767,6 +4034,26 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get fromAccountId => $composableBuilder(
+    column: $table.fromAccountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get toAccountId => $composableBuilder(
+    column: $table.toAccountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3853,6 +4140,24 @@ class $$TransactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get fromAccountId => $composableBuilder(
+    column: $table.fromAccountId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get toAccountId => $composableBuilder(
+    column: $table.toAccountId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get counterpartyName => $composableBuilder(
+    column: $table.counterpartyName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3938,6 +4243,10 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int?> installmentPeriod = const Value.absent(),
+                Value<int?> fromAccountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<String?> counterpartyName = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 amountCents: amountCents,
@@ -3949,6 +4258,10 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 installmentPeriod: installmentPeriod,
+                fromAccountId: fromAccountId,
+                toAccountId: toAccountId,
+                counterpartyName: counterpartyName,
+                startDate: startDate,
               ),
           createCompanionCallback:
               ({
@@ -3962,6 +4275,10 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int?> installmentPeriod = const Value.absent(),
+                Value<int?> fromAccountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<String?> counterpartyName = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 amountCents: amountCents,
@@ -3973,6 +4290,10 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 installmentPeriod: installmentPeriod,
+                fromAccountId: fromAccountId,
+                toAccountId: toAccountId,
+                counterpartyName: counterpartyName,
+                startDate: startDate,
               ),
           withReferenceMapper: (p0) => p0
               .map(

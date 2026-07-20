@@ -70,6 +70,12 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         TransactionType.transfer => throw ArgumentError(
             'transfer 类型必须用 transferMoney(双账户事务),不能用 insertTransaction',
           ),
+        TransactionType.lend => throw ArgumentError(
+            'lend 类型必须用 lendMoney(双账户事务),不能用 insertTransaction',
+          ),
+        TransactionType.borrow => throw ArgumentError(
+            'borrow 类型必须用 borrowMoney(双账户事务),不能用 insertTransaction',
+          ),
       };
       debugPrint('[D19-DEBUG] 准备 _updateAccountBalance accountId=${entry.accountId.value} delta=$delta');
       await _updateAccountBalance(entry.accountId.value, delta);
@@ -247,6 +253,121 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  /// 借出(资金账户 → 借贷账户「借出」,事务原子化)—— ADR-0026 §12 落地(D22)。
+  ///
+  /// 语义:从资金方(扣款账户)转出,落到借出账户的应收债权。
+  /// - [fromAccountId].balanceCents -= amountCents(资金方钱少了)
+  /// - [toAccountId].balanceCents   += amountCents(借出账户应收债权增加)
+  /// - 写 1 条 type=lend transaction,引用「借出」分类(自动 seed),含 counterpartyName
+  ///
+  /// 3 类场景(铁律 8):
+  /// - 正常:扣款账户余额够 + 借出账户存在 → 成功
+  /// - 异常(余额不足):from.balanceCents < amount → StateError,回滚
+  /// - 边界:amount<=0 / 同账户 / 借出账户不是借贷类 → ArgumentError
+  Future<int> lendMoney({
+    required int fromAccountId,
+    required int toAccountId,
+    required int amountCents,
+    String? counterparty,
+    String? note,
+    DateTime? startDate,
+  }) async {
+    return transaction(() async {
+      if (amountCents <= 0) {
+        throw ArgumentError('借出金额必须 > 0(当前: $amountCents)');
+      }
+      if (fromAccountId == toAccountId) {
+        throw ArgumentError('资金账户和借出账户不能是同一个');
+      }
+      final from = await db.accountDao.getById(fromAccountId);
+      final to = await db.accountDao.getById(toAccountId);
+      if (from == null) throw StateError('资金账户不存在: $fromAccountId');
+      if (to == null) throw StateError('借出账户不存在: $toAccountId');
+      if (to.subType != AccountSubType.lendOut) {
+        throw ArgumentError(
+          '收款方必须是「借出」子类型: ${to.name}(实际: ${to.subType?.name ?? "null"})',
+        );
+      }
+      if (from.balanceCents < amountCents) {
+        throw StateError(
+          '资金账户余额不足: ${from.name}(余额 ¥${_formatYuan(from.balanceCents)},借出额 ¥${_formatYuan(amountCents)})',
+        );
+      }
+
+      await _updateAccountBalance(fromAccountId, -amountCents);
+      await _updateAccountBalance(toAccountId, amountCents);
+
+      final categoryId = await _getOrCreateLendCategoryId();
+      return await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: fromAccountId,
+          fromAccountId: Value(fromAccountId),
+          toAccountId: Value(toAccountId),
+          categoryId: categoryId,
+          type: TransactionType.lend,
+          amountCents: amountCents,
+          note: Value(note ?? '借出给${counterparty ?? "某人"}'),
+          counterpartyName: Value(counterparty),
+          startDate: Value(startDate),
+          occurredAt: Value(startDate ?? DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  /// 借入(借贷账户「借入」 → 资金账户,事务原子化)—— ADR-0026 §12。
+  ///
+  /// 语义:从借入账户(应付债务)增记,落到入款资金账户。
+  /// - [fromAccountId](借入).balanceCents += amountCents(负债增加)
+  /// - [toAccountId](入款).balanceCents   += amountCents(资金入账)
+  ///
+  /// WHY 双向加:咔皮截图「借入」语义是「我欠了一笔钱 → 钱到我某个账户」,所以
+  /// 借入账户和入款账户余额都 +amountCents(借入账户负债 +amount,入款账户钱 +amount)。
+  Future<int> borrowMoney({
+    required int fromAccountId,
+    required int toAccountId,
+    required int amountCents,
+    String? counterparty,
+    String? note,
+    DateTime? startDate,
+  }) async {
+    return transaction(() async {
+      if (amountCents <= 0) {
+        throw ArgumentError('借入金额必须 > 0(当前: $amountCents)');
+      }
+      if (fromAccountId == toAccountId) {
+        throw ArgumentError('借入账户和入款账户不能是同一个');
+      }
+      final from = await db.accountDao.getById(fromAccountId);
+      final to = await db.accountDao.getById(toAccountId);
+      if (from == null) throw StateError('借入账户不存在: $fromAccountId');
+      if (to == null) throw StateError('入款账户不存在: $toAccountId');
+      if (from.subType != AccountSubType.borrowIn) {
+        throw ArgumentError(
+          '来源方必须是「借入」子类型: ${from.name}(实际: ${from.subType?.name ?? "null"})',
+        );
+      }
+      final categoryId = await _getOrCreateBorrowCategoryId();
+      await _updateAccountBalance(fromAccountId, amountCents);
+      await _updateAccountBalance(toAccountId, amountCents);
+
+      return await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: toAccountId,
+          fromAccountId: Value(fromAccountId),
+          toAccountId: Value(toAccountId),
+          categoryId: categoryId,
+          type: TransactionType.borrow,
+          amountCents: amountCents,
+          note: Value(note ?? '从${counterparty ?? "某人"}借入'),
+          counterpartyName: Value(counterparty),
+          startDate: Value(startDate),
+          occurredAt: Value(startDate ?? DateTime.now()),
+        ),
+      );
+    });
+  }
+
   /// 更新账户余额(私有,所有账户类型通用)。
   ///
   /// WHY: 单点维护余额更新逻辑,所有路径(insertTransaction / transferRepayment)
@@ -290,6 +411,44 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         colorValue: 4286470082, // 紫色 0xFF7E57C2,colorValue 无 default,直接传 int
         type: TransactionType.expense,
         sortOrder: const Value(10),
+      ),
+    );
+  }
+
+  /// 获取或创建「借出」分类 ID(私有,首次借出时自动 seed)。
+  ///
+  /// name='借出' + icon='📤' + type=lend + 橙色 0xFFFF7043(4294739011)。
+  Future<int> _getOrCreateLendCategoryId() async {
+    final allCategories = await db.categoryDao.getAll();
+    final existing = allCategories.where((c) => c.name == '借出');
+    if (existing.isNotEmpty) return existing.first.id;
+
+    return await db.categoryDao.insertCategory(
+      CategoriesCompanion.insert(
+        name: '借出',
+        iconName: '📤',
+        colorValue: 4294739011,
+        type: TransactionType.lend,
+        sortOrder: const Value(12),
+      ),
+    );
+  }
+
+  /// 获取或创建「借入」分类 ID(私有,首次借入时自动 seed)。
+  ///
+  /// name='借入' + icon='📥' + type=borrow + 紫色 0xFFAB47BC(4293083836)。
+  Future<int> _getOrCreateBorrowCategoryId() async {
+    final allCategories = await db.categoryDao.getAll();
+    final existing = allCategories.where((c) => c.name == '借入');
+    if (existing.isNotEmpty) return existing.first.id;
+
+    return await db.categoryDao.insertCategory(
+      CategoriesCompanion.insert(
+        name: '借入',
+        iconName: '📥',
+        colorValue: 4293083836,
+        type: TransactionType.borrow,
+        sortOrder: const Value(13),
       ),
     );
   }

@@ -126,12 +126,13 @@ void main() {
       return AppDatabase.forTesting(NativeDatabase(File(dbPath)));
     }
 
-    test('schemaVersion = 6(累计升级:v4 repayment → v5 期数 → v6 账户模型)', () {
+    test('schemaVersion = 7(累计升级:v4 repayment → v5 期数 → v6 账户模型 → v7 借贷双账户)', () {
       // WHY: v3→v4 ADR-0021(repayment),v4→v5 ADR-0024(installment_period),
-      // v5→v6 ADR-0026(accounts 5 大类 × 23 子类模型)。验证当前 schemaVersion = 6。
+      // v5→v6 ADR-0026(accounts 5 大类 × 23 子类模型),
+      // v6→v7 D22 借贷 transactions 加 4 列。验证当前 schemaVersion = 7。
       final db = AppDatabase.forTesting(NativeDatabase.memory());
-      expect(db.schemaVersion, 6,
-          reason: 'ADR-0026:accounts 加 subType 主模型,版本升至 6');
+      expect(db.schemaVersion, 7,
+          reason: 'D22:transactions 加 fromAccountId/toAccountId 等 4 列,版本升至 7');
       db.close();
     });
 

@@ -317,6 +317,7 @@ class _AccountEditSheetState extends ConsumerState<AccountEditSheet> {
       initialDate: now,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (picked != null) onPicked(picked);
   }

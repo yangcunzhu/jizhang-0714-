@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../../data/db/database_provider.dart';
-import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
 
 /// 转账表单状态(ADR-0026 §5 — 资金账户 → 资金账户)。
@@ -102,21 +101,14 @@ final transferFormProvider =
   TransferFormController.new,
 );
 
-/// 转账可选账户 provider(资金 + 充值类,有余额可动的账户)。
+/// 转账可选账户 provider(D22 修正:全部账户类型)。
 ///
-/// WHY 只资金/充值:转账双方都是「有实际余额」的资产账户;信用/借贷不作为转账
-/// 对象(那是还款/借贷流)。理财类余额是市值,暂不参与转账(留后续)。
+/// WHY 不再过滤:用户反馈「每种都可以转账」(咔皮对标 v4 §3.1 转账是普通账户间
+/// 转移,实际场景涵盖储蓄↔信用卡还款外的灵活转账,例如股票赎回 → 储蓄)。
+/// 借贷类在转账弹层仍可被选,但提交时由 DAO 校验(toAccountId 必须存在即可,
+/// 余额联动语义由 [TransactionDao.transferMoney] 通用处理)。
 final transferableAccountListProvider =
     FutureProvider<List<AccountEntry>>((ref) async {
   final db = ref.watch(databaseProvider);
-  final all = await db.accountDao.getAll();
-  return all.where((a) {
-    final cat = a.subType?.category ??
-        switch (a.type) {
-          AccountType.cash || AccountType.savings => AccountCategory.fund,
-          AccountType.investment => AccountCategory.investment,
-          _ => AccountCategory.credit,
-        };
-    return cat == AccountCategory.fund || cat == AccountCategory.recharge;
-  }).toList();
+  return await db.accountDao.getAll();
 });

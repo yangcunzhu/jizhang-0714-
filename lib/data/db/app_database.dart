@@ -30,6 +30,8 @@ part 'app_database.g.dart';
 /// - v6 (Stage 3 ADR-0026):accounts 加 9 列(subType 主模型 + brandName + isPinned +
 ///   isDefaultIncome/ExpenseAccount + initialDebtCents + startDate + dueDate +
 ///   counterpartyName)+ 回填 subType from type — 5 大类 × 23 子类账户模型
+/// - v7 (Stage 3 D22 ADR-0026 借贷落地):transactions 加 5 列(fromAccountId /
+///   toAccountId / counterpartyName / startDate)+ TransactionType 加 lend / borrow — 双账户借出/借入全屏 UI 数据基础
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
   daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
@@ -41,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -122,6 +124,19 @@ class AppDatabase extends _$AppDatabase {
             "ELSE 'cash' END "
             "WHERE sub_type IS NULL",
           );
+        }
+        // Stage 3 → Stage 3 (D22):transactions 升级为支持借出/借入双账户转账
+        // (ADR-0026 §12 落地 — 借出/借入独立 UI + 双账户联动)。
+        //
+        // WHY: 之前 transactions 只有 accountId(主账户),借出/借入需要扣款方+入款方
+        // 双账户联动。Nullable 列让现有数据无需 backfill,老 expense/income/repayment/
+        // transfer 流水保留。from/to 在已有 transfer 流水里当时未存 → 不回填(已知
+        // 数据迁移缺口,S05 净资产报表需手动对账,记录在 daily)。
+        if (from < 7) {
+          await m.addColumn(transactions, transactions.fromAccountId);
+          await m.addColumn(transactions, transactions.toAccountId);
+          await m.addColumn(transactions, transactions.counterpartyName);
+          await m.addColumn(transactions, transactions.startDate);
         }
       },
       beforeOpen: (details) async {

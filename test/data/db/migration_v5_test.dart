@@ -1,7 +1,7 @@
 // Schema migration v4 → v5 测试(Stage 3 Day 20 + ADR-0024)。
 //
 // 验证:
-// - schemaVersion = 6(累计升级后当前版本)
+// - schemaVersion = 7(累计升级后当前版本)
 // - transactions 表新增 installmentPeriod 列(nullable)
 // - 新 repayment transaction 可写入 installment_period
 // - 旧 transaction 不丢(沿用 drift addColumn 行为,不需复杂模拟)
@@ -27,8 +27,8 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion = 6', () {
-      expect(db.schemaVersion, 6);
+    test('schemaVersion = 7', () {
+      expect(db.schemaVersion, 7);
     });
 
     test('全新建库 transactions 表有 installmentPeriod 列(默认 null)', () async {

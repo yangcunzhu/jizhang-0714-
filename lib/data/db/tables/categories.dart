@@ -8,7 +8,7 @@ import 'package:drift/drift.dart';
 ///
 /// 不可逆性:`repayment` 名称必须永不变更,下游月度还款总额统计依赖字符串匹配
 /// (见 ADR-0021 §「不可逆性」)。
-enum TransactionType { expense, income, repayment, transfer }
+enum TransactionType { expense, income, repayment, transfer, lend, borrow }
 
 /// 分类表:记账的一级分类(餐饮/交通/工资...)。
 ///
