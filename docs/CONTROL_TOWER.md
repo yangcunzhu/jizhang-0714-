@@ -126,7 +126,14 @@ Milestone v1.0.0 (MVP 上线)
 | 5 ADR 实施期 D25 | ✅ DONE | ADR-0029 借贷字段修补 + schema v8 整合 + 6 Medium IQA fix + 329 tests | `3b1fda8` `b02bd77` `2a5f3db` |
 | 5 ADR 实施期 D26 决策准备 | ✅ DONE | v4 §P0-05 接受 ADR-0030 + 删 D9 submitAsRefund + actions_sheet 改 2 action(假完成注释) | `6b1fd67` |
 | 5 ADR 实施期 D26 主体 | ✅ DONE | ADR-0030 退款 transaction 化 + ADR-0037 DRAFT + SSOT 治理 + DetailPage/RefundSheet/tile/grid 全套 + 337 tests | `ea893f6` |
-| D27 / D28 / D29 | 📋 待实施 | 24 分类完整 + toggle + 整合装机验 | (本表派生)|
+| 5 ADR 实施期 D26 IQA-fix | ✅ DONE | 4 真问题 + 6 治理/性能 + 8 polish + 342 tests | `63b99ef` |
+| 5 ADR 实施期 D26 CONTROL_TOWER 派生 | ✅ DONE | 主体状态更新 | `968dd5d` |
+| 5 ADR 实施期 D27 主体 | ✅ DONE | ADR-0031 + 0032 24 分类完整版 + schema v9 bump + rename S03 旧分类 + 8 测试文件对齐 | `ab99ffc` |
+| 5 ADR 实施期 D27 IQA-fix | ✅ DONE | onUpgrade 幂等(WHERE NOT EXISTS)+ S03 旧「娱乐/居住」rename + migration_v9_upgrade_test 5 用例 + 346 tests | `a88e47c` |
+| 5 ADR 实施期 D28 主体 | ✅ DONE | ADR-0033 toggle + StatisticsDao 5 方法 + 主页接入 + 记账弹层 chip + 详情页只读 + refund 自动 toggle=true + 352 tests | `71bb9e4` |
+| 5 ADR 实施期 D28 IQA-fix | ✅ DONE | 主页 _monthlyStatsProvider listener transactionListProvider + refund 锁 isRefundLocked + 8 测试补全 + 360 tests | `f5f5070` |
+| 5 ADR 实施期 D29 整合装机验 | 📋 **D29 ACTIVE** | 9 场景装机验清单已发(daily `2026-08-12.md`)+ ROA DRAFT 等用户回报 | (等 D29) |
+| S04 启动准备 | 📋 W5 启动 | ADR-0034/35/36 拍板 + S04-ledger-budget.md 6 天实施 | (W5 启动) |
 | v1.0.0 上线 | ❌ NOT_STARTED | - | - |
 
 ### Stage 3 D18-D22 进度
@@ -142,7 +149,9 @@ Milestone v1.0.0 (MVP 上线)
 | Day 25 | 2026-08-08 | ADR-0029 借贷字段修补 + schema v8 整合 + 6 Medium IQA fix | ✅ DONE | `3b1fda8` `b02bd77` `2a5f3db` |
 | Day 26 决策准备 | 2026-08-08 | v4 §P0-05 接受 ADR-0030 + D9 submitAsRefund 撤回 + actions_sheet 改 2 action | ✅ DONE | `6b1fd67` |
 | Day 26 主体 | 2026-08-09 | ADR-0030 退款 transaction 化 + ADR-0037 DRAFT + TransactionDetailPage/RefundSheet + 主页短按进详情 + 治理决策翻转(用户拍 Q3=B/Q4=α2/Q1/Q2) | ✅ DONE | `ea893f6` |
-| Day 27 / 28 / 29 | 2026-08-10 ~ 12 | 24 分类完整 + toggle + 整合装机验 | 📋 TODO | - |
+| Day 27 | 2026-08-10 | ADR-0031 + 0032 24 分类完整版 + schema v9 bump + rename S03 旧「娱乐/居住」+ migration_v9 幂等 + 8 测试文件对齐 | ✅ DONE | `ab99ffc` + `a88e47c` |
+| Day 28 | 2026-08-11 | ADR-0033 toggle + StatisticsDao 5 方法 + 主页接入 + 弹层 chip + 详情页只读 + refund 自动 toggle + 主页 invalidate 修 UX bug + refund 锁 isRefundLocked + 8 测试补全 | ✅ DONE | `71bb9e4` + `f5f5070` |
+| Day 29 | 2026-08-12 | **5 ADR 整合装机验 9 场景 + ROA DRAFT + 7 commits push 准备 + S04 启动** | 📋 **D29 ACTIVE** | (等用户装机回报) |
 
 > ⭐ **S03 全部完成,提前 1 天到 D23**(原计划 D24 ROA 签字)。Stage 3 = **ACCEPTED**,Stage 4 账本 & 预算 启动条件就位。
 
@@ -156,9 +165,9 @@ Milestone v1.0.0 (MVP 上线)
 
 ---
 
-## 5️⃣ 当前任务树(IQA-fix C-IQA-4 2026-08-09 重写)
+## 5️⃣ 当前任务树(D29 ACTIVE — 2026-08-12 重写)
 
-> **状态**:S03 ACCEPTED + 5 ADR 实施期 D25/D26 完成 + D27-D29 待做 + D29 整合装机验。
+> **状态**:**S03 ACCEPTED(2026-08-06)+ 5 ADR 实施期 D25/D26/D27/D28 全部 DONE(7 commits ahead of origin/main)+ D29 整合装机验 ACTIVE(等用户真机回报)**。
 > 本节为手写任务树(SSOT 派生一部分;actual commit 由 git log 派生)。
 
 ### 已完成 Task(Stage 3 — S03 ACCEPTED 2026-08-06)
@@ -170,41 +179,47 @@ Milestone v1.0.0 (MVP 上线)
 - T-S03-D22-01~04:借贷业务流程独立化 schema v7 + lendMoney/borrowMoney + Lend/BorrowRecordPage + 日期 locale + 转账去过滤 + 11 tests
 - T-S03-D23:真机装机验 3 项全过 + S03 ROA 签字 + 治理收尾(ADR-0028 + 9 文档同步 + 深度审计) + 65 张咔皮图整理
 
-### 已完成 Task(5 ADR 实施期 Day 25-26/5)
+### 已完成 Task(5 ADR 实施期 Day 25-28/5 — 全部 DONE)
 
-- T-D25:ADR-0029 借贷字段修补 + schema v8 整合(accounts +4 + transactions +6)+ 6 Medium IQA fix + 329 tests + commit `3b1fda8` `b02bd77` `2a5f3db`
-- T-D26 决策准备:refactor(s03) v4 §P0-05 接受 ADR-0030 + 删 D9 submitAsRefund + actions_sheet 改 2 action(假完成 IQA C7)+ commit `6b1fd67`
-- T-D26 主体:feat(s03) ADR-0030 退款 transaction 化 + TransactionDetailPage / RefundSheet / tile 视觉差异化 / actions_sheet isRefunded 一致 + 9 DAO + 4 widget tile + 1 migration = 337 tests + commit `ea893f6`
-- T-D26 派生:docs(control-tower) D26 主体状态更新 + commit `968dd5d`
-- T-D26 IQA-fix(本卡实施):真 BUG + 治理漏洞 + 性能 + 字面对齐 — 详见 commits 后续
+- **T-D25**:ADR-0029 借贷字段修补 + schema v8 整合(accounts +4 + transactions +6)+ 6 Medium IQA fix + 329 tests + commit `3b1fda8` `b02bd77` `2a5f3db`
+- **T-D26 决策准备**:refactor(s03) v4 §P0-05 接受 ADR-0030 + 删 D9 submitAsRefund + actions_sheet 改 2 action(假完成 IQA C7)+ commit `6b1fd67`
+- **T-D26 主体**:feat(s03) ADR-0030 退款 transaction 化 + TransactionDetailPage / RefundSheet / tile 视觉差异化 / actions_sheet isRefunded 一致 + 9 DAO + 4 widget tile + 1 migration = 337 tests + commit `ea893f6`
+- **T-D26 IQA-fix**:fix(s03) 4 真问题 + 6 治理/性能 + 8 polish + 342 tests + commit `63b99ef`
+- **T-D26 派生**:docs(control-tower) D26 主体状态更新 + commit `968dd5d`
+- **T-D27 主体**:feat(s03) ADR-0031 + 0032 24 分类完整版 + schema v9 bump + rename S03 旧「娱乐/居住」+ 8 测试文件对齐 + 337 tests + commit `ab99ffc`
+- **T-D27 IQA-fix**:fix(s03) onUpgrade 幂等(WHERE NOT EXISTS)+ S03 旧「娱乐/居住」rename + migration_v9_upgrade_test 5 用例 + 346 tests + commit `a88e47c`
+- **T-D28 主体**:feat(s03) ADR-0033 toggle + StatisticsDao 5 方法 + 主页接入 + 弹层 chip + 详情页只读 + refund 自动 toggle=true + 352 tests + commit `71bb9e4`
+- **T-D28 IQA-fix**:fix(s03) 主页 _monthlyStatsProvider listener transactionListProvider + refund 锁 isRefundLocked + 8 测试补全 + 360 tests + commit `f5f5070`
 
-### 当前活跃 Task(5 ADR 实施期 Day 27-29/5)
+### 当前活跃 Task(D29 整合装机验 — 等用户回报)
 
-- **T-D27(2026-08-10)**:ADR-0031 + 0032 收入 8 + 支出 16 seed
-  - [ ] DefaultIncomeTemplate 8 分类(seed)
-  - [ ] DefaultExpenseTemplate 16 分类(seed)
-  - [ ] **M4 必 skip DAO 自动 seed 的「退款」分类**(互斥路径避免重复创建)
-  - [ ] 迁移 rename 5 旧预设 → 8 新(收入)+ insert 10 新(支出)
-  - [ ] 记账弹层收入/支出 tab 全显示
-  - [ ] 16 分类小屏适配(GridLayout 4×4)
+- **T-D29(2026-08-12)**:5 ADR 整合装机验 + ROA + S04 启动
+  - [x] D25/D26/D27/D28 全部 code 集成(D29 装机验清单已发 `docs/daily/2026-08-12.md` 9 场景详细指引)
+  - [x] ROA 报告 DRAFT(`docs/validation/audit-S03-5adr-2026-08-12.md` — 等用户装机回报后签 ACCEPTED)
+  - [x] CONTROL_TOWER 派生更新(本卡)— 7 commits ahead of origin/main 等 push
+  - [ ] **iPhone 真机手验 9 场景 + 用户回报 PASS/FAIL** ⚠️ **等用户**
+    - 1-3:D25 借贷新建 + 借贷二次记账
+    - 4-6:D26 退款单笔 + 退款拆分 + 已退按钮全灰(IQA-fix 验证)
+    - 7:D27 24 分类完整版
+    - 8-9:D28 报销自动 invalidate + refund 锁(IQA-fix 关键验证)
+  - [ ] **7 commits 统一 push**(`ea893f6` + `968dd5d` + `63b99ef` + `ab99ffc` + `a88e47c` + `71bb9e4` + `f5f5070`)
+  - [ ] **S04 启动准备** ADR-0034/0035/0036 拍板 + S04-ledger-budget.md 6 天实施期 W5
 
-- **T-D28(2026-08-11)**:ADR-0033 交易 2 toggle + StatisticsDao
-  - [ ] StatisticsDao 新建,过滤 toggle
-  - [ ] 主页「+」记账弹层加 2 toggle chip
-  - [ ] 交易详情页 toggle 只读显示
-  - [ ] 定时记账同步支持 toggle
+### 已完成 Task(装机验回报后)
 
-- **T-D29(2026-08-12)**:整合 + 装机验 7 场景 + ROA 签字
-  - [ ] 5 ADR 全部代码完成后的整合(D25 + D26 + D27 + D28)
-  - [ ] iPhone 真机手验 7 场景:借出新建 / 借入新建 / 借贷二次记账 / 退款单笔 / 退款拆分 / ALREADY_REFUNDED 按钮灰 / toggle / 24 分类
-  - [ ] ROA 报告 + CONTROL_TOWER 派生 ACCEPTED
-  - [ ] S04 启动准备(ADR-0034/0035/0036)
+- (待)T-D29-装机验回报签字:7 commits push + ROA ACCEPTED 签字
+- (待)S04 W5 启动:ADR-0034 账本切换 UI + ADR-0035 预算模型 + ADR-0036 预算超额提醒 + ADR-0037 v1.1 评估
 
-### 装机验(D29 整合日执行)
+### 装机验(D29 整合日执行 — 等用户回报 9 场景 PASS/FAIL)
 
 - T-ROA-01:用户 iPhone 装 Runner.ipa(沿用 Stage 2 ROA 装机流程)
-- T-ROA-02:真机手验 7 场景(详 §5 D29 列表)
-- T-ROA-03:CONTROL_TOWER 更新 → Stage 3 = ACCEPTED + 5 ADR 实施期 = ACCEPTED(场景全过后)
+- T-ROA-02:真机手验 **9 场景**(详 `docs/daily/2026-08-12.md` §装机验详细指引)
+  - 1-3:D25 借贷新建 + 借贷二次记账
+  - 4-6:D26 退款单笔 + 退款拆分 + 已退按钮全灰(IQA-fix C-IQA-1 验证)
+  - 7:D27 24 分类完整版
+  - 8-9:D28 报销自动 invalidate(IQA-fix C-IQA-D28-1)+ refund 锁(IQA-fix G-IQA-D28-6)
+- T-ROA-03:用户回报 PASS/FAIL + 截图(失败场景)→ 大副补 ROA + 修 bug + 重做
+- T-ROA-04:7 commits 统一 push → CONTROL_TOWER 派生 ACCEPTED + 启动 S04(W5)
 
 ### Stage 3 D21/D22 显式简化清单(铁律 8,合并自 D21/D22 daily)
 
