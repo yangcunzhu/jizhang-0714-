@@ -544,8 +544,13 @@
         <h4>账户 4 个 toggle(ADR-0026 §9)</h4>
         <p>v4 之前只说 1 个 toggle(<code>includeInNetWorth</code>)。实际是 <strong>4 个</strong>:<code>includeInNetWorth</code>(开) / <code>isPinned</code>(特别关注,置顶) / <code>isDefaultIncomeAccount</code>(默认收账) / <code>isDefaultExpenseAccount</code>(默认支出)。</p>
 
-        <h4>「退款」按钮 = 撤销最近一笔交易(ADR-0026 §9)</h4>
-        <p>咔皮图 10 显示「删除/退款」2 按钮。「退款」不是「撤销账户所有交易」,而是「<strong>撤销最近一笔关于该账户的交易</strong>」。需 transactionDao 新增 <code>reverseLastTransaction(accountId)</code> 方法。</p>
+        <h4>「退款」按钮 = 选中某笔交易生成 refund transaction(ADR-0030 supersede ADR-0026 §9 + v4 §P0-05)</h4>
+        <p>v4 之前定义「退款 = 撤销该账户最近一笔交易」(<code>reverseLastTransaction(accountId)</code>)。D23 用户补咔皮图 4 给出确切答案后,<strong>ADR-0030 重新定义为「选中某笔交易 → 生成新 refund transaction,保留原交易」</strong>。语义对比:</p>
+        <ul>
+            <li><strong>v4 / ADR-0026 §9(已废弃)</strong>:撤销最近一笔 → DAO <code>reverseLastTransaction(accountId)</code> → 入口:账户详情</li>
+            <li><strong>ADR-0030(2026-08-06 ACCEPTED,D26 实施)</strong>:选中某笔交易 → 生成新 refund transaction(type=refund + 关联交易引用) → 入口:交易详情页底部按钮</li>
+        </ul>
+        <p>实施要点(D26 范围):TransactionType 加 refund 枚举值 + refundMoney DAO + _getOrCreateRefundCategoryId(↩️ 蓝灰色)+ 新建 TransactionDetailPage + 主页 transaction_tile refund 视觉差异化(↩️ 标识 + 蓝灰底色)+ <strong>v1.0 只支持 expense 退款</strong>(repayment/lend/borrow 双账户退款模型不闭合,延后到 v1.1)+ 原交易重复退款 / 修改 / 删除保护(D9 现有反向插入路径撒退)。详 <code>docs/adr/0030-refund-transactionization.md</code>。</p>
 
         <h4>资产 vs 负债 分类(ADR-0026 §6)</h4>
         <p>v4 之前净资产只在 §22「净资产仪表盘」设计。但<strong>资产/负债分类要在 S02 就实现</strong>,否则后续没法算。净资产 = 资产 - 负债,显式拆分显示。</p>

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../../data/db/database_provider.dart';
-import '../../../data/db/tables/categories.dart';
 import '../../account/application/account_form_provider.dart';
 import 'haptics.dart';
 
@@ -266,58 +265,6 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
       ref.invalidate(accountListProvider);
       // 新建成功:50ms 短振(输入确认档 — 与"分类点击""数字点击"同一档)
       await Haptics.light();
-      return id;
-    } finally {
-      state = state.copyWith(isSubmitting: false);
-    }
-  }
-
-  /// 退款:以原交易的"反向"插入一笔新交易(方案 A — 见 Day 8 DRAFT)。
-  ///
-  /// 行为:
-  /// - amountCents 不变(表级 CHECK 要求 > 0,故不取负;靠 [type] 区分方向)
-  /// - category.type 反向:支出 → 收入,收入 → 支出
-  /// - note 自动加 "退款" 前缀(若原 note 非空)
-  /// - accountId 与原交易一致
-  /// - 100ms 长振反馈
-  ///
-  /// WHY: 不开新 ADR,方案 A 在 Stage 1 DRAFT 已对齐 — 简单、Drift schema 不改、
-  /// 审计轨迹清楚(原交易保留),Stage 3 信用卡退款沿用同模式。
-  Future<int> submitAsRefund(TransactionEntry original) async {
-    state = state.copyWith(isSubmitting: true);
-    try {
-      final db = ref.read(databaseProvider);
-      final cats = await db.categoryDao.getAll();
-      final originalCat = cats.firstWhere((c) => c.id == original.categoryId);
-      final reversedType = originalCat.type == TransactionType.expense
-          ? TransactionType.income
-          : TransactionType.expense;
-
-      // 找一个反向分类(优先同 sortOrder 段的第一个;Stage 1 简单取任意一个反向 cat)
-      final reverseCats =
-          cats.where((c) => c.type == reversedType).toList(growable: false);
-      if (reverseCats.isEmpty) {
-        throw StateError('退款失败:没有 ${reversedType.name} 类型的分类');
-      }
-      final reverseCat = reverseCats.first;
-
-      final refundNote = original.note.isEmpty
-          ? '退款'
-          : '退款 · ${original.note}';
-
-      final id = await db.transactionDao.insertTransaction(
-        TransactionsCompanion.insert(
-          amountCents: original.amountCents,
-          type: reversedType,
-          categoryId: reverseCat.id,
-          accountId: original.accountId,
-          note: Value(refundNote),
-        ),
-      );
-      // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
-      ref.invalidate(accountListProvider);
-      // 退款成功:100ms 长振(成功完成档)
-      await Haptics.heavy();
       return id;
     } finally {
       state = state.copyWith(isSubmitting: false);

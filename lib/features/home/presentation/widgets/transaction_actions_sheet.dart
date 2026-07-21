@@ -9,10 +9,12 @@ import 'confetti_burst.dart';
 
 /// 长按交易项弹出的 ActionSheet(Stage 1 Day 8)。
 ///
-/// 三个动作:
+/// 两个动作(D26 决策准备后 — 退款入口迁移到 TransactionDetailPage):
 ///   - 编辑:把当前交易反向填入 recordFormProvider,复用记账弹层(走 UPDATE 分支)
-///   - 退款:方案 A — 插入一笔反向类型的新交易,note 自动加 "退款" 前缀
 ///   - 删除:直接删除 + 100ms 长振反馈
+///
+/// 退款入口(D26 起):从 ActionSheet 移除,改为点击交易进入 TransactionDetailPage,
+/// 底部按钮「删除」+ 「退款」。遵循 ADR-0030 §决策 5 + IQA D4 决策。
 ///
 /// ADR-0014: 每个动作的 ListTile 都带 Key,Day 9 E2E 可 byKey 定位。
 class TransactionActionsSheet extends ConsumerWidget {
@@ -86,38 +88,6 @@ class TransactionActionsSheet extends ConsumerWidget {
               // 因为 pop 后旧 ref 已失效,notifier 引用可能指向已 dispose 的 provider。
               Navigator.of(context).pop();
               await showRecordSheet(context, editing: transaction);
-            },
-          ),
-          ListTile(
-            key: const Key('txn-action-refund'),
-            leading: Icon(Icons.replay_outlined, color: colorScheme.primary),
-            title: const Text('退款'),
-            subtitle: const Text('反向插入一笔(收入↔支出)'),
-            onTap: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(context);
-              try {
-                await notifier.submitAsRefund(transaction);
-                navigator.pop();
-                // Day 9:退款成功 → 从 FAB 位置发射攒攒动画(primary 色)
-                if (context.mounted) {
-                  ConfettiBurst.fire(
-                    context,
-                    originKey: recordFabKey,
-                    color: colorScheme.primary,
-                  );
-                }
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('已退款'),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('退款失败:$e')),
-                );
-              }
             },
           ),
           ListTile(

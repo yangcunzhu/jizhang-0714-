@@ -92,12 +92,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('交易操作'), findsOneWidget);
+      // D26 决策准备:退款入口已迁移到 TransactionDetailPage,ActionSheet 只剩 2 个 action
       expect(find.text('编辑'), findsOneWidget);
-      expect(find.text('退款'), findsOneWidget);
       expect(find.text('删除'), findsOneWidget);
       // Key 标注存在(ADR-0014)
       expect(find.byKey(const Key('txn-action-edit')), findsOneWidget);
-      expect(find.byKey(const Key('txn-action-refund')), findsOneWidget);
       expect(find.byKey(const Key('txn-action-delete')), findsOneWidget);
     });
 
@@ -160,109 +159,10 @@ void main() {
     });
   });
 
-  // ----- 退款 action -----
-
-  group('退款 action(方案 A)', () {
-    testWidgets('点"退款"→ 反向 insert 一笔 + SnackBar "已退款"',
-        (tester) async {
-      await bootContainer();
-      final id = await insertSampleExpense(amountCents: 1299, note: '咖啡');
-      final original = (await db.transactionDao.getById(id))!;
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(
-              body: TransactionActionsSheet(transaction: original),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      await tester.tap(find.byKey(const Key('txn-action-refund')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // 数据库:原 1 笔 + 退款 1 笔 = 2 笔
-      final all = await db.transactionDao.getAll();
-      expect(all, hasLength(2));
-      // 原交易不变
-      expect(all.where((t) => t.id == original.id), hasLength(1));
-      // 退款那笔:同金额、反向类型、反向分类、note 加 "退款" 前缀
-      final refund = all.firstWhere((t) => t.id != original.id);
-      expect(refund.amountCents, original.amountCents);
-      expect(refund.type, TransactionType.income);
-      expect(refund.accountId, original.accountId);
-      expect(refund.note, '退款 · 咖啡');
-      expect(find.text('已退款'), findsOneWidget);
-    });
-
-    testWidgets('收入交易退款 → 类型变支出 + note "退款"', (tester) async {
-      await bootContainer();
-      final cats = await db.categoryDao.getAll();
-      final incomeCat = cats.firstWhere((c) => c.type == TransactionType.income);
-      final id = await db.transactionDao.insertTransaction(
-        TransactionsCompanion.insert(
-          amountCents: 5000,
-          type: TransactionType.income,
-          categoryId: incomeCat.id,
-          accountId: acc.id,
-          note: const Value('工资'),
-        ),
-      );
-      final original = (await db.transactionDao.getById(id))!;
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(
-              body: TransactionActionsSheet(transaction: original),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      await tester.tap(find.byKey(const Key('txn-action-refund')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      final all = await db.transactionDao.getAll();
-      final refund = all.firstWhere((t) => t.id != original.id);
-      expect(refund.type, TransactionType.expense);
-      expect(refund.amountCents, 5000);
-      expect(refund.note, '退款 · 工资');
-    });
-
-    testWidgets('原交易 note 为空 → 退款 note 仅 "退款"', (tester) async {
-      await bootContainer();
-      final id = await insertSampleExpense(note: '');
-      final original = (await db.transactionDao.getById(id))!;
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(
-              body: TransactionActionsSheet(transaction: original),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      await tester.tap(find.byKey(const Key('txn-action-refund')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      final refund = (await db.transactionDao.getAll())
-          .firstWhere((t) => t.id != original.id);
-      expect(refund.note, '退款');
-    });
-  });
+  // D26 决策准备:删除 D9 退款 action 测试(2026-08-08)。
+  // D9 退款按钮已从 TransactionActionsSheet 移除(剩编辑/删除 2 选项),
+  // 退款入口改为点击交易进入 TransactionDetailPage + 底部退款按钮。
+  // D26 实施时补 D26 TransactionDetailPage + RefundSheet widget test,详 docs/daily/2026-08-09.md。
 
   // ----- 编辑 action -----
 

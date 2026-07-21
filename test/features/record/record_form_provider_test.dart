@@ -352,79 +352,9 @@ void main() {
     });
   });
 
-  group('RecordFormNotifier - 退款(submitAsRefund,方案 A)', () {
-    test('支出交易退款 → 反向插入一笔 + amountCents 不变 + 类型变 income',
-        () async {
-      final cats = await db.categoryDao.getAll();
-      final acc = await db.accountDao.getDefault();
-      final id = await db.transactionDao.insertTransaction(
-        TransactionsCompanion.insert(
-          amountCents: 1299,
-          type: TransactionType.expense,
-          categoryId: cats.first.id,
-          accountId: acc!.id,
-          note: const Value('咖啡'),
-        ),
-      );
-      final original = (await db.transactionDao.getById(id))!;
-
-      final notifier = container.read(recordFormProvider.notifier);
-      final refundId = await notifier.submitAsRefund(original);
-
-      expect(refundId, isNot(equals(id)));
-      final all = await db.transactionDao.getAll();
-      expect(all, hasLength(2));
-      final refund = all.firstWhere((t) => t.id == refundId);
-      expect(refund.amountCents, original.amountCents);
-      expect(refund.type, TransactionType.income);
-      expect(refund.accountId, original.accountId);
-      expect(refund.note, '退款 · 咖啡');
-      expect(refund.categoryId, isNot(equals(original.categoryId)));
-    });
-
-    test('收入交易退款 → 类型变 expense + note 加 "退款"', () async {
-      final cats = await db.categoryDao.getAll();
-      final acc = await db.accountDao.getDefault();
-      final incomeCat =
-          cats.firstWhere((c) => c.type == TransactionType.income);
-      final id = await db.transactionDao.insertTransaction(
-        TransactionsCompanion.insert(
-          amountCents: 5000,
-          type: TransactionType.income,
-          categoryId: incomeCat.id,
-          accountId: acc!.id,
-          note: const Value('工资'),
-        ),
-      );
-      final original = (await db.transactionDao.getById(id))!;
-
-      final notifier = container.read(recordFormProvider.notifier);
-      final refundId = await notifier.submitAsRefund(original);
-
-      final refund = (await db.transactionDao.getById(refundId))!;
-      expect(refund.type, TransactionType.expense);
-      expect(refund.amountCents, 5000);
-      expect(refund.note, '退款 · 工资');
-    });
-
-    test('原 note 为空 → 退款 note 仅 "退款"', () async {
-      final cats = await db.categoryDao.getAll();
-      final acc = await db.accountDao.getDefault();
-      final id = await db.transactionDao.insertTransaction(
-        TransactionsCompanion.insert(
-          amountCents: 500,
-          type: TransactionType.expense,
-          categoryId: cats.first.id,
-          accountId: acc!.id,
-        ),
-      );
-      final original = (await db.transactionDao.getById(id))!;
-      final notifier = container.read(recordFormProvider.notifier);
-      final refundId = await notifier.submitAsRefund(original);
-      final refund = (await db.transactionDao.getById(refundId))!;
-      expect(refund.note, '退款');
-    });
-  });
+  // D26 决策准备:删除 D9 submitAsRefund 测试(2026-08-08)。
+  // D9 退款路径(反向插入 expense↔income)已退役,统一走 ADR-0030 的 refundMoney DAO。
+  // D26 实施时(D26 commit)补 D26 refundMoney 测试,详 docs/daily/2026-08-09.md。
 
   group('RecordFormNotifier - 删除(deleteTransaction)', () {
     test('deleteTransaction 删除一行 + 返回 1', () async {
