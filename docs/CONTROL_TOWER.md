@@ -123,6 +123,10 @@ Milestone v1.0.0 (MVP 上线)
 | Stage 3 D21 | ✅ DONE | 5 大类 × 23 子类 schema v6 + 转账流 + 主页 5 入口聚合菜单 + 26 tests | `ce11073` |
 | Stage 3 D22 | ✅ DONE | 借贷业务流程独立化(schema v7 + lendMoney/borrowMoney + Lend/BorrowRecordPage)+ 日期 locale + 转账去过滤 + 11 tests | `6888552` |
 | Stage 3 ROA | ✅ ACCEPTED | 装机验 3 项全过 + 治理收尾 + 65 张图整理 + 8 ADR(0021-0028) | 2026-08-06 |
+| 5 ADR 实施期 D25 | ✅ DONE | ADR-0029 借贷字段修补 + schema v8 整合 + 6 Medium IQA fix + 329 tests | `3b1fda8` `b02bd77` `2a5f3db` |
+| 5 ADR 实施期 D26 决策准备 | ✅ DONE | v4 §P0-05 接受 ADR-0030 + 删 D9 submitAsRefund + actions_sheet 改 2 action(假完成注释) | `6b1fd67` |
+| 5 ADR 实施期 D26 主体 | ✅ DONE | ADR-0030 退款 transaction 化 + ADR-0037 DRAFT + SSOT 治理 + DetailPage/RefundSheet/tile/grid 全套 + 337 tests | `ea893f6` |
+| D27 / D28 / D29 | 📋 待实施 | 24 分类完整 + toggle + 整合装机验 | (本表派生)|
 | v1.0.0 上线 | ❌ NOT_STARTED | - | - |
 
 ### Stage 3 D18-D22 进度
@@ -135,6 +139,10 @@ Milestone v1.0.0 (MVP 上线)
 | Day 21 | 2026-08-04 | 5 大类 × 23 子类 schema v6 + transferMoney + 主页 5 入口聚合菜单 + 26 tests | ✅ DONE | `ce11073` |
 | Day 22 | 2026-08-05 | 借贷业务流程独立化 schema v7 + lendMoney/borrowMoney + Lend/BorrowRecordPage + 日期 locale(pubspec §11 例外)+ 转账去过滤 + 11 tests | ✅ DONE | `6888552` |
 | Day 23 | 2026-08-06 | **真机装机验 3 项全过(用户回报) + S03 ROA 签字 + 治理收尾(ADR-0028 + 9 文档同步 + 深度审计) + 65 张咔皮图整理** | ✅ **DONE** | (本会话派生)|
+| Day 25 | 2026-08-08 | ADR-0029 借贷字段修补 + schema v8 整合 + 6 Medium IQA fix | ✅ DONE | `3b1fda8` `b02bd77` `2a5f3db` |
+| Day 26 决策准备 | 2026-08-08 | v4 §P0-05 接受 ADR-0030 + D9 submitAsRefund 撤回 + actions_sheet 改 2 action | ✅ DONE | `6b1fd67` |
+| Day 26 主体 | 2026-08-09 | ADR-0030 退款 transaction 化 + ADR-0037 DRAFT + TransactionDetailPage/RefundSheet + 主页短按进详情 + 治理决策翻转(用户拍 Q3=B/Q4=α2/Q1/Q2) | ✅ DONE | `ea893f6` |
+| Day 27 / 28 / 29 | 2026-08-10 ~ 12 | 24 分类完整 + toggle + 整合装机验 | 📋 TODO | - |
 
 > ⭐ **S03 全部完成,提前 1 天到 D23**(原计划 D24 ROA 签字)。Stage 3 = **ACCEPTED**,Stage 4 账本 & 预算 启动条件就位。
 
@@ -372,6 +380,7 @@ W8 (9/2-9/9)    [▱▱▱▱▱▱▱] Stage 7+8 - 攒攒 + 上线
 
 ---
 
-**最后更新**:2026-08-06(S03 ROA 签字 + ACCEPTED + D23 daily + 8 文档同步 + 65 张图整理)
-**下次更新**:S04 启动前(8 个 ADR 0029-0036 拍板后,改写 §3 §5 授权边界)
+**最后更新**:2026-08-09(D26 退款 transaction 化主体完成 + ADR-0037 DRAFT + SSOT 治理 + 5 ADR 实施期 D25/D26 状态同步)
+**下次更新**:S04 启动前(D29 整合装机验回报 + ADR-0034/0035/0036 拍板 + 改写 §3 §5 授权边界)
 **维护原则**:状态变化时更新,不要为了好看而改写历史
+**派生依据补充**:`git log --oneline -5` 最新 `ea893f6`(D26 主体);`test/` 337 tests;D26 衍生 ADR-0037 DRAFT;v4 §P0-05 字面已对 ADR-0030 §决策 3 修订,SSOT 一致。
