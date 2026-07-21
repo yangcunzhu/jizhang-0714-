@@ -94,7 +94,7 @@ class Transactions extends Table {
   ///
   /// 与 [startDate] 语义重叠(都是借贷 transaction 的起始日期),保留为 ADR-0029
   /// §决策 3 字面字段名。DAO 暂用 [startDate],本字段留给 D26+ 评估合并。
-  /// TODO(D24+):评估与 [startDate] 合并。
+  /// TODO(D26+):评估与 [startDate] 合并。
   DateTimeColumn get lendStartDate => dateTime().nullable()();
 
   /// 借出 transaction 的收款日期 / 借入 transaction 的还款日期(v8 D25 ADR-0029 加)。

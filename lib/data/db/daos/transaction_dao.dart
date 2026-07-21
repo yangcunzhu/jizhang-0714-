@@ -315,7 +315,10 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           // D25 ADR-0029:借出/收款 transaction 日期(transaction 表)
           lendStartDate: Value(lendStartDate),
           lendEndDate: Value(lendEndDate),
-          occurredAt: Value(startDate ?? DateTime.now()),
+          // D25 IQA L5 修复:occurredAt 优先用 lendStartDate(transaction 真日期),
+          // 让主页交易列表按交易发生日期排序;fallback 到 startDate/now。
+          occurredAt:
+              Value(lendStartDate ?? startDate ?? DateTime.now()),
         ),
       );
     });
@@ -374,7 +377,10 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           // D25 ADR-0029:借入/还款 transaction 日期(transaction 表)
           lendStartDate: Value(lendStartDate),
           lendEndDate: Value(lendEndDate),
-          occurredAt: Value(startDate ?? DateTime.now()),
+          // D25 IQA L5 修复:occurredAt 优先用 lendStartDate(transaction 真日期),
+          // 让主页交易列表按交易发生日期排序;fallback 到 startDate/now。
+          occurredAt:
+              Value(lendStartDate ?? startDate ?? DateTime.now()),
         ),
       );
     });

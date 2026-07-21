@@ -32,13 +32,13 @@ part 'app_database.g.dart';
 ///   counterpartyName)+ 回填 subType from type — 5 大类 × 23 子类账户模型
 /// - v7 (Stage 3 D22 ADR-0026 借贷落地):transactions 加 5 列(fromAccountId /
 ///   toAccountId / counterpartyName / startDate)+ TransactionType 加 lend / borrow — 双账户借出/借入全屏 UI 数据基础
-/// - v8 (Stage 3 D25 schema v8 整合 5 ADR 协同):
+/// - v8 (Stage 3 D25 schema v8 整合:D25 commit 实施 3 ADR + 2 ADR 字段占位):
 ///   - accounts 加 4 列(initialLendBalanceCents / initialTime /
-///     lendCounterpartyName / lendDueDate)— ADR-0029
-///   - transactions 加 6 列(lendStartDate / lendEndDate — ADR-0029 +
-///     originalTransactionId / refundNote — ADR-0030 +
-///     excludeFromIncomeExpense / excludeFromBudget — ADR-0033)
-///   - categories + DefaultTemplate 24 分类 + 1 退款(ADR-0031 + 0032 + 0030)— D27 实施
+///     lendCounterpartyName / lendDueDate)— ADR-0029(D25 实施)
+///   - transactions 加 6 列(lendStartDate / lendEndDate — ADR-0029 字段占位 +
+///     originalTransactionId / refundNote — ADR-0030 字段占位 +
+///     excludeFromIncomeExpense / excludeFromBudget — ADR-0033 字段占位)
+///   - categories + DefaultTemplate 24 分类(ADR-0031 + 0032)— D27 实施
 ///   - TransactionType enum 加 refund 值(ADR-0030)— D26 实施
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
@@ -146,7 +146,14 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(transactions, transactions.counterpartyName);
           await m.addColumn(transactions, transactions.startDate);
         }
-        // Stage 3 → Stage 3 (D25 schema v8 整合:5 ADR 协同)。
+        // Stage 3 → Stage 3 (D25 schema v8 整合:D25 commit 实施 1 ADR + 2 ADR 字段占位)。
+        // - D25 实施:ADR-0029(accounts +4 + transactions 借贷 2 字段)
+        // - D25 占位(待 D26/D27/D28 实施):ADR-0030(transactions 退款 2 字段)+
+        //   ADR-0033(transactions toggle 2 字段)
+        //
+        // WHY 一次整合到 v8:避免 5 个 ADR 连续 schema bump;v7 旧数据零影响靠字段
+        // nullable / default false 兜底。categories 24 分类 + 1 退款 seed(D27 实施)
+        // + TransactionType.refund enum 值(D26 实施)留 onUpgrade 子块处理。
         //
         // WHY: 5 个新 ADR(0029/0030/0031/0032/0033)集中迁移到 v8,避免 5 次连续
         // schema bump。accounts +4 + transactions +6 = 10 列全部 nullable 或带

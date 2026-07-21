@@ -282,22 +282,23 @@ class Accounts extends Table {
   /// (修正 ADR-0029 §决策 2 字面写的 RealColumn)。
   IntColumn get initialLendBalanceCents => integer().nullable()();
 
-  /// 借贷账户起始时间(必填,v8 D25 ADR-0029 加)。
+  /// 借贷账户起始时间(UI 必填,DB nullable,v8 D25 ADR-0029 加)。
   ///
-  /// 语义「该时间之前的记录不计入余额统计」。Nullable 让 v7 老数据零影响。
+  /// UI 层(LendRecordPage/BorrowRecordPage)校验必填 + 语义「该时间之前的记录不
+  /// 计入余额统计」。DB 层 nullable 让 v7 老数据零影响迁移。
   DateTimeColumn get initialTime => dateTime().nullable()();
 
   /// 借贷账户对手方姓名(v8 D25 ADR-0029 加)。
   ///
   /// 与现有 [counterpartyName] 语义重叠,保留为借贷专用字段,UI 不暴露
   /// (LendRecordPage/BorrowRecordPage 直接用 transaction.counterpartyName)。
-  /// TODO(D24+):评估与 [counterpartyName] 合并。
+  /// TODO(D26+):评估与 [counterpartyName] 合并。
   TextColumn get lendCounterpartyName => text().nullable()();
 
   /// 借贷账户到期还款/收款日期(v8 D25 ADR-0029 加)。
   ///
   /// 与现有 [dueDate] 语义重叠(都是借贷账户到期日),保留为借贷专用。
-  /// TODO(D24+):评估与 [dueDate] 合并。
+  /// TODO(D26+):评估与 [dueDate] 合并。
   DateTimeColumn get lendDueDate => dateTime().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
