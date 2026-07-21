@@ -31,6 +31,8 @@ void main() {
     required TransactionType type,
     int amountCents = 1000,
     int? originalTransactionId,
+    bool excludeFromIncomeExpense = false,
+    bool excludeFromBudget = false,
   }) async {
     final cats = await db.categoryDao.getAll();
     final acc = await db.accountDao.getDefault();
@@ -51,6 +53,9 @@ void main() {
           amountCents: amountCents,
           originalTransactionId:
               originalTransactionId != null ? Value(originalTransactionId) : const Value.absent(),
+          // D28 IQA-fix M-IQA-D28-2:widget toggle 测试 — 显式传 toggle
+          excludeFromIncomeExpense: Value(excludeFromIncomeExpense),
+          excludeFromBudget: Value(excludeFromBudget),
         ),
       ),
     ))!;
@@ -178,5 +183,58 @@ void main() {
     );
     expect(refundBtn.onPressed, isNull,
         reason: 'income 类型不允许退款 → refund 灰');
+  });
+
+  // D28 IQA-fix M-IQA-D28-2 (2026-08-11):2 toggle 行显示
+  testWidgets(
+      'type=expense + excludeFromIncomeExpense=true → 显示「不计收支:开」',
+      (tester) async {
+    final tx = await insertTransaction(
+      type: TransactionType.expense,
+      amountCents: 10000,
+      excludeFromIncomeExpense: true, // 报销场景
+    );
+    // 验证 toggle 真写入 db(detail_page widget 读 transaction.excludeFromIncomeExpense)
+    final fetched = await db.transactionDao.getById(tx.id);
+    expect(fetched, isNotNull);
+    expect(fetched!.excludeFromIncomeExpense, isTrue,
+        reason: 'insertTransaction 应持久化 toggle=true');
+
+    await tester.pumpWidget(hostDetail(tx));
+    await tester.pumpAndSettle();
+
+    expect(find.text('不计收支'), findsOneWidget,
+        reason: 'label 渲染');
+    // toggle on 时「不计收支」显示「开」 + 「不计预算」默认 false 仍显示「关」
+    // expect 找到 ≥ 1 个「开」(「不计收支」行)+ ≥ 1 个「关」(「不计预算」行)
+    expect(find.text('开'), findsOneWidget,
+        reason: 'excludeFromIncomeExpense=true → 显示「开」');
+    expect(find.text('关'), findsOneWidget,
+        reason: 'excludeFromBudget=false 默认 → 显示「关」');
+  });
+
+  testWidgets(
+      'type=expense + excludeFromBudget=true → 显示「不计预算:开」',
+      (tester) async {
+    final tx = await insertTransaction(
+      type: TransactionType.expense,
+      amountCents: 30000,
+      excludeFromBudget: true, // 大件消费预算外
+    );
+    await tester.pumpWidget(hostDetail(tx));
+    await tester.pumpAndSettle();
+
+    expect(find.text('不计预算'), findsOneWidget);
+    expect(find.text('开'), findsOneWidget);
+  });
+
+  testWidgets('toggle 默认 false → 显示「关」', (tester) async {
+    final tx = await insertTransaction(
+        type: TransactionType.expense, amountCents: 5000);
+    await tester.pumpWidget(hostDetail(tx));
+    await tester.pumpAndSettle();
+
+    expect(find.text('关'), findsNWidgets(2),
+        reason: '2 toggle 默认 false → 都显示「关」');
   });
 }

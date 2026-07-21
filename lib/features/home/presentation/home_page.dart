@@ -272,9 +272,16 @@ class _NetWorthCard extends ConsumerWidget {
 /// 月度统计 Provider(D28 ADR-0033)— 主页净资产占位 v0。
 ///
 /// 复用 [databaseProvider] 的 [StatisticsDao.getMonthlyStats] 计算本月收支净额。
-/// 触发 invalidate 场景:用户新增/修改/删除 transaction 后。
+///
+/// **D28 IQA-fix (2026-08-11)**:为解决 submit 后主页不刷新 UX bug(C-IQA-D28-1),
+/// `ref.watch(transactionListProvider)` 显式建立依赖 — 当 [transactionListProvider]
+/// emit 新值(任何 transaction INSERT/UPDATE/DELETE 触发),本 provider 自动 rebuild。
+/// 这样用户在 record_sheet 提交 toggle toggle=true 的 expense 后,回到主页立即看到
+/// toggle 过滤生效的净额(无需手动刷新)。
 final _monthlyStatsProvider = FutureProvider.autoDispose<MonthlyStatsSnapshot>(
   (ref) async {
+    // IQA-fix:建立 StreamProvider 依赖,自动 invalidate on transaction change。
+    ref.watch(transactionListProvider);
     final db = ref.read(databaseProvider);
     return db.statisticsDao.getMonthlyStats(DateTime.now());
   },

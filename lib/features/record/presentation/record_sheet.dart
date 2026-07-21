@@ -175,9 +175,13 @@ class _StepBody extends StatelessWidget {
                     child: SwitchListTile(
                       key: const Key('record-toggle-no-income-expense'),
                       value: form.excludeFromIncomeExpense,
-                      onChanged: (v) =>
-                          notifier.setExcludeFromIncomeExpense(v),
-                      title: const Text('不计收支'),
+                      // D28 IQA-fix G-IQA-D28-6 (2026-08-11):refund 锁 toggle
+                      onChanged: form.isRefundLocked
+                          ? null
+                          : (v) => notifier.setExcludeFromIncomeExpense(v),
+                      title: Text(
+                        form.isRefundLocked ? '不计收支(锁定)' : '不计收支',
+                      ),
                       subtitle: const Text(
                           '此交易不计入本月收支统计(账户余额照常更新)'),
                       contentPadding: EdgeInsets.zero,
@@ -188,9 +192,12 @@ class _StepBody extends StatelessWidget {
                     child: SwitchListTile(
                       key: const Key('record-toggle-no-budget'),
                       value: form.excludeFromBudget,
-                      onChanged: (v) =>
-                          notifier.setExcludeFromBudget(v),
-                      title: const Text('不计预算'),
+                      onChanged: form.isRefundLocked
+                          ? null
+                          : (v) => notifier.setExcludeFromBudget(v),
+                      title: Text(
+                        form.isRefundLocked ? '不计预算(锁定)' : '不计预算',
+                      ),
                       subtitle: const Text(
                           '此交易不计入分类预算统计'),
                       contentPadding: EdgeInsets.zero,

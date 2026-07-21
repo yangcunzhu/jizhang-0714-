@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_database.dart';
 import '../../../data/db/database_provider.dart';
+import '../../../data/db/tables/categories.dart';
 import '../../account/application/account_form_provider.dart';
 import 'haptics.dart';
 
@@ -26,6 +27,7 @@ class RecordFormState {
     this.editingTransactionId,
     this.excludeFromIncomeExpense = false, // D28 ADR-0033 toggle
     this.excludeFromBudget = false,
+    this.isRefundLocked = false, // D28 IQA-fix:refund 编辑 toggle 锁
   });
 
   final RecordStep step;
@@ -38,6 +40,10 @@ class RecordFormState {
   // D28 ADR-0033:交易级 2 toggle(咔皮图 19/293 默认 false,保持 S02 行为)
   final bool excludeFromIncomeExpense;
   final bool excludeFromBudget;
+  // D28 IQA-fix G-IQA-D28-6 (2026-08-11):编辑 refund 时锁 toggle 为 true,
+  // 防止用户改 toggles 后 toggle=false 导致 refund 重复计入收入统计。
+  // record_sheet UI 检测 isRefundLocked=true 时,toggle chip disabled + tooltip 提示。
+  final bool isRefundLocked;
 
   bool get canProceedFromCategory => categoryId != null;
   bool get canProceedFromAmount => amountCents > 0;
@@ -58,6 +64,7 @@ class RecordFormState {
     int? editingTransactionId,
     bool? excludeFromIncomeExpense,
     bool? excludeFromBudget,
+    bool? isRefundLocked,
   }) {
     return RecordFormState(
       step: step ?? this.step,
@@ -70,6 +77,7 @@ class RecordFormState {
       excludeFromIncomeExpense:
           excludeFromIncomeExpense ?? this.excludeFromIncomeExpense,
       excludeFromBudget: excludeFromBudget ?? this.excludeFromBudget,
+      isRefundLocked: isRefundLocked ?? this.isRefundLocked,
     );
   }
 }
@@ -186,10 +194,13 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
 
   // D28 ADR-0033:toggle setter
   void setExcludeFromIncomeExpense(bool value) {
+    // D28 IQA-fix G-IQA-D28-6:refund 锁 toggle(用户改不动)
+    if (state.isRefundLocked) return;
     state = state.copyWith(excludeFromIncomeExpense: value);
   }
 
   void setExcludeFromBudget(bool value) {
+    if (state.isRefundLocked) return;
     state = state.copyWith(excludeFromBudget: value);
   }
 
@@ -204,9 +215,14 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
   ///
   /// WHY: 长按交易 → 选"编辑"时复用同一个弹层,无需新建 EditPage。
   /// 默认直接跳到 selectAccount 步骤(分类/金额不再必选,用户可改也可只改备注)。
+  ///
+  /// D28 IQA-fix G-IQA-D28-6 (2026-08-11):检测 `tx.type == TransactionType.refund`
+  /// 时设 `isRefundLocked = true` — toggle chip 禁用,submit 时不写 toggle(保证
+  /// 「refund 不计入收入统计」不可变)。
   void loadForEdit(TransactionEntry tx) {
     _afterDot = false;
     _centsAccumulator = 0;
+    final isRefund = tx.type == TransactionType.refund;
     state = RecordFormState(
       step: RecordStep.selectAccount,
       categoryId: tx.categoryId,
@@ -214,9 +230,10 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
       accountId: tx.accountId,
       note: tx.note,
       editingTransactionId: tx.id,
-      // D28:load 时读 toggle(只读模式 — 详情页不可改,编辑入口也仅 1 次性写入)
+      // D28:load 时读 toggle(refund 锁原值,其他正常)
       excludeFromIncomeExpense: tx.excludeFromIncomeExpense,
       excludeFromBudget: tx.excludeFromBudget,
+      isRefundLocked: isRefund,
     );
   }
 
@@ -259,15 +276,25 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
         if (old == null) {
           throw StateError('编辑目标不存在:id=${state.editingTransactionId}');
         }
+        // D28 IQA-fix G-IQA-D28-6 (2026-08-11):refund 锁 toggle
+        // — 老 transaction 是 refund 时,UPDATE 不写 toggle(保留原始 true),
+        // 保持「refund 不计入收入统计」不可变。
+        final isRefund = old.type == TransactionType.refund;
         final updated = old.copyWith(
           amountCents: state.amountCents,
           type: cat.type,
           categoryId: state.categoryId!,
           accountId: state.accountId!,
           note: state.note,
-          // D28 ADR-0033:toggle 更新(虽然详情页只读,但提交时可改)
-          excludeFromIncomeExpense: state.excludeFromIncomeExpense,
-          excludeFromBudget: state.excludeFromBudget,
+          // D28 IQA-fix G-IQA-D28-6 (2026-08-11):refund 编辑锁 toggle
+          // — refund 时 pass 老值(不写);其他写用户选的。
+          // DataClass.copyWith 字段类型 bool(nullable)— pass 老值即可保留。
+          excludeFromIncomeExpense: isRefund
+              ? old.excludeFromIncomeExpense
+              : state.excludeFromIncomeExpense,
+          excludeFromBudget: isRefund
+              ? old.excludeFromBudget
+              : state.excludeFromBudget,
         );
         await db.transactionDao.updateTransaction(updated);
         // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示

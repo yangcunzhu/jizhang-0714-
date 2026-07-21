@@ -237,4 +237,93 @@ void main() {
     expect(list.first.note, '咖啡');
     expect(list.first.amountCents, 30);
   });
+
+  // D28 IQA-fix M-IQA-D28-2 (2026-08-11):record_sheet step 3 toggle widget 测试
+  testWidgets('toggle 默认 false 写入 transactions.excludeFromIncomeExpense=false',
+      (tester) async {
+    // 完整流程走到 step 3,验证默认 toggle off 写入 db
+    await bootContainer();
+    await tester.pumpWidget(hostWithFab());
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('餐饮'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('1'));
+    await tester.tap(find.text('2'));
+    await tester.tap(find.text('.'));
+    await tester.tap(find.text('3'));
+    await tester.tap(find.text('4'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '下一步'));
+    await tester.pumpAndSettle();
+
+    // step 3:验证 2 SwitchListTile 默认 false
+    expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const Key('record-toggle-no-income-expense')),
+            )
+            .value,
+        isFalse,
+        reason: 'toggle 默认 off');
+    expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const Key('record-toggle-no-budget')),
+            )
+            .value,
+        isFalse);
+
+    // 保存
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+
+    final list = await db.transactionDao.getAll();
+    expect(list.first.excludeFromIncomeExpense, isFalse,
+        reason: 'toggle 默认 false 持久化');
+    expect(list.first.excludeFromBudget, isFalse);
+  });
+
+  testWidgets('打开 toggle 后写入 transactions.excludeFromIncomeExpense=true',
+      (tester) async {
+    await bootContainer();
+    await tester.pumpWidget(hostWithFab());
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('餐饮'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1'));
+    await tester.tap(find.text('2'));
+    await tester.tap(find.text('.'));
+    await tester.tap(find.text('3'));
+    await tester.tap(find.text('4'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '下一步'));
+    await tester.pumpAndSettle();
+
+    // 打开「不计收支」toggle
+    await tester.tap(find.byKey(const Key('record-toggle-no-income-expense')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const Key('record-toggle-no-income-expense')),
+            )
+            .value,
+        isTrue,
+        reason: 'toggle 已打开');
+
+    // 保存
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+
+    final list = await db.transactionDao.getAll();
+    expect(list.first.excludeFromIncomeExpense, isTrue,
+        reason: 'toggle 打开后 true 持久化到 db');
+    expect(list.first.excludeFromBudget, isFalse,
+        reason: '另一个 toggle 默认 false 不变');
+  });
 }

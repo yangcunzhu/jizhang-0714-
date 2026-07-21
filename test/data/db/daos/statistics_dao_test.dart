@@ -12,6 +12,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jizhang_app/data/db/app_database.dart';
+import 'package:jizhang_app/data/db/daos/statistics_dao.dart' show MonthlyStatsSnapshot;
 import 'package:jizhang_app/data/db/tables/accounts.dart';
 import 'package:jizhang_app/data/db/tables/categories.dart';
 
@@ -194,6 +195,54 @@ void main() {
         10000,
         reason: 'expense ¥100 计入 + refund 0(被过滤) = ¥100',
       );
+    });
+
+    // D28 IQA-fix M-IQA-D28-3 + 4 (2026-08-11):formatter getter + empty 月份
+    test('7. MonthlyStatsSnapshot incomeYuan 大数额千位分隔',
+        () async {
+      final snap = MonthlyStatsSnapshot(
+        month: DateTime(2026, 8, 1),
+        incomeCents: 12345678, // 123,456.78
+        expenseCents: 0,
+        transactionCount: 1,
+        excludedCount: 0,
+      );
+      expect(snap.incomeYuan, '¥123,456.78',
+          reason: '¥12,345,678 cents → ¥123,456.78');
+    });
+
+    test('8. MonthlyStatsSnapshot balanceYuan 负数 + 零处理', () async {
+      final negSnap = MonthlyStatsSnapshot(
+        month: DateTime(2026, 8, 1),
+        incomeCents: 5000,
+        expenseCents: 10000, // balance = -5000
+        transactionCount: 2,
+        excludedCount: 0,
+      );
+      expect(negSnap.balanceCents, -5000);
+      expect(negSnap.balanceYuan, '¥-50.00',
+          reason: '负数处理正确(整数除法 -50.00)');
+      final zeroSnap = MonthlyStatsSnapshot(
+        month: DateTime(2026, 8, 1),
+        incomeCents: 0,
+        expenseCents: 0,
+        transactionCount: 0,
+        excludedCount: 0,
+      );
+      expect(zeroSnap.balanceYuan, '¥0.00');
+    });
+
+    test('9. 空月份边界(无任何交易)— 全 0 cents', () async {
+      final now = DateTime(2026, 8, 1);
+      final snap = await db.statisticsDao.getMonthlyStats(now);
+      // fresh install db 没任何 transaction → 空月份
+      expect(snap.transactionCount, 0);
+      expect(snap.incomeCents, 0);
+      expect(snap.expenseCents, 0);
+      expect(snap.balanceCents, 0);
+      expect(snap.excludedCount, 0);
+      expect(snap.balanceYuan, '¥0.00',
+          reason: '空月份主页显示 ¥0.00');
     });
   });
 }

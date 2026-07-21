@@ -197,26 +197,30 @@ class StatisticsDao {
 
 ---
 
-## 验证(2026-08-11 D28 实施字面对齐实际)
+## 验证(2026-08-11 D28 + D28 IQA-fix 实施字面对齐实际)
 
 - [x] flutter analyze 0 issues
-- [x] flutter test 352/352 全绿(D27 末 346 → D28 +6 statistics_dao_test 增量)
+- [x] flutter test 358/358 全绿(D28 末 352 → D28 IQA-fix +6:detail_page 3 + statistics_dao 3)
 - [x] schema v8 migration_v8_test 3 用例 PASS — toggle 字段默认 false 兜底
-- [x] statistics_dao_test 6 用例 PASS:
+- [x] **statistics_dao_test 9 用例 PASS(D28 +6,D28 IQA-fix +3)**:
   - 月度收入默认 toggle=false 全计入
   - excludeFromIncomeExpense=true 收入不计入
   - 月度支出同理过滤
   - 月度边界(7月/8月/9月隔离)
   - excludeFromBudget=true 单笔预算过滤(但仍计入收支)
-  - **退款自动 excludeFromIncomeExpense=true + excludeFromBudget=true**(ADR-0033 §衔接下游 + D28 联动)
-- [x] 主页净资产接入 StatisticsDao(D28 实施 ¥0.00 / ¥xxx.xxx 显示)— 空态显示 ¥0.00
+  - 退款自动 excludeFromIncomeExpense=true + excludeFromBudget=true(ADR-0033 §衔接下游 + D28 联动)
+  - **新增 M-IQA-D28-3** MonthlyStatsSnapshot incomeYuan 千位分隔(`12345678 → ¥123,456.78`)
+  - **新增 M-IQA-D28-3** balanceYuan 负数(`-100 → ¥-1.00`)+ 零(`0 → ¥0.00`)
+  - **新增 M-IQA-D28-4** 空月份边界(整月 0 笔交易 → balance ¥0.00)
+- [x] 主页净资产接入 StatisticsDao + **IQA-fix C-IQA-D28-1** `_monthlyStatsProvider` ref.watch `transactionListProvider` 自动 invalidate(用户提交报销 toggle 后主页立即刷新)
 - [x] 记账弹层 step 3 加 2 SwitchListTile(toggle chip)— record_sheet widget
+- [x] **新增 M-IQA-D28-2** detail_page 3 widget 测试(toggle on 显示「开」+ toggle off 显示「关」)
 - [x] 交易详情页 toggle 只读显示(detail_page 字段表)— D28 决策 5 不可改
+- [x] **新增 G-IQA-D28-6** 编辑 refund 时 toggle 锁(`RecordFormState.isRefundLocked=true`,chip disabled + submit 不写 toggle)— 防止用户改 toggle=false 破坏一致性
 - [ ] 定时记账 toggle on → 周期生成 4 周 = 4 笔,统计全部过滤(S07 评估时再加)
-- [x] 旧交易详情页 toggle 仍可用编辑入口(record_sheet.loadForEdit 读 toggle)— D28 实施
 - [ ] iPhone 真机手验 3 场景(报销/代付/预算外)— D29 整合装机验
 
-**D28 实施验证已完成(7/9 字面),S07 定时记账延后到 Stage 7。**
+**D28 + D28 IQA-fix 验证已完成(8/9 字面)。**
 
 ---
 
