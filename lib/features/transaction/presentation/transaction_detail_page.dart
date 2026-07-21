@@ -204,6 +204,28 @@ class _DetailBody extends ConsumerWidget {
                       label: '退款备注',
                       value: transaction.refundNote!,
                     ),
+                  // D28 ADR-0033:交易详情页 2 toggle 只读显示(决策 5 不可改)
+                  // toggle 改 = 改历史统计,违反不可逆性 → 锁只读
+                  _DetailRow(
+                    icon: transaction.excludeFromIncomeExpense
+                        ? Icons.toggle_on_outlined
+                        : Icons.toggle_off_outlined,
+                    label: '不计收支',
+                    value: transaction.excludeFromIncomeExpense ? '开' : '关',
+                    valueColor: transaction.excludeFromIncomeExpense
+                        ? Colors.orange[700]
+                        : Colors.grey[500],
+                  ),
+                  _DetailRow(
+                    icon: transaction.excludeFromBudget
+                        ? Icons.toggle_on_outlined
+                        : Icons.toggle_off_outlined,
+                    label: '不计预算',
+                    value: transaction.excludeFromBudget ? '开' : '关',
+                    valueColor: transaction.excludeFromBudget
+                        ? Colors.orange[700]
+                        : Colors.grey[500],
+                  ),
                 ],
               ),
             ),

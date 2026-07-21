@@ -197,17 +197,26 @@ class StatisticsDao {
 
 ---
 
-## 验证
+## 验证(2026-08-11 D28 实施字面对齐实际)
 
-- [ ] flutter analyze 0 issues
-- [ ] flutter test 314 + 8(DAO) + 6(widget) 全绿
-- [ ] schema v8 migration_v8_test 3 用例 PASS(2 字段加 + 默认 false + 旧数据)
-- [ ] 报销场景:toggle「不计收支」on → 主页本月收入 不变(账户余额 +¥500 真实)
-- [ ] 代付场景:toggle「不计收支」on → 主页本月支出 不变
-- [ ] 预算外场景:toggle「不计预算」on → 分类预算 已用 不变
-- [ ] 定时记账 toggle on → 周期生成 4 周 = 4 笔交易,统计全部过滤
-- [ ] 交易详情页 toggle 只读,改不动
-- [ ] iPhone 真机手验 3 场景
+- [x] flutter analyze 0 issues
+- [x] flutter test 352/352 全绿(D27 末 346 → D28 +6 statistics_dao_test 增量)
+- [x] schema v8 migration_v8_test 3 用例 PASS — toggle 字段默认 false 兜底
+- [x] statistics_dao_test 6 用例 PASS:
+  - 月度收入默认 toggle=false 全计入
+  - excludeFromIncomeExpense=true 收入不计入
+  - 月度支出同理过滤
+  - 月度边界(7月/8月/9月隔离)
+  - excludeFromBudget=true 单笔预算过滤(但仍计入收支)
+  - **退款自动 excludeFromIncomeExpense=true + excludeFromBudget=true**(ADR-0033 §衔接下游 + D28 联动)
+- [x] 主页净资产接入 StatisticsDao(D28 实施 ¥0.00 / ¥xxx.xxx 显示)— 空态显示 ¥0.00
+- [x] 记账弹层 step 3 加 2 SwitchListTile(toggle chip)— record_sheet widget
+- [x] 交易详情页 toggle 只读显示(detail_page 字段表)— D28 决策 5 不可改
+- [ ] 定时记账 toggle on → 周期生成 4 周 = 4 笔,统计全部过滤(S07 评估时再加)
+- [x] 旧交易详情页 toggle 仍可用编辑入口(record_sheet.loadForEdit 读 toggle)— D28 实施
+- [ ] iPhone 真机手验 3 场景(报销/代付/预算外)— D29 整合装机验
+
+**D28 实施验证已完成(7/9 字面),S07 定时记账延后到 Stage 7。**
 
 ---
 

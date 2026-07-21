@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../build_info.dart';
+import '../../../data/db/daos/statistics_dao.dart' show MonthlyStatsSnapshot;
 import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
@@ -175,6 +176,9 @@ class _NetWorthCard extends ConsumerWidget {
       data: (list) => list.length,
       orElse: () => 0,
     );
+    // D28 ADR-0033:本月统计快照(过滤 toggle)— 主页净资产占位 v0
+    //   真实"净资产"需要账户余额(S05 实现),这里显示"本月收支净额"(income - expense)
+    final statsAsync = ref.watch(_monthlyStatsProvider);
 
     return Card(
       key: const Key('net-worth-card'),
@@ -197,20 +201,45 @@ class _NetWorthCard extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              Text(
-                '暂未计算',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.grey,
+              statsAsync.when(
+                data: (snapshot) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      snapshot.balanceYuan,
+                      key: const Key('net-worth-balance'),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: snapshot.balanceCents >= 0
+                                    ? Colors.black87
+                                    : Colors.red[700],
+                              ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '本月(收入 ¥${_formatYuanShort(snapshot.incomeCents)} - 支出 ¥${_formatYuanShort(snapshot.expenseCents)})',
+                      key: const Key('net-worth-monthly-detail'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                    ),
+                  ],
+                ),
+                loading: () => const SizedBox(
+                  height: 48,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) => Text(
+                  '统计加载失败:$e',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.red,
+                      ),
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Text(
-                    'Stage 5 完善',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Spacer(),
                   Icon(
                     Icons.account_balance_wallet_outlined,
                     size: 16,
@@ -238,6 +267,27 @@ class _NetWorthCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 月度统计 Provider(D28 ADR-0033)— 主页净资产占位 v0。
+///
+/// 复用 [databaseProvider] 的 [StatisticsDao.getMonthlyStats] 计算本月收支净额。
+/// 触发 invalidate 场景:用户新增/修改/删除 transaction 后。
+final _monthlyStatsProvider = FutureProvider.autoDispose<MonthlyStatsSnapshot>(
+  (ref) async {
+    final db = ref.read(databaseProvider);
+    return db.statisticsDao.getMonthlyStats(DateTime.now());
+  },
+);
+
+/// 整数分 → "¥1,234" 格式(用于卡片显示)— 复用类似 formatYuan。
+String _formatYuanShort(int cents) {
+  final yuan = cents ~/ 100;
+  final fen = cents.abs() % 100;
+  // 千位分隔
+  final yuanStr = yuan.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  return '$yuanStr.${fen.toString().padLeft(2, '0')}';
 }
 
 class _TransactionList extends ConsumerWidget {

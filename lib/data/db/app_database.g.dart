@@ -3515,6 +3515,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final CategoryTemplateDao categoryTemplateDao = CategoryTemplateDao(
     this as AppDatabase,
   );
+  late final StatisticsDao statisticsDao = StatisticsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

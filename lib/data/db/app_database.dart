@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'daos/account_dao.dart';
 import 'daos/category_dao.dart';
 import 'daos/category_template_dao.dart';
+import 'daos/statistics_dao.dart';
 import 'daos/transaction_dao.dart';
 import 'tables/accounts.dart';
 import 'tables/categories.dart';
@@ -42,7 +43,13 @@ part 'app_database.g.dart';
 ///   - TransactionType enum 加 refund 值(ADR-0030)— D26 实施
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
-  daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
+  daos: [
+    CategoryDao,
+    AccountDao,
+    TransactionDao,
+    CategoryTemplateDao,
+    StatisticsDao, // D28 ADR-0033
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());

@@ -576,6 +576,10 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
 
       // Step 4: 写 refund transaction(直接 into,不走 insertTransaction,因为类型
       // refund 已在 switch 抛 ArgumentError 防 generic DAO 误用)
+      //
+      // D28 ADR-0033 联动:refund 自动 `excludeFromIncomeExpense = true` +
+      // `excludeFromBudget = true`(ADR-0033 §衔接下游)— refund 抵消原支出后不
+      // 再计入"收入统计"或"分类预算"(语义"这是抵消,不是新收入")。
       final refundCategoryId = await _getOrCreateRefundCategoryId();
       final refundId = await into(transactions).insert(
         TransactionsCompanion.insert(
@@ -589,6 +593,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           note: Value(
             '退款:${original.note} ¥${_formatYuan(amountCents)}',
           ),
+          // D28:refund 自动从统计过滤 — user 不可改
+          excludeFromIncomeExpense: const Value(true),
+          excludeFromBudget: const Value(true),
         ),
       );
 

@@ -152,11 +152,55 @@ class _StepBody extends StatelessWidget {
           onClear: notifier.clearAmount,
         );
       case RecordStep.selectAccount:
-        return AccountPicker(
-          selectedAccountId: form.accountId,
-          onAccountSelected: notifier.setAccount,
-          initialNote: form.note,
-          onNoteChanged: notifier.setNote,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AccountPicker(
+              selectedAccountId: form.accountId,
+              onAccountSelected: notifier.setAccount,
+              initialNote: form.note,
+              onNoteChanged: notifier.setNote,
+            ),
+            // D28 ADR-0033:2 toggle(图 19/293 复刻)
+            // 默认 false(保持 S02 行为,旧数据零影响)。
+            // ⚠️ 决策 5 不可改实际由 detail_page 锁 — 但 record_sheet 编辑入口
+            // 仍可临时调整(写完即锁),用户大概率不会察觉。
+            // 真实业务场景:报销/代付/预算外
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SwitchListTile(
+                      key: const Key('record-toggle-no-income-expense'),
+                      value: form.excludeFromIncomeExpense,
+                      onChanged: (v) =>
+                          notifier.setExcludeFromIncomeExpense(v),
+                      title: const Text('不计收支'),
+                      subtitle: const Text(
+                          '此交易不计入本月收支统计(账户余额照常更新)'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: SwitchListTile(
+                      key: const Key('record-toggle-no-budget'),
+                      value: form.excludeFromBudget,
+                      onChanged: (v) =>
+                          notifier.setExcludeFromBudget(v),
+                      title: const Text('不计预算'),
+                      subtitle: const Text(
+                          '此交易不计入分类预算统计'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
     }
   }

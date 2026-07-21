@@ -24,6 +24,8 @@ class RecordFormState {
     this.note = '',
     this.isSubmitting = false,
     this.editingTransactionId,
+    this.excludeFromIncomeExpense = false, // D28 ADR-0033 toggle
+    this.excludeFromBudget = false,
   });
 
   final RecordStep step;
@@ -33,6 +35,9 @@ class RecordFormState {
   final String note;
   final bool isSubmitting;
   final int? editingTransactionId;
+  // D28 ADR-0033:交易级 2 toggle(咔皮图 19/293 默认 false,保持 S02 行为)
+  final bool excludeFromIncomeExpense;
+  final bool excludeFromBudget;
 
   bool get canProceedFromCategory => categoryId != null;
   bool get canProceedFromAmount => amountCents > 0;
@@ -51,6 +56,8 @@ class RecordFormState {
     String? note,
     bool? isSubmitting,
     int? editingTransactionId,
+    bool? excludeFromIncomeExpense,
+    bool? excludeFromBudget,
   }) {
     return RecordFormState(
       step: step ?? this.step,
@@ -60,6 +67,9 @@ class RecordFormState {
       note: note ?? this.note,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       editingTransactionId: editingTransactionId ?? this.editingTransactionId,
+      excludeFromIncomeExpense:
+          excludeFromIncomeExpense ?? this.excludeFromIncomeExpense,
+      excludeFromBudget: excludeFromBudget ?? this.excludeFromBudget,
     );
   }
 }
@@ -174,6 +184,15 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
     state = state.copyWith(note: note);
   }
 
+  // D28 ADR-0033:toggle setter
+  void setExcludeFromIncomeExpense(bool value) {
+    state = state.copyWith(excludeFromIncomeExpense: value);
+  }
+
+  void setExcludeFromBudget(bool value) {
+    state = state.copyWith(excludeFromBudget: value);
+  }
+
   /// 重置整个表单（弹层关闭时调用）。
   void reset() {
     _afterDot = false;
@@ -195,6 +214,9 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
       accountId: tx.accountId,
       note: tx.note,
       editingTransactionId: tx.id,
+      // D28:load 时读 toggle(只读模式 — 详情页不可改,编辑入口也仅 1 次性写入)
+      excludeFromIncomeExpense: tx.excludeFromIncomeExpense,
+      excludeFromBudget: tx.excludeFromBudget,
     );
   }
 
@@ -243,6 +265,9 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           categoryId: state.categoryId!,
           accountId: state.accountId!,
           note: state.note,
+          // D28 ADR-0033:toggle 更新(虽然详情页只读,但提交时可改)
+          excludeFromIncomeExpense: state.excludeFromIncomeExpense,
+          excludeFromBudget: state.excludeFromBudget,
         );
         await db.transactionDao.updateTransaction(updated);
         // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
@@ -259,6 +284,10 @@ class RecordFormNotifier extends AutoDisposeNotifier<RecordFormState> {
           categoryId: state.categoryId!,
           accountId: state.accountId!,
           note: Value(state.note),
+          // D28 ADR-0033:toggle 写入
+          excludeFromIncomeExpense:
+              Value(state.excludeFromIncomeExpense),
+          excludeFromBudget: Value(state.excludeFromBudget),
         ),
       );
       // D19 修复:主动 invalidate accountListProvider,刷新账户卡片余额显示
