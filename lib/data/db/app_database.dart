@@ -274,6 +274,19 @@ class AppDatabase extends _$AppDatabase {
             "UPDATE categories SET name = '住房' "
             "WHERE name = '居住' AND type = 'expense'",
           );
+          // ─── IQA-fix D29-1 (2026-08-12):补 2 rename 防止 4 相似分类───
+          // S03 _defaultCategories 有「医疗」+「学习」,D27 INSERT「医疗健康」+「学习办公」
+          // 触发双份(同 sortOrder 区间)— 加 rename 防止 4 相似分类:
+          // 「医疗」→「医疗健康」(D27 16 支出 sortOrder=1)
+          await customStatement(
+            "UPDATE categories SET name = '医疗健康' "
+            "WHERE name = '医疗' AND type = 'expense'",
+          );
+          // 「学习」→「学习办公」(D27 16 支出 sortOrder=12)
+          await customStatement(
+            "UPDATE categories SET name = '学习办公' "
+            "WHERE name = '学习' AND type = 'expense'",
+          );
           // 「其他」→「其他支出」(D27 16 支出 sortOrder=99)— 已在原版做,保留
           // (不再重复 — 这里是单行 UPDATE,不需要改)
 

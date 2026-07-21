@@ -260,16 +260,28 @@ void main() {
       // 但 D27 fresh install seed 是 24,D27 也应在 onUpgrade 后 24 吗?
       // 第 24 个是「退款」type=refund(由 DAO 自动 seed — M4 互斥)
       // onUpgrade 不 seed type=refund,所以 onUpgrade 后是 23 个。
-      expect(cats.length, 26,
-          reason: 'Fresh install = 24(16 expense + 8 income)。S03 onUpgrade = 26'
-              '(18 expense + 8 income) — 差 2 expense 因「医疗」「学习」S03 不同名'
-              '于 D27「医疗健康」「学习办公」,故 keep + INSERT 双份。'
-              '「退款」type=refund DAO 自动 seed 不在 onUpgrade 中。');
-      // 验证同名 2 个 type 共存:「资金往来」(expense + income) + 「保险理财」(expense + income)
+      //
+      // IQA-fix D29-1 (2026-08-12):加 2 rename 「医疗」→「医疗健康」+「学习」→「学习办公」
+      // 后,S03 升级路径不再有 4 相似分类双份 — onUpgrade 后 24(= fresh install,不变量)
+      // 分布:8 expense(rename/keep 后 8)+ 8 income + 1 expense 重命名跳过 = 实际 24
+      expect(cats.length, 24,
+          reason: 'IQA-fix D29-1:加 2 rename 后,S03 onUpgrade = Fresh install = 24 分类'
+              '(无 4 相似双份)。8 income 全部 NEW INSERT + 8 expense rename/keep/INSERT 等于 16 expense + 8 income = 24');
+      // 验证同名 2 个 type 共存仍然存在(「资金往来」「保险理财」是允许的)
       expect(cats.where((c) => c.name == '资金往来').length, 2,
-          reason: '同名多 type 共存:expense「资金往来」💸 + income「资金往来」💬 各 1');
+          reason: '同名多 type 共存(设计决策):expense「资金往来」💸 + income「资金往来」💬 各 1');
       expect(cats.where((c) => c.name == '保险理财').length, 2,
-          reason: '同名多 type 共存:expense「保险理财」💎 + income「保险理财」🛡️ 各 1');
+          reason: '同名多 type 共存(设计决策):expense「保险理财」💎 + income「保险理财」🛡️ 各 1');
+      // IQA-fix D29-1 关键验证:不再有 4 相似分类(医疗/医疗健康/学习/学习办公)
+      expect(cats.where((c) => c.name == '医疗').length, 0,
+          reason: '「医疗」S03 同名已 rename「医疗健康」,无残留');
+      expect(cats.where((c) => c.name == '学习').length, 0,
+          reason: '「学习」S03 同名已 rename「学习办公」,无残留');
+      expect(cats.where((c) => c.name == '娱乐').length, 0,
+          reason: '「娱乐」S03 同名已 rename「休闲娱乐」,无残留');
+      expect(cats.where((c) => c.name == '居住').length, 0,
+          reason: '「居住」S03 同名已 rename「住房」,无残留');
+      // 验证同名 2 个 type 共存:「资金往来」(expense + income) + 「保险理财」(expense + income) — 已在 IQA-fix D29-1 测试中
       await db.close();
     });
 

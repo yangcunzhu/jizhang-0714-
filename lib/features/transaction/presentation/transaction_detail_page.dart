@@ -172,6 +172,12 @@ class _DetailBody extends ConsumerWidget {
             Expanded(
               child: ListView(
                 children: [
+                  // ─── 字段表(IQA-fix D29-2 2026-08-12:toggle 顶部平级 + refund 状态独立区块底部)───
+                  //
+                  // 顺序设计(咔皮对标 图 19 真实账单详情页布局):
+                  // 1. 基础信息(账户/时间/备注)— 交易核心
+                  // 2. **toggle 行顶部平级** — 交易级状态(全局),与「账户」「时间」同等级
+                  // 3. refund 状态(已退金额/退款备注)— 仅退款相关交易显示
                   _DetailRow(
                     icon: Icons.account_balance_wallet_outlined,
                     label: '账户',
@@ -189,23 +195,8 @@ class _DetailBody extends ConsumerWidget {
                       label: '备注',
                       value: transaction.note,
                     ),
-                  if (isRefundedOriginal)
-                    _DetailRow(
-                      icon: Icons.refresh,
-                      label: '已退金额',
-                      value:
-                          '¥${_formatYuan(refunded)} / ¥${_formatYuan(transaction.amountCents)}',
-                      valueColor: Colors.blueGrey[700],
-                    ),
-                  if (transaction.refundNote != null &&
-                      transaction.refundNote!.isNotEmpty)
-                    _DetailRow(
-                      icon: Icons.bookmark_outline,
-                      label: '退款备注',
-                      value: transaction.refundNote!,
-                    ),
-                  // D28 ADR-0033:交易详情页 2 toggle 只读显示(决策 5 不可改)
-                  // toggle 改 = 改历史统计,违反不可逆性 → 锁只读
+                  // D28 ADR-0033 + IQA-fix D29-2:2 toggle 顶部平级
+                  // 决策 5 不可改 — toggle 改 = 改历史统计 = 不可逆,锁只读
                   _DetailRow(
                     icon: transaction.excludeFromIncomeExpense
                         ? Icons.toggle_on_outlined
@@ -226,6 +217,22 @@ class _DetailBody extends ConsumerWidget {
                         ? Colors.orange[700]
                         : Colors.grey[500],
                   ),
+                  // refund 状态独立区块(仅 isRefundedOriginal 或有 refundNote 显示)
+                  if (isRefundedOriginal)
+                    _DetailRow(
+                      icon: Icons.refresh,
+                      label: '已退金额',
+                      value:
+                          '¥${_formatYuan(refunded)} / ¥${_formatYuan(transaction.amountCents)}',
+                      valueColor: Colors.blueGrey[700],
+                    ),
+                  if (transaction.refundNote != null &&
+                      transaction.refundNote!.isNotEmpty)
+                    _DetailRow(
+                      icon: Icons.bookmark_outline,
+                      label: '退款备注',
+                      value: transaction.refundNote!,
+                    ),
                 ],
               ),
             ),
