@@ -51,23 +51,41 @@
 
 ---
 
-## 🚧 In Scope(3 项必须完成)
+## 🚧 In Scope(D18-D22 实际完成 14 项,详 ADR-0028 §2.1)
 
-### 必须完成
+> ⚠️ **本节由 ADR-0028 §2.1 决策 2 重写**(2026-08-06)。原 ADR-0021「3 项最小 MVP」已被超越(详 ADR-0028 §2.2 PARTIALLY_SUPERSEDED),实际 D18-D22 完成 14 项。
 
-1. **Schema migration v3 → v4** — transactions 表 type 字段扩展,加 `repayment` 类型(S02 已有 `expense` / `income`)
-   - 决策点:TransactionType enum 加值 `repayment`(不可逆,见 ADR-0021 §「不可逆性」)
-   - migration 用 `textEnum` 自动处理(已沿用 ADR-0017 模式)
-   - 新增「还款」默认分类(name='还款', icon='💳', type=expense)— 保持 categoryId NOT NULL 约束
-2. **还款流 UI** — 「从储蓄账户 → 信用卡账户」转账交互
-   - 入口:主页 AppBar「还款」按钮(沿用分类模板按钮模式,Day 20 一次性加)
-   - 步骤:选储蓄账户 → 输入金额 → 选信用卡账户 → 备注(可选)→ 保存
-   - 落地:生成 1 条 type=repayment 的 transaction(categoryId 引用「还款」分类),内部逻辑 = 从储蓄账户扣款 + 信用卡账户"增加可用额度"
-   - 验证:账户余额正确更新
-3. **信用卡账户卡片增强** — 显示「距离还款日 X 天」+ 账单日 / 还款日字段
-   - 当前位置:`lib/features/account/presentation/widgets/account_card.dart`
-   - 显示逻辑:仅 `type=creditCard` 的卡片显示这两个字段
-   - 「距离还款日 X 天」计算:从当前日期到 `dueDay`(本月或下月)的差值
+### 必须完成(D18-D22 实际 14 项)
+
+| # | 工作 | Day | commit |
+|---|---|---|---|
+| 1 | schema migration v3 → v4(TransactionType 加 repayment)| D18 (2026-08-01) | 派生 |
+| 2 | 还款流 DAO(`transferRepayment`)+ ADR-0022 余额联动策略 | D19 (2026-08-02) | 派生 |
+| 3 | 还款流 UI(repayment_sheet + 主页「+」入口,4 收款类型 + 网贷期数)| D20 (2026-08-03) | `401e7ce` `ec2d83c` `8c3f21a` |
+| 4 | ADR-0024(6 种账户定位)+ ADR-0025(v1.1 backlog)+ ADR-0026(咔皮 13 张截图完整产品设计)| D20 (2026-08-03) | 同上 |
+| 5 | schema migration v4 → v5(installment_period 列)| D20 (2026-08-03) | 同上 |
+| 6 | 主页「距离还款日 X 天」提醒卡片 + transaction_tile 期数徽章 | D20 (2026-08-03) | 同上 |
+| 7 | schema migration v5 → v6(5 大类 × 23 子类 + 9 列)| D21 (2026-08-04) | `ce11073` |
+| 8 | AccountCategory/AccountSubType 双枚举 + 4 toggle(特别关注 / 默认收账 / 默认支出)| D21 (2026-08-04) | `ce11073` |
+| 9 | 转账流(transferMoney DAO + transfer_sheet + 主页 5 入口聚合菜单第 2 项)| D21 (2026-08-04) | `ce11073` |
+| 10 | 主页「+」聚合菜单改 5 入口(记一笔/转账/还款/借出/借入)| D21 (2026-08-04) | `ce11073` |
+| 11 | schema migration v6 → v7(借贷 transaction 化 4 列 + TransactionType lend/borrow)| D22 (2026-08-05) | `6888552` |
+| 12 | lendMoney/borrowMoney DAO + LendRecordPage/BorrowRecordPage 全屏独立记账 widget | D22 (2026-08-05) | `6888552` |
+| 13 | 日期 picker 中文 locale(pubspec 加 flutter_localizations + intl 0.20.2,详 ADR-0028 §3 §11 例外授权)| D22 (2026-08-05) | `6888552` |
+| 14 | 转账下拉去过滤(全账户可选,尊重「每种都可以转账」反馈)| D22 (2026-08-05) | `6888552` |
+| **(测试基线)** | 232 → **314/314 全绿**(D18 +5 + D20 +12 + D21 +26 + D22 +11)| D18→D22 | |
+
+### 不做(明确排除 — ADR-0021 §1 + ADR-0025 v1.1 backlog)
+
+- ❌ flutter_local_notifications 本地通知(不引新依赖,v1.1 评估)
+- ❌ 信用卡账单生成(自动抓取 / 手动输入)
+- ❌ 自动还款(扣款日自动从储蓄账户转账)
+- ❌ 多币种(只支持 CNY)
+- ❌ 信用评分 / 最低还款额
+- ❌ 信用账户流水归类逻辑(消费 → 信用卡账户)— 已在 S02 多账户选择器实现
+- ❌ §14 实施清单 #3 账本表(独立 Stage — S04)
+- ❌ §14 实施清单 #10 账户详情 + 余额变动明细 2 tab(D24+ 补)
+- ❌ §14 实施清单 #11 资产页拆分(D24+ 补)
 
 ### 不做(明确排除 — ADR-0021 §1)
 
@@ -194,15 +212,20 @@ docs/
 
 ---
 
-## 📅 时间切片(7 天)
+## 📅 时间切片(7 天 = 5 天代码 + 2 天治理/装机)
 
-- **Day 18 (08-01)**:Schema migration v4 + TransactionType 加 repayment + 修历史注释 + DAO 测试 + ADR checkbox 补勾(总 6 文件 + 5 ADR)— ⚠️ **不动主页「+」菜单入口**(还款弹层 Day 20 才做,点了会崩)
-- **Day 19 (08-02)**:还款流 DAO(transferRepayment 完整事务方法,无占位)+ 单元测试 + integration test
-- **Day 20 (08-03)**:还款流 UI(repayment_sheet.dart 3 步骤 + Riverpod provider)+ **主页「+」菜单加「还款」入口**(弹层就绪后才加)
-- **Day 21 (08-04)**:信用卡账户卡片增强(account_card.dart 显示账单日/还款日/距离 X 天)
-- **Day 22 (08-05)**:集成测试 + polish
-- **Day 23 (08-06)**:真机手验 3+ 场景
-- **Day 24 (08-07)**:Stage 3 ROA 收尾 + CONTROL_TOWER 更新
+> ⚠️ **本节由 ADR-0028 §2.1 决策 2 重写**(2026-08-06)。原计划 7 天(D18-D24)调整为:
+> - D18-D22(5 天):实际 14 项代码(已 push,314 测试全绿)
+> - D23(1 天):治理收尾(ADR-0028 + 9 文档同步 + 深度审计) + 真机装机验 3 项修复
+> - D24(1 天):S03 ROA 收尾 + 用户签字 + CONTROL_TOWER 派生 ACCEPTED
+
+- **Day 18 (2026-08-01)**:Schema migration v4 + TransactionType 加 repayment + 5 tests ✅
+- **Day 19 (2026-08-02)**:还款流 DAO(`transferRepayment` 完整事务方法)+ ADR-0022 余额联动 + 12 tests ✅
+- **Day 20 (2026-08-03)**:还款流 UI(4 收款类型 + 网贷期数下拉)+ 主页「+」入口 + ADR-0024/0025/0026 + schema v5 + 主页提醒 + 12 tests ✅ `401e7ce` `ec2d83c` `8c3f21a`
+- **Day 21 (2026-08-04)**:5 大类 × 23 子类 schema v6 + 转账流(transferMoney)+ 主页 5 入口聚合菜单 + 26 tests ✅ `ce11073`
+- **Day 22 (2026-08-05)**:借贷业务流程独立化(schema v7 + lendMoney/borrowMoney + Lend/BorrowRecordPage)+ 日期 locale + 转账去过滤 + 11 tests ✅ `6888552`
+- **Day 23 (2026-08-06)**:真机装机验 3 项修复 + 治理收尾(ADR-0028 + 9 文档同步 + 深度审计 docs/audit/2026-08-06-doc-and-code.md)🔄 进行中
+- **Day 24 (2026-08-07)**:S03 ROA 收尾 + 用户签字 + CONTROL_TOWER 派生 ACCEPTED 📋 待做
 
 ---
 

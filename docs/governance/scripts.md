@@ -2,7 +2,20 @@
 
 > 状态：`GOVERNANCE`
 > 创建：2026-07-14
+> 最后更新:2026-08-06(加注「话术库非 Stage 生命周期」,避免误读)
 > 适用范围：所有角色的标准化措辞（减少每次重新措辞成本）
+
+---
+
+> ⚠️ **本文件命名澄清**(2026-08-06 加注):
+>
+> `scripts.md` 命名源于 AGENTS.md 引用约定,实际内容是**话术库**(Standard Phrases Library),**不是**「Stage 生命周期脚本」或「运维脚本」。
+>
+> Stage 生命周期状态机详见:
+> - `docs/CONTROL_TOWER.md` §附录 A(Stage / Task / Validation 状态)
+> - `docs/governance/` 暂未独立建 stage-lifecycle.md,如有需要可派生
+>
+> 真实脚本(如自动派生 CONTROL_TOWER / 爱思助手装机脚本)留 `.ai-work/` 临时目录或 ADR-0028 §5 后续 backlog,**不在本文件范围**。
 
 ---
 

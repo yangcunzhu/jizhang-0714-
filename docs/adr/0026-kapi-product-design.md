@@ -44,10 +44,21 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 | 30 天趋势 | 线形图,右上角「30 天趋势」tag | ❌ 完全没设计 |
 | 攒攒 IP + 情绪反馈 | 攒攒根据消费状态说不同的话(智能)| 仅攒攒动画 |
 | 预计明日可用 | 根据今日消费预测 | ❌ 没设计 |
-| 底部 3 入口 | 搜索 / 记一笔 / 语音 | ❌ 没设计 |
+| 底部 3 入口 | 搜索 / 记一笔 / 语音 | ❌ 没设计 | ⚠️ **D21 决策:改 5 入口聚合菜单**(记一笔/转账/还款/借出/借入),语音留 v1.1 评估;详 ADR-0028 §2.1 #10 |
 | 语音记账 | 语音输入 | ❌ ADR-0021 不引(待 v1.1)|
 
 **WHY 重要**:主页是用户**每天打开看到的页面**,决定用户对产品的第一印象。
+
+> ⚠️ **D21 决策**(详 ADR-0028 §2.1 #10):咔皮原设计是底部 3 入口(搜索/记一笔/语音),D21 决策**改 5 入口聚合菜单**:
+> - 记一笔 → 普通支出/收入记账(原 S01 已做)
+> - 转账 → 资金账户间转账(transferMoney DAO + transfer_sheet)
+> - 还款 → 资金类 → 信用类(transferRepayment DAO + repayment_sheet)
+> - 借出 → 独立全屏借贷记账(LendRecordPage,D22 新建)
+> - 借入 → 独立全屏借贷记账(BorrowRecordPage,D22 新建)
+>
+> **语音搜索留 v1.1 评估**(ADR-0016 Siri Shortcuts 范围),不在 S03 实施。
+>
+> 5 入口聚合菜单实施:`lib/features/home/presentation/home_page.dart`「+」按钮点开后弹底部菜单(半屏 modal bottom sheet),每项独立路由到对应记账页面。
 
 ---
 
@@ -132,9 +143,9 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 | 💳 信用账户 | 负债 | 信用卡 💳 / 花呗 🅰️ / 京东白条 🟠 / 借呗 🦊 / 自定义 ❓ |
 | 🚌 充值账户 | 资产 | 公交卡 🚎 / 饭卡 🍱 / 自定义 ❓ |
 | 📈 理财账户 | 资产 | 股票 📈 / 基金 🏦 / 余额宝 🟠 / 零钱通 🟡 / 定期存款 ⏰ / 自定义 ❓ |
-| 💰 借贷账户 | - | 借出(资产)/ 借入(负债)/ 自定义 ❓ |
+| 💰 借贷账户 | ⚠️ D22 改 transaction 化 | 业务流程独立(LendRecordPage/BorrowRecordPage 全屏记账),subType=lendOut/borrowIn schema 字段保留占位,UI 不暴露借贷账户入口 | 详 ADR-0028 §2.1 决策 1 |
 
-> 借贷账户:独立账户 subType,「借出」应收债权 /「借入」应付债务。
+> **⚠️ D21/D22 决策**:借贷作为**独立业务流程(transaction 化)**,**非独立账户模型**。咔皮截图 #25-26 显示「借出/借入」是记账按钮,**不是**「添加借贷账户」入口。D22 已实施 LendRecordPage/BorrowRecordPage 全屏记账 + lendMoney/borrowMoney DAO + schema v7 借贷 transaction 化 4 列(fromAccountId/toAccountId/counterpartyName/startDate)。subType=lendOut/borrowIn 字段保留用于 schema 一致性,UI 不暴露。详 ADR-0028 §1.3 + §2.1。
 
 ---
 
@@ -213,7 +224,7 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 ### S02 必修
 - 资产账户(资金 / 充值 / 理财):计入资产
 - 负债账户(信用):计入负债
-- **借贷是独立账户**(subType=lend/borrow,见 §12.1 修正),按 l标志计入资产/负债
+- ⚠️ **借贷不计入净资产**(D22 transaction 化后,借贷**非独立账户模型**,详 ADR-0028 §2.1)。如需表达"应收/应付债权债务",通过 transactions 表过滤 type=lend/borrow 单独计算,留 S05 净资产 Stage 决策
 - 净资产 = sum(资产) - sum(负债)
 
 ---
@@ -364,7 +375,11 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 | 充值账户(资产) | subType:公交卡/饭卡/自定义 | balanceCents | 当前余额 |
 | 理财账户(资产) | subType:股票/基金/余额宝/零钱通/定期存款/自定义 | balanceCents + shareCount + navPerShare(净值,可选)| 当前市值 |
 
-> **借贷作为独立账户**(⚠️ 2026-08-03 修正:之前误判为 transaction 类型)— 咔皮的「借出/借入」是**独立账户 subType**,有完整 6 字段(图 25/26):起始余额(借出)/ 起始欠款(借入) / 起始时间 / 账户名称 / 备注 / 借款人姓名 / 借出(借入)日期 / 还款日期 / 扣款(入款)账户 + 3 toggle。不是 transaction 类型。
+> **借贷作为独立业务流程(transaction 化)**,**非独立账户模型**。
+> - 2026-08-03 初版:误判借贷为 transaction 类型(§12.3 lend/borrow)
+> - 2026-08-03 修订(`f9a4881`):纠正为「独立账户 subType=lend/borrow」,基于咔皮截图文字描述猜测
+> - **2026-08-05 D22 真机手验后修正**:咔皮截图 #25-26 实际是**记账按钮**,不是「添加借贷账户」入口。借贷是**业务流程**(LendRecordPage/BorrowRecordPage 全屏记账),非账户 CRUD。DAO = lendMoney/borrowMoney(transaction 化),subType 字段保留占位
+> - 详 ADR-0028 §1.3 + §2.1 决策 1。本决策被 **ADR-0028 超越**
 
 ### 2. 6 个 toggle 字段(账户设置)
 - includeInNetWorth(我已有)
@@ -380,8 +395,10 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 | 记账(普通支出/收入)| type=expense/income | amountCents, accountId, categoryId, note | expense:-amount, income:+amount |
 | 转账 | type=transfer | amountCents, fromAccountId, toAccountId, note | fromAccount:-amount, toAccount:+amount |
 | 还款 | type=repayment | amountCents, fromAccountId, toCreditCardId, note, installmentPeriod | 储蓄:-amount, 信用卡已用:-amount |
-| 借出 | type=lend | amountCents, accountId(借出账户), counterparty(借给谁), dueDate(到期日) | 借出账户.balanceCents + amount(应收债权增加)|
-| 借入 | type=borrow | amountCents, accountId(借入账户), counterparty(从谁借), dueDate | 借入账户.balanceCents + amount(应付债务增加)|
+| **借出** ⚠️ D22 transaction 化 | type=lend | amountCents, **fromAccountId(扣款账户)**, counterpartyName, startDate, note | **fromAccount.balanceCents - amount**(资金方扣款),**不维护借贷账户余额**(无借贷账户) |
+| **借入** ⚠️ D22 transaction 化 | type=borrow | amountCents, **toAccountId(入款账户)**, counterpartyName, startDate, note | **toAccount.balanceCents + amount**(资金方入款),**不维护借贷账户余额**(无借贷账户) |
+
+> ⚠️ **D21/D22 决策**(详 ADR-0028 §2.1):借贷**非独立账户模型**,**业务独立**(LendRecordPage/BorrowRecordPage 全屏记账)+ **数据 transaction 化**(lendMoney/borrowMoney DAO)。subType=lendOut/borrowIn schema 字段保留占位,UI 不暴露借贷账户入口。原 §12.3 借出/借入 行被本表超越。
 
 **→ 新增 transactionType 枚举值**:
 - transfer(转账)— **新**
@@ -434,14 +451,14 @@ S02 阶段实施时,**用户提供了咔皮记账 App 的 13 张截图,我没仔
 ### 8. 净资产计算
 
 ```
-净资产 = SUM(资金账户.balanceCents)
-       + SUM(充值账户.balanceCents)
+净资产 = SUM(资金账户.balanceCents,includeInNetWorth=true)
+       + SUM(充值账户.balanceCents,includeInNetWorth=true)
        + SUM(理财账户.balanceCents,includeInNetWorth=true)
-       + SUM(借贷账户.借出.principal,includeInNetWorth=true)
-       - SUM(信用账户.可用额度,includeInNetWorth=true)
-       - SUM(借贷账户.借入.principal,includeInNetWorth=true)
+       - SUM(信用账户.已用额度,includeInNetWorth=true)
        - SUM(其他 includeInNetWorth=false 的不计入)
 ```
+
+> ⚠️ **D22 修订**(详 ADR-0028 §2.1 + §1.3):借贷**非独立账户**,无 balanceCents,**不计入净资产公式**。原 §12 决策 8 中"借贷账户.借出.principal / 借入.principal"SUM 项已删除。借贷资产/负债通过 transactions 表过滤 type=lend/borrow 在 S05 单独计算。
 
 **→ S05 实现,本 ADR 提前设计**。
 

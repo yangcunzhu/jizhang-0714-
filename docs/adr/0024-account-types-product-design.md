@@ -154,15 +154,24 @@ Future<int> transferRepayment({
 
 按优先级排序:
 
-| # | 工作 | 范围 | 工作量 |
-|---|---|---|---|
-| 1 | `transferRepayment` 接口扩展(加 `fromAccountId` 命名 + `installmentPeriod`)| `transaction_dao.dart` | 1 小时 |
-| 2 | schema v5 migration(加 `installment_period` 列)| `app_database.dart` | 30 分钟 |
-| 3 | 还款弹层加「期数」下拉(仅网贷显示)| `repayment_sheet.dart` | 1 小时 |
-| 4 | 单元测试覆盖 3 类场景 × 3 种收款类型(储蓄 / 信用卡 / 花呗 / 网贷)| 测试 | 2 小时 |
-| 5 | 还款 transaction 列表加 `installment_period` 字段(主页交易 tile)| `transaction_tile.dart` | 30 分钟 |
-| 6 | 主页 AppBar 加「距离还款日」提醒(已有,需 review)| 验证 | 10 分钟 |
-| **总计** | | | **5-6 小时** |
+| # | 工作 | 范围 | 工作量 | 实际状态 |
+|---|---|---|---|---|
+| 1 | `transferRepayment` 接口扩展(加 `fromAccountId` 命名 + `installmentPeriod`)| `transaction_dao.dart` | 1 小时 | ✅ D20 已做 |
+| 2 | schema v5 migration(加 `installment_period` 列)| `app_database.dart` | 30 分钟 | ✅ D20 已做 |
+| 3 | 还款弹层加「期数」下拉(仅网贷显示)| `repayment_sheet.dart` | 1 小时 | ✅ D20 已做 |
+| 4 | 单元测试覆盖 3 类场景 × 3 种收款类型(储蓄 / 信用卡 / 花呗 / 网贷)| 测试 | 2 小时 | ✅ D20 已做 |
+| 5 | 还款 transaction 列表加 `installment_period` 字段(主页交易 tile)| `transaction_tile.dart` | 30 分钟 | ✅ D20 已做 |
+| 6 | 主页 AppBar 加「距离还款日」提醒(已有,需 review)| 验证 | 10 分钟 | ✅ D20 已做 |
+| **总计** | | | **5-6 小时** | ✅ 全项完成 |
+
+> ⚠️ **ADR-0024 已基本被 ADR-0026 + ADR-0028 超越**(详 ADR-0026 §12 + ADR-0028 §2.2)。本 ADR §实施清单 6 项已在 D20(2026-08-03)完成;但 ADR-0024 §决策 1「6 种账户类型明确定位」被 ADR-0026 §12「5 大类 × 23 子类」取代,§决策 3「还款流产品差异化」中网贷期数被 ADR-0026 §12.3 + D22 lendMoney/borrowMoney transaction 化超越。
+>
+> **借贷相关实施已迁移**(详 ADR-0028 §2.1):
+> - ADR-0024 §决策 6「理财产品特殊处理」(D20)→ 后续 S05 重新设计
+> - ADR-0024 §决策 4「自动还款」(v1.1 backlog)→ ADR-0025 保留
+> - ADR-0024 §决策 5「还款提醒降级」(v1.1 通知)→ ADR-0025 保留
+>
+> 本 ADR 仅作为决策历史保留,实际产品设计以 ADR-0026 + ADR-0028 为准。
 
 ---
 
