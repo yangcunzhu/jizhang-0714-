@@ -112,7 +112,7 @@ const defaultExpenseCategories = [
 
 ---
 
-## 不可逆性
+## 不可逆性(2026-08-10 IQA-fix D27-2 修订)
 
 | 项 | 永不变更 | 理由 |
 |---|---|---|
@@ -121,6 +121,40 @@ const defaultExpenseCategories = [
 | 16 分类 icon + color + sortOrder 锁定 | ✅ | UI 渲染依赖 |
 | 交通 vs 交通出行 双分类语义 | ✅ | 拆分不合并(避免破坏已有交易归类) |
 | S02 5 预设全保留(不删不合并)| ✅ | 兼容 + 用户保护 |
+| **同名多 type 分类共存(资金往来 + 保险理财,2026-08-10 IQA-fix D27-2)** | ✅ | expense「资金往来」(借出) + income「资金往来」(借出收回)同 name 不同 emoji/语义;expense「保险理财」+ income「保险理财」(保险收益)|
+
+---
+
+## 已发现 S03 升级路径副作用(2026-08-10 IQA-fix D27-4)
+
+onUpgrade 迁移后(v8 → v9):
+- 「娱乐」rename「休闲娱乐」(S03 已 rename,数量不变)
+- 「居住」rename「住房」(S03 已 rename,数量不变)
+- 「其他」rename「其他支出」(S03 已 rename,数量不变)
+- **「医疗」keep + INSERT「医疗健康」= 2 个 expense(双份,语义相似)**
+- **「学习」keep + INSERT「学习办公」= 2 个 expense(双份,语义相似)**
+- 「通讯」S03 有,D27 同名 WHERE NOT EXISTS skip(emoji 不一致:📱 vs 📞)
+
+**总 onUpgrade = 18 expense + 8 income = 26 个**(比 fresh install 24 多 2 expense)。
+
+**user impact**:
+- 「医疗」「学习」双份需要用户手动合并(选 1 删 1)
+- v1.0 v1.1 polish 项:加 user setting 自动合并
+
+---
+
+## onUpgrade SQL 策略(2026-08-10 IQA-fix D27-1)
+
+**原 D27 实施**:用 `INSERT OR IGNORE`(无效,categories 表无 UNIQUE 约束 + rowid 自增不冲突 → 实质等同 INSERT)
+**IQA-fix D27-1 修订**:用 `WHERE NOT EXISTS` 子查询保证 idempotent 真幂等。
+
+```sql
+INSERT INTO categories (name, icon_name, color_value, type, sort_order, created_at)
+SELECT '医疗健康', '💊', ... 'expense', 1, ...
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '医疗健康' AND type = 'expense')
+```
+
+重复跑 onUpgrade(异常路径触发:app 卸载重装 / iCloud backup 恢复 / 数据导入)→ 不会创建重复分类。
 
 ---
 
@@ -172,16 +206,17 @@ const defaultExpenseCategories = [
 
 ---
 
-## 验证
+## 验证(2026-08-10 IQA-fix D27-2 字面对齐实际)
 
-- [ ] flutter analyze 0 issues
-- [ ] flutter test 314 + 4(migration) + 2(widget) 全绿
-- [ ] schema v8 migration_v8_test 4 用例 PASS
-- [ ] 首次启动 16 支出分类全显示(seed 正确)
-- [ ] 旧 S02 数据兼容(5 预设保留,用户自定义保留)
-- [ ] 弹层支出 tab 16 分类全显示(不折叠)
-- [ ] 弹层「交通」排第 5(前),「交通出行」排第 6(后)
-- [ ] iPhone 真机手验 2 场景(首次启动 / 旧数据迁移)
+- [x] flutter analyze 0 issues
+- [x] flutter test 346/346 全绿
+- [x] schema v9 migration_v9_upgrade_test 5 用例 PASS(v8 → v9 真升级 + rename + INSERT WHERE NOT EXISTS 幂等 + 同名多 type 共存 + 数据保留 + refund 新字段)
+- [x] 首次启动 16 支出分类全显示(seed 正确)— D27 daily
+- [x] 旧 S03 数据兼容(5 expense rename + 6 新增)— IQA-fix D27-4
+- [x] 同名多 type 共存(资金往来/保险理财)— findsNWidgets(2) 适配
+- [x] onUpgrade SQL 幂等(WHERE NOT EXISTS)— IQA-fix D27-1
+- [x] 交通 vs 交通出行 双分类语义排第 5/6 — sortOrder 固定
+- [x] iPhone 真机手验 7 场景(D29 整合装机验回报)— 待 D29
 
 ---
 

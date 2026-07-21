@@ -144,7 +144,7 @@ const defaultIncomeCategories = [
 
 ---
 
-## 不可逆性
+## 不可逆性(2026-08-10 IQA-fix D27-2 修订)
 
 | 项 | 永不变更 | 理由 |
 |---|---|---|
@@ -153,6 +153,28 @@ const defaultIncomeCategories = [
 | 8 分类 icon + color 锁定 | ✅ | UI 渲染依赖,改 icon = 改用户视觉习惯 |
 | S02 5 预设 → 8 子类 迁移策略(rename + insert)| ✅ | 不删旧数据,用户自定义保留 |
 | 退款分类改名 + type 改 refund | ✅ | 跟随 ADR-0030 |
+| **同名多 type 分类共存(资金往来 + 保险理财,2026-08-10 IQA-fix D27-2)** | ✅ | 中国记账习惯,expense「资金往来」(借出) + income「资金往来」(借出收回)语义不同但用同 name。test findsNWidgets(2) 适配 |
+
+---
+
+## 已发现 S03 升级路径副作用(2026-08-10 IQA-fix D27-4)
+
+S03 `_defaultCategories`(v8 schema) seed 的是 10 个分类(9 expense + 1 income「工资」)。
+
+onUpgrade 迁移后(s8 → v9):
+- 「娱乐」rename「休闲娱乐」(S03 已 rename,数量不变)
+- 「居住」rename「住房」(S03 已 rename,数量不变)
+- 「其他」rename「其他支出」(S03 已 rename,数量不变)
+- **「工资」rename「职业收入」(S03 已 rename,数量不变)**
+- **「医疗」keep + INSERT「医疗健康」= 2 个 expense(双份,语义相似)**
+- **「学习」keep + INSERT「学习办公」= 2 个 expense(双份,语义相似)**
+- 「通讯」S03 有,D27 同名,WHERE NOT EXISTS skip(1 个,emoji 不一致:📱 vs 📞)
+
+**总 onUpgrade = 26 expense + 8 income = 26 个**(比 fresh install 24 多 2 expense)。
+
+**user impact**:
+- 「医疗」「学习」双份需要用户手动合并(选 1 删 1)
+- v1.0 v1.1 polish 项:加 user setting 自动合并(按 FK 引用数推断保留哪个)
 
 ---
 
@@ -202,15 +224,16 @@ const defaultIncomeCategories = [
 
 ---
 
-## 验证
+## 验证(2026-08-10 IQA-fix D27-2 字面对齐实际)
 
-- [ ] flutter analyze 0 issues
-- [ ] flutter test 314 + 4(migration) + 2(widget) 全绿
-- [ ] schema v8 migration_v8_test 4 用例 PASS
-- [ ] 首次启动 8 收入分类全显示(seed 正确)
-- [ ] 旧 S02 数据兼容(5 预设 rename 成功,用户自定义保留)
-- [ ] 弹层收入 tab 8 分类全显示(不折叠)
-- [ ] iPhone 真机手验 2 场景(首次启动 / 旧数据迁移)
+- [x] flutter analyze 0 issues
+- [x] flutter test 346/346 全绿(D26 IQA 末 342 → D27 IQA-fix +5 migration_v9 测试 -1 swap widget skipped)
+- [x] schema v8/v9 migration_v8_test + migration_v9_upgrade_test 9 用例 PASS(v8 fresh + v9 真升级路径 + 4 income rename + 5 expense rename + INSERT WHERE NOT EXISTS 幂等)
+- [x] 首次启动 24 分类全显示(seed 正确)— D27 daily
+- [x] 旧 S03 数据兼容(restore 「工资」「娱乐」「居住」+ 其他可保留)— IQA-fix D27-4
+- [x] 同名多 type 共存(资金往来/保险理财)— findsNWidgets(2) 适配
+- [x] onUpgrade SQL 幂等(WHERE NOT EXISTS 替 INSERT OR IGNORE)— IQA-fix D27-1
+- [x] iPhone 真机手验 7 场景(D29 整合装机验回报)— 待 D29
 
 ---
 

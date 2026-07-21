@@ -208,96 +208,178 @@ class AppDatabase extends _$AppDatabase {
         // 本 migration **故意不 seed**「退款」type=refund 分类(避免与 DAO 懒加载
         // seed 重复创建)。**种子路径互斥 = DAO 唯一来源**(防御性 design)。
         if (from < 9) {
-          // ═══ ADR-0031:8 收入 rename + insert ═══
-          // 旧 S02 5 income rename(严格按 name 完全匹配时执行,用户自定义保留)
+          // ═══ ADR-0031 + 0032 + IQA-fix C-IQA-D27-1/4(v8 → v9 数据迁移)═══
+          //
+          // IQA-fix D27-1 (2026-08-10):
+          // 原版用 `INSERT OR IGNORE` 因 categories 表**没有 UNIQUE 约束**,
+          // rowid 自增不会冲突 → INSERT OR IGNORE 实际等同 INSERT,
+          // **重复跑 onUpgrade 会创建重复分类**。修法:用 `WHERE NOT EXISTS`
+          // 子查询做真幂等保证。
+          //
+          // IQA-fix D27-4 (2026-08-10):
+          // S03 默认 seed 有「娱乐」「居住」,D27 默认 seed 没有这 2 个(改名
+          // 「休闲娱乐」「住房」)。如果**只 INSERT 不 rename**,S03 用户升级后
+          // 会同时有「娱乐」+「休闲娱乐」+「居住」+「住房」(4 个相似分类 UX 偷懒点)。
+          // 修法:加 rename 「娱乐」→「休闲娱乐」+「居住」→「住房」(严格按
+          // name + type 匹配,用户自定义保留),S03 升级后只剩 rename 后的 1 个。
 
-          // 1. 工资收入 → 职业收入(emoji 改 💳)
+          // ─── 旧 S02/S03 默认 4 income rename(严格 name+type 匹配,用户自定义保留)───
+          //
+          // 实际 S03 _defaultCategories 用的 name 是「工资」「红包收入」没有,
+          // 但 ADR-0031 §背景字面写的是「工资收入」「红包收入」「退款收入」「投资收益」。
+          // 实际 S03 seed 调查(2026-08-10):
+          //   - 「工资」:存在
+          //   - 「红包收入」:不存在(S03 seed 没)
+          //   - 「退款收入」:不存在(S03 seed 没,只在 ADR 字面描述)
+          //   - 「投资收益」:不存在(S03 seed 没)
+          // 修法:SQL WHERE 兼容 S03 真实 seed 名「工资」+ ADR 字面名(两条都试)
+
+          // 1. 工资收入 / 工资 → 职业收入(S03 用「工资」,ADR 字面是「工资收入」)
           await customStatement(
             "UPDATE categories SET name = '职业收入' "
-            "WHERE name = '工资收入' AND type = 'income'",
+            "WHERE (name = '工资' OR name = '工资收入') AND type = 'income'",
           );
-          // 2. 红包收入 → 好运收入(emoji 改 🎉)
+          // 2. 红包收入 → 好运收入(S03 seed 没有这条,但保留 ADR 字面对齐)
           await customStatement(
             "UPDATE categories SET name = '好运收入' "
             "WHERE name = '红包收入' AND type = 'income'",
           );
-          // 3. 退款收入 → 退款 + type=refund(跟随 ADR-0030 §决策 4)
+          // 3. 退款收入 → 退款 + type=refund(跟随 ADR-0030 §决策 4 互斥)
           await customStatement(
             "UPDATE categories SET name = '退款', type = 'refund' "
-            "WHERE name = '退款收入' AND type = 'income'",
+            "WHERE (name = '退款收入' OR name = '退款') AND type = 'income'",
           );
           // 4. 投资收益 → 保险理财
           await customStatement(
             "UPDATE categories SET name = '保险理财' "
-            "WHERE name = '投资收益' AND type = 'income'",
-          );
-          // 5. 其他收入 keep(语义不变)
-
-          // 新增 4 个 income(INSERT OR IGNORE 幂等)
-          // ARGB int 颜色以 hex 整数存储。常用色:
-          // 0xFF2196F3 = 4282550259(蓝色,职业收入 💳)
-          // 0xFF4CAF50 = 4283215696(绿色,经营收入 💰)
-          // 0xFFFF9800 = 4294934528(橙色,保险理财 🛡️)
-          // 0xFF9C27B0 = 4282479696(紫色,资金往来 💬)
-          // 0xFF00BCD4 = 4290703316(青色,二手买卖 🎁)
-          // 0xFFE91E63 = 4288028259(粉色,好运收入 🎉)
-          // 0xFF8BC34A = 4282326090(浅绿,生活费 🛍️)
-          // 0xFF9E9E9E = 4288585374(灰色,其他收入 📦)
-          await customStatement(
-            "INSERT OR IGNORE INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
-            "VALUES "
-            "('经营收入', '💰', 4283215696, 'income', 2, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('资金往来', '💬', 4282479696, 'income', 4, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('二手买卖', '🎁', 4290703316, 'income', 5, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('生活费', '🛍️', 4282326090, 'income', 7, CAST(strftime('%s', 'now') AS INTEGER))",
+            "WHERE (name = '投资收益' OR name = '保险理财') "
+            "AND type = 'income' AND id NOT IN (SELECT id FROM categories WHERE name = '保险理财' AND type = 'income')",
           );
 
-          // ═══ ADR-0032:16 支出 keep + insert 11 个新支出 ═══
-          // S02 已有 8 支出(餐饮/交通/购物/娱乐/居住/医疗/通讯/学习/其他)全保留
-          // 改名 0 个(避免破坏用户归类习惯)
-          // 新增 11 个 INSERT OR IGNORE(已有同名跳过)
-          // 0xFFFF9800 = 4294940615(医疗健康/休闲娱乐橙色)
-          // 0xFFE91E63 = 4287010675(医疗健康粉色 — 实际用 0xFFE91E63 = 3919242851)
-          // 用 sqlite 颜色常量,decimal:
-          //   医疗健康 💊 0xFFE91E63 = 4287010675,粉色
-          //   老人 👴 0xFF795548 = 4284510557,棕色
-          //   交通 🚗 0xFF2196F3 = 4282550259(已有)
-          //   交通出行 🚙 0xFF1976D2 = 4283460609,深蓝
-          //   通讯 📞 0xFF00BCD4 = 4288982228,青色
-          //   缝纫 🧵 0xFF8D6E63 = 4287127651
-          //   育儿 🍼 0xFFFFEB3B = 4293716539
-          //   住房 🏠 0xFF4CAF50 = 4281428581(已有居住换名,实际我们 keep '居住')
-          //   休闲娱乐 🎬 0xFFFFC107 = 4294940615
-          //   学习办公 📚 0xFF3F51B5 = 4283268373
-          //   资金往来 💸 0xFF607D8B = 4290956491(蓝灰)
-          //   保险理财 💎 0xFF009688 = 4283161448
-          //   健身 💪 0xFFCDDC39 = 4295343161
-          //   其他支出 📦 0xFF9E9E9E = 4288585374
+          // ─── IQA-fix D27-4 (2026-08-10):S03 默认 expense rename───
+          // 「娱乐」→「休闲娱乐」(D27 16 支出 sortOrder=11)
           await customStatement(
-            "INSERT OR IGNORE INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
-            "VALUES "
-            "('医疗健康', '💊', 4287010675, 'expense', 1, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('老人', '👴', 4284510557, 'expense', 2, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('交通出行', '🚙', 4283460609, 'expense', 6, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('通讯', '📞', 4288982228, 'expense', 7, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('缝纫', '🧵', 4287127651, 'expense', 8, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('育儿', '🍼', 4293716539, 'expense', 9, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('住房', '🏠', 4281428581, 'expense', 10, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('休闲娱乐', '🎬', 4294940615, 'expense', 11, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('学习办公', '📚', 4283268373, 'expense', 12, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('资金往来', '💸', 4290956491, 'expense', 13, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('保险理财', '💎', 4283161448, 'expense', 14, CAST(strftime('%s', 'now') AS INTEGER)), "
-            "('健身', '💪', 4295343161, 'expense', 15, CAST(strftime('%s', 'now') AS INTEGER))",
+            "UPDATE categories SET name = '休闲娱乐' "
+            "WHERE name = '娱乐' AND type = 'expense'",
           );
-          // 「其他」 → 「其他支出」改名(S02 已有「其他」,严格匹配才改)
+          // 「居住」→「住房」(D27 16 支出 sortOrder=10)
+          await customStatement(
+            "UPDATE categories SET name = '住房' "
+            "WHERE name = '居住' AND type = 'expense'",
+          );
+          // 「其他」→「其他支出」(D27 16 支出 sortOrder=99)— 已在原版做,保留
+          // (不再重复 — 这里是单行 UPDATE,不需要改)
+
+          // ─── 新增 11 个 expense:INSERT ... SELECT WHERE NOT EXISTS(真幂等)───
+          // IQA-fix D27-1:用 WHERE NOT EXISTS 替 INSERT OR IGNORE,
+          // 保证重复跑 onUpgrade 不会创建重复分类。
+          //
+          // 颜色常量(ARGB int hex 整数):
+          //   💊 医疗健康 0xFFE91E63 = 4287010675
+          //   👴 老人 0xFF795548 = 4284510557
+          //   🚗 交通 0xFF2196F3 = 4282550259(S02 seed 已有)
+          //   🚙 交通出行 0xFF1976D2 = 4283460609
+          //   📞 通讯 0xFF00BCD4 = 4288982228(S02 seed 已有,WHERE NOT EXISTS 跳过)
+          //   🧵 缝纫 0xFF8D6E63 = 4287127651
+          //   🍼 育儿 0xFFFFEB3B = 4293716539
+          //   🏠 住房 0xFF4CAF50 = 4281428581(S03「居住」已 rename)
+          //   🎬 休闲娱乐 0xFFFFC107 = 4294940615(S03「娱乐」已 rename)
+          //   📚 学习办公 0xFF3F51B5 = 4283268373(S02「学习」keep,sortOrder 12)
+          //   💸 资金往来 0xFF607D8B = 4290956491
+          //   💎 保险理财 0xFF009688 = 4283161448
+          //   💪 健身 0xFFCDDC39 = 4295343161
+          await customStatement(
+            "INSERT INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
+            "SELECT '医疗健康', '💊', 4287010675, 'expense', 1, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '医疗健康' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '老人', '👴', 4284510557, 'expense', 2, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '老人' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '交通出行', '🚙', 4283460609, 'expense', 6, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '交通出行' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '通讯', '📞', 4288982228, 'expense', 7, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '通讯' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '缝纫', '🧵', 4287127651, 'expense', 8, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '缝纫' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '育儿', '🍼', 4293716539, 'expense', 9, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '育儿' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '住房', '🏠', 4281428581, 'expense', 10, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '住房' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '休闲娱乐', '🎬', 4294940615, 'expense', 11, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '休闲娱乐' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '学习办公', '📚', 4283268373, 'expense', 12, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '学习办公' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '资金往来', '💸', 4290956491, 'expense', 13, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '资金往来' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '保险理财', '💎', 4283161448, 'expense', 14, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '保险理财' AND type = 'expense') "
+            "UNION ALL "
+            "SELECT '健身', '💪', 4295343161, 'expense', 15, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '健身' AND type = 'expense')",
+          );
+
+          // ─── 新增 7 个 income WHERE NOT EXISTS(真幂等,完整 D27 8 income)───
+          // 修正:原版只 INSERT 6 个漏了「其他收入」 — 但 S03 seed 没「其他收入」 income
+          // (S03 _defaultCategories 只有 1 income「工资」+ 9 expense),如果不补 INSERT,
+          // S03 升级路径会少 1 个 income「其他收入」,D27 fresh install = 24 / onUpgrade = 25 不一致。
+          // 修法:补 INSERT「其他收入」,让两条路径都 25(FRESH 25 / UPGRADE 25 不变量)。
+          // 颜色常量:
+          //   💰 经营收入 0xFF4CAF50 = 4283215696
+          //   🛡️ 保险理财 0xFFFF9800 = 4294934528(D27 ADR-0031 §决策 1 income #3)
+          //   💬 资金往来 0xFF9C27B0 = 4282479696
+          //   🎁 二手买卖 0xFF00BCD4 = 4290703316
+          //   🎉 好运收入 0xFFE91E63 = 4288028259
+          //   🛍️ 生活费 0xFF8BC34A = 4282326090
+          //
+          // 实际 8 income 分布:
+          //   - 老「S03 工资」rename「职业收入」 (S03 有这条,改名生效)
+          //   - 老「红包收入」/「退款收入」/「投资收益」/「其他收入」S03 seed 没 — fall through 到 INSERT
+          //   - 退款分类由 DAO 自动 seed(M4 互斥,不在 onUpgrade)
+          // 实际 7 个 NEW INSERT(其他 1 个老有 seed):
+          //   经营收入 / 保险理财 / 资金往来 / 二手买卖 / 好运收入 / 生活费 / 其他收入
+          await customStatement(
+            "INSERT INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
+            "SELECT '经营收入', '💰', 4283215696, 'income', 2, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '经营收入' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '保险理财', '🛡️', 4294934528, 'income', 3, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '保险理财' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '资金往来', '💬', 4282479696, 'income', 4, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '资金往来' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '二手买卖', '🎁', 4290703316, 'income', 5, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '二手买卖' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '好运收入', '🎉', 4288028259, 'income', 6, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '好运收入' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '生活费', '🛍️', 4282326090, 'income', 7, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '生活费' AND type = 'income') "
+            "UNION ALL "
+            "SELECT '其他收入', '📦', 4288585374, 'income', 99, CAST(strftime('%s', 'now') AS INTEGER) "
+            "WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = '其他收入' AND type = 'income')",
+          );
+
+          // ─── 「其他」→「其他支出」改名(已在原版 — 保留单行 UPDATE)───
           await customStatement(
             "UPDATE categories SET name = '其他支出' "
             "WHERE name = '其他' AND type = 'expense'",
           );
-          // 注意:不 seed「住房」(S02 已有「居住」语义重叠,需要重命名 or 保留?
-          //    按 ADR-0032 §不可逆性「不删不合并」,「居住」(D24 已有)和「住房」并存。
-          //    「住房」是「租金/房贷/物业」语义,「居住」是「家庭用品/水电」语义。
-          //    用户可手动二选一删一个。
+
+          // ═══ M4 互斥显式声明(2026-08-09 IQA D26):type=refund 不 seed ═══
+          // type=refund「退款」分类由 DAO `_getOrCreateRefundCategoryId`
+          // (ADR-0030 §决策 4)在首次 refundMoney 时自动 seed。
+          // 本 migration **故意不 seed**(避免与 DAO 懒加载重复创建)。
         }
       },
       beforeOpen: (details) async {
