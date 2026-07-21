@@ -6,6 +6,15 @@ import 'categories.dart';
 /// 交易流水表:一笔记账 = 一行。
 ///
 /// 核心表,承载"5 秒 3 步记账"的落库结果。
+///
+/// Schema 版本:
+/// - v1 (Stage 1):8 列(基础记账)
+/// - v5 (Stage 3 D20 ADR-0024):加 installmentPeriod(网贷期数)
+/// - v7 (Stage 3 D22 ADR-0026 借贷落地):加 fromAccountId / toAccountId /
+///   counterpartyName / startDate — 双账户借出/借入全屏 UI 数据基础
+/// - v8 (Stage 3 D25 schema v8 整合:5 ADR 协同):加 6 列 — 借贷 lendStartDate /
+///   lendEndDate(ADR-0029)+ 退款 originalTransactionId / refundNote(ADR-0030)+
+///   toggle excludeFromIncomeExpense / excludeFromBudget(ADR-0033)
 @DataClassName('TransactionEntry')
 class Transactions extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -78,6 +87,46 @@ class Transactions extends Table {
   /// 用户填借贷账户时输入的「起始时间」会作为该借贷 transaction 的 occurredAt,
   /// 实现咔皮「该时间之前的记录不计入余额统计」语义。
   DateTimeColumn get startDate => dateTime().nullable()();
+
+  // --- v8 (Stage 3 D25 schema v8 整合:5 ADR 协同) ---
+
+  /// 借出/借入 transaction 的起始日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 与 [startDate] 语义重叠(都是借贷 transaction 的起始日期),保留为 ADR-0029
+  /// §决策 3 字面字段名。DAO 暂用 [startDate],本字段留给 D26+ 评估合并。
+  /// TODO(D24+):评估与 [startDate] 合并。
+  DateTimeColumn get lendStartDate => dateTime().nullable()();
+
+  /// 借出 transaction 的收款日期 / 借入 transaction 的还款日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 区别于 [lendDueDate](账户级到期日),本字段是 transaction 级应收/应付日期,
+  /// 下游 S07 异常检测会基于此判断「应收未收」「到期未还」。Nullable。
+  DateTimeColumn get lendEndDate => dateTime().nullable()();
+
+  /// 退款原 transaction ID(v8 D25 ADR-0030 占位)。
+  ///
+  /// 当 transaction.type='refund' 时,本字段指向被退款的原 transaction.id,
+  /// 形成反向引用链。普通 expense/income/transfer/repayment/lend/borrow 为 null。
+  /// 不显式 references(Transactions, ...)避免 drift codegen 在 nullable + FK 上
+  /// 出现迁移陷阱(沿用 fromAccountId 的策略)。
+  IntColumn get originalTransactionId => integer().nullable()();
+
+  /// 退款备注(v8 D25 ADR-0030 占位)。
+  TextColumn get refundNote => text().nullable()();
+
+  /// 不计入收支统计(v8 D25 ADR-0033 占位)。
+  ///
+  /// 咔皮图 19/293 完美证实:某些转账(如内部调账、还款入账)需要隐藏掉,不显示
+  /// 在月度收支柱状图。默认 false,余额永远更新(沿用 ADR-0022 策略)。
+  BoolColumn get excludeFromIncomeExpense =>
+      boolean().withDefault(const Constant(false))();
+
+  /// 不计入预算(v8 D25 ADR-0033 占位)。
+  ///
+  /// 咔皮图 19/293:某些交易(如信用卡还款)实际不算支出,需要排除在分类预算外。
+  /// 默认 false。
+  BoolColumn get excludeFromBudget =>
+      boolean().withDefault(const Constant(false))();
 
   /// 表级约束:金额恒正。用表级 CHECK 而非列级 .check(),避免列 getter 自引用。
   @override

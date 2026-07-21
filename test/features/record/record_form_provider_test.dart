@@ -341,6 +341,8 @@ void main() {
         occurredAt: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        excludeFromIncomeExpense: false,
+        excludeFromBudget: false,
       );
 
       final notifier = container.read(recordFormProvider.notifier);

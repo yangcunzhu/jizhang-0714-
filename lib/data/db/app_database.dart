@@ -32,6 +32,14 @@ part 'app_database.g.dart';
 ///   counterpartyName)+ 回填 subType from type — 5 大类 × 23 子类账户模型
 /// - v7 (Stage 3 D22 ADR-0026 借贷落地):transactions 加 5 列(fromAccountId /
 ///   toAccountId / counterpartyName / startDate)+ TransactionType 加 lend / borrow — 双账户借出/借入全屏 UI 数据基础
+/// - v8 (Stage 3 D25 schema v8 整合 5 ADR 协同):
+///   - accounts 加 4 列(initialLendBalanceCents / initialTime /
+///     lendCounterpartyName / lendDueDate)— ADR-0029
+///   - transactions 加 6 列(lendStartDate / lendEndDate — ADR-0029 +
+///     originalTransactionId / refundNote — ADR-0030 +
+///     excludeFromIncomeExpense / excludeFromBudget — ADR-0033)
+///   - categories + DefaultTemplate 24 分类 + 1 退款(ADR-0031 + 0032 + 0030)— D27 实施
+///   - TransactionType enum 加 refund 值(ADR-0030)— D26 实施
 @DriftDatabase(
   tables: [Categories, Accounts, Transactions, CategoryTemplates],
   daos: [CategoryDao, AccountDao, TransactionDao, CategoryTemplateDao],
@@ -43,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -137,6 +145,49 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(transactions, transactions.toAccountId);
           await m.addColumn(transactions, transactions.counterpartyName);
           await m.addColumn(transactions, transactions.startDate);
+        }
+        // Stage 3 → Stage 3 (D25 schema v8 整合:5 ADR 协同)。
+        //
+        // WHY: 5 个新 ADR(0029/0030/0031/0032/0033)集中迁移到 v8,避免 5 次连续
+        // schema bump。accounts +4 + transactions +6 = 10 列全部 nullable 或带
+        // default,v7 旧数据零影响。categories seed 改动(8 收入 + 16 支出 + 1 退款)
+        // 在 D27 实施时另开 onUpgrade 子块,本迁移只做表结构。
+        //
+        // ADR-0029 借贷字段修补(accounts +4):
+        //   - initialLendBalanceCents:起始余额/欠款(整数分,与项目其他 cents 一致;
+        //     修正 ADR §决策 2 字面 RealColumn)
+        //   - initialTime:借贷账户起始时间(语义「该时间之前的记录不计入余额统计」)
+        //   - lendCounterpartyName:借贷账户对手方姓名(与现有 counterpartyName
+        //     语义重叠,留 D26+ 评估合并)
+        //   - lendDueDate:借贷账户到期还款/收款日期(与现有 dueDate 语义重叠)
+        //
+        // ADR-0029 借贷字段修补(transactions +2):
+        //   - lendStartDate:借出/借入 transaction 起始日期(与 v7 startDate
+        //     语义重叠,留 D26+ 评估合并)
+        //   - lendEndDate:借出收款/借入还款 transaction 日期(S07 异常检测用)
+        //
+        // ADR-0030 退款 transaction 化(transactions +2,D26 实施):
+        //   - originalTransactionId:退款原 transaction.id 引用(nullable + FK 弱约束)
+        //   - refundNote:退款备注
+        //
+        // ADR-0033 交易级 2 toggle(transactions +2,D28 实施):
+        //   - excludeFromIncomeExpense:不计入收支统计(默认 false)
+        //   - excludeFromBudget:不计入预算(默认 false)
+        if (from < 8) {
+          // accounts +4(ADR-0029)
+          await m.addColumn(accounts, accounts.initialLendBalanceCents);
+          await m.addColumn(accounts, accounts.initialTime);
+          await m.addColumn(accounts, accounts.lendCounterpartyName);
+          await m.addColumn(accounts, accounts.lendDueDate);
+          // transactions +2(ADR-0029)
+          await m.addColumn(transactions, transactions.lendStartDate);
+          await m.addColumn(transactions, transactions.lendEndDate);
+          // transactions +2(ADR-0030 占位,D26 写 DAO)
+          await m.addColumn(transactions, transactions.originalTransactionId);
+          await m.addColumn(transactions, transactions.refundNote);
+          // transactions +2(ADR-0033 占位,D28 写 StatisticsDao)
+          await m.addColumn(transactions, transactions.excludeFromIncomeExpense);
+          await m.addColumn(transactions, transactions.excludeFromBudget);
         }
       },
       beforeOpen: (details) async {

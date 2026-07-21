@@ -28,7 +28,7 @@ void main() {
     });
 
     test('schemaVersion = 7', () {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
     });
 
     test('transactions 表有 fromAccountId / toAccountId / startDate / counterpartyName 列(默认 null)',

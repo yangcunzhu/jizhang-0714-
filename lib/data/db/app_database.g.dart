@@ -684,6 +684,50 @@ class $AccountsTable extends Accounts
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _initialLendBalanceCentsMeta =
+      const VerificationMeta('initialLendBalanceCents');
+  @override
+  late final GeneratedColumn<int> initialLendBalanceCents =
+      GeneratedColumn<int>(
+        'initial_lend_balance_cents',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _initialTimeMeta = const VerificationMeta(
+    'initialTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> initialTime = GeneratedColumn<DateTime>(
+    'initial_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lendCounterpartyNameMeta =
+      const VerificationMeta('lendCounterpartyName');
+  @override
+  late final GeneratedColumn<String> lendCounterpartyName =
+      GeneratedColumn<String>(
+        'lend_counterparty_name',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lendDueDateMeta = const VerificationMeta(
+    'lendDueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lendDueDate = GeneratedColumn<DateTime>(
+    'lend_due_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -715,6 +759,10 @@ class $AccountsTable extends Accounts
     startDate,
     dueDate,
     counterpartyName,
+    initialLendBalanceCents,
+    initialTime,
+    lendCounterpartyName,
+    lendDueDate,
     createdAt,
   ];
   @override
@@ -839,6 +887,42 @@ class $AccountsTable extends Accounts
         ),
       );
     }
+    if (data.containsKey('initial_lend_balance_cents')) {
+      context.handle(
+        _initialLendBalanceCentsMeta,
+        initialLendBalanceCents.isAcceptableOrUnknown(
+          data['initial_lend_balance_cents']!,
+          _initialLendBalanceCentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_time')) {
+      context.handle(
+        _initialTimeMeta,
+        initialTime.isAcceptableOrUnknown(
+          data['initial_time']!,
+          _initialTimeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lend_counterparty_name')) {
+      context.handle(
+        _lendCounterpartyNameMeta,
+        lendCounterpartyName.isAcceptableOrUnknown(
+          data['lend_counterparty_name']!,
+          _lendCounterpartyNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lend_due_date')) {
+      context.handle(
+        _lendDueDateMeta,
+        lendDueDate.isAcceptableOrUnknown(
+          data['lend_due_date']!,
+          _lendDueDateMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -926,6 +1010,22 @@ class $AccountsTable extends Accounts
         DriftSqlType.string,
         data['${effectivePrefix}counterparty_name'],
       ),
+      initialLendBalanceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}initial_lend_balance_cents'],
+      ),
+      initialTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}initial_time'],
+      ),
+      lendCounterpartyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lend_counterparty_name'],
+      ),
+      lendDueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}lend_due_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -998,6 +1098,31 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
 
   /// 借款人姓名 — 借贷账户专用(借给谁/从谁借)。Nullable。占位符规则见 CLAUDE §5。
   final String? counterpartyName;
+
+  /// 起始余额/起始欠款(借贷账户专用,v8 D25 ADR-0029 加)。
+  ///
+  /// 借出 = 起始余额;借入 = 起始欠款。不在 includeInNetWorth 公式里
+  /// (沿用 ADR-0026 §6/§8 D22 修订)。整数分存储,与项目其他 cents 字段一致
+  /// (修正 ADR-0029 §决策 2 字面写的 RealColumn)。
+  final int? initialLendBalanceCents;
+
+  /// 借贷账户起始时间(必填,v8 D25 ADR-0029 加)。
+  ///
+  /// 语义「该时间之前的记录不计入余额统计」。Nullable 让 v7 老数据零影响。
+  final DateTime? initialTime;
+
+  /// 借贷账户对手方姓名(v8 D25 ADR-0029 加)。
+  ///
+  /// 与现有 [counterpartyName] 语义重叠,保留为借贷专用字段,UI 不暴露
+  /// (LendRecordPage/BorrowRecordPage 直接用 transaction.counterpartyName)。
+  /// TODO(D24+):评估与 [counterpartyName] 合并。
+  final String? lendCounterpartyName;
+
+  /// 借贷账户到期还款/收款日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 与现有 [dueDate] 语义重叠(都是借贷账户到期日),保留为借贷专用。
+  /// TODO(D24+):评估与 [dueDate] 合并。
+  final DateTime? lendDueDate;
   final DateTime createdAt;
   const AccountEntry({
     required this.id,
@@ -1017,6 +1142,10 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     this.startDate,
     this.dueDate,
     this.counterpartyName,
+    this.initialLendBalanceCents,
+    this.initialTime,
+    this.lendCounterpartyName,
+    this.lendDueDate,
     required this.createdAt,
   });
   @override
@@ -1061,6 +1190,20 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     if (!nullToAbsent || counterpartyName != null) {
       map['counterparty_name'] = Variable<String>(counterpartyName);
     }
+    if (!nullToAbsent || initialLendBalanceCents != null) {
+      map['initial_lend_balance_cents'] = Variable<int>(
+        initialLendBalanceCents,
+      );
+    }
+    if (!nullToAbsent || initialTime != null) {
+      map['initial_time'] = Variable<DateTime>(initialTime);
+    }
+    if (!nullToAbsent || lendCounterpartyName != null) {
+      map['lend_counterparty_name'] = Variable<String>(lendCounterpartyName);
+    }
+    if (!nullToAbsent || lendDueDate != null) {
+      map['lend_due_date'] = Variable<DateTime>(lendDueDate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1102,6 +1245,18 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       counterpartyName: counterpartyName == null && nullToAbsent
           ? const Value.absent()
           : Value(counterpartyName),
+      initialLendBalanceCents: initialLendBalanceCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialLendBalanceCents),
+      initialTime: initialTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialTime),
+      lendCounterpartyName: lendCounterpartyName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lendCounterpartyName),
+      lendDueDate: lendDueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lendDueDate),
       createdAt: Value(createdAt),
     );
   }
@@ -1137,6 +1292,14 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       startDate: serializer.fromJson<DateTime?>(json['startDate']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
       counterpartyName: serializer.fromJson<String?>(json['counterpartyName']),
+      initialLendBalanceCents: serializer.fromJson<int?>(
+        json['initialLendBalanceCents'],
+      ),
+      initialTime: serializer.fromJson<DateTime?>(json['initialTime']),
+      lendCounterpartyName: serializer.fromJson<String?>(
+        json['lendCounterpartyName'],
+      ),
+      lendDueDate: serializer.fromJson<DateTime?>(json['lendDueDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1167,6 +1330,12 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       'startDate': serializer.toJson<DateTime?>(startDate),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
       'counterpartyName': serializer.toJson<String?>(counterpartyName),
+      'initialLendBalanceCents': serializer.toJson<int?>(
+        initialLendBalanceCents,
+      ),
+      'initialTime': serializer.toJson<DateTime?>(initialTime),
+      'lendCounterpartyName': serializer.toJson<String?>(lendCounterpartyName),
+      'lendDueDate': serializer.toJson<DateTime?>(lendDueDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1189,6 +1358,10 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     Value<DateTime?> startDate = const Value.absent(),
     Value<DateTime?> dueDate = const Value.absent(),
     Value<String?> counterpartyName = const Value.absent(),
+    Value<int?> initialLendBalanceCents = const Value.absent(),
+    Value<DateTime?> initialTime = const Value.absent(),
+    Value<String?> lendCounterpartyName = const Value.absent(),
+    Value<DateTime?> lendDueDate = const Value.absent(),
     DateTime? createdAt,
   }) => AccountEntry(
     id: id ?? this.id,
@@ -1214,6 +1387,14 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     counterpartyName: counterpartyName.present
         ? counterpartyName.value
         : this.counterpartyName,
+    initialLendBalanceCents: initialLendBalanceCents.present
+        ? initialLendBalanceCents.value
+        : this.initialLendBalanceCents,
+    initialTime: initialTime.present ? initialTime.value : this.initialTime,
+    lendCounterpartyName: lendCounterpartyName.present
+        ? lendCounterpartyName.value
+        : this.lendCounterpartyName,
+    lendDueDate: lendDueDate.present ? lendDueDate.value : this.lendDueDate,
     createdAt: createdAt ?? this.createdAt,
   );
   AccountEntry copyWithCompanion(AccountsCompanion data) {
@@ -1251,6 +1432,18 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
       counterpartyName: data.counterpartyName.present
           ? data.counterpartyName.value
           : this.counterpartyName,
+      initialLendBalanceCents: data.initialLendBalanceCents.present
+          ? data.initialLendBalanceCents.value
+          : this.initialLendBalanceCents,
+      initialTime: data.initialTime.present
+          ? data.initialTime.value
+          : this.initialTime,
+      lendCounterpartyName: data.lendCounterpartyName.present
+          ? data.lendCounterpartyName.value
+          : this.lendCounterpartyName,
+      lendDueDate: data.lendDueDate.present
+          ? data.lendDueDate.value
+          : this.lendDueDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1275,13 +1468,17 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           ..write('startDate: $startDate, ')
           ..write('dueDate: $dueDate, ')
           ..write('counterpartyName: $counterpartyName, ')
+          ..write('initialLendBalanceCents: $initialLendBalanceCents, ')
+          ..write('initialTime: $initialTime, ')
+          ..write('lendCounterpartyName: $lendCounterpartyName, ')
+          ..write('lendDueDate: $lendDueDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     balanceCents,
@@ -1299,8 +1496,12 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
     startDate,
     dueDate,
     counterpartyName,
+    initialLendBalanceCents,
+    initialTime,
+    lendCounterpartyName,
+    lendDueDate,
     createdAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1322,6 +1523,10 @@ class AccountEntry extends DataClass implements Insertable<AccountEntry> {
           other.startDate == this.startDate &&
           other.dueDate == this.dueDate &&
           other.counterpartyName == this.counterpartyName &&
+          other.initialLendBalanceCents == this.initialLendBalanceCents &&
+          other.initialTime == this.initialTime &&
+          other.lendCounterpartyName == this.lendCounterpartyName &&
+          other.lendDueDate == this.lendDueDate &&
           other.createdAt == this.createdAt);
 }
 
@@ -1343,6 +1548,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
   final Value<DateTime?> startDate;
   final Value<DateTime?> dueDate;
   final Value<String?> counterpartyName;
+  final Value<int?> initialLendBalanceCents;
+  final Value<DateTime?> initialTime;
+  final Value<String?> lendCounterpartyName;
+  final Value<DateTime?> lendDueDate;
   final Value<DateTime> createdAt;
   const AccountsCompanion({
     this.id = const Value.absent(),
@@ -1362,6 +1571,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     this.startDate = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.counterpartyName = const Value.absent(),
+    this.initialLendBalanceCents = const Value.absent(),
+    this.initialTime = const Value.absent(),
+    this.lendCounterpartyName = const Value.absent(),
+    this.lendDueDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   AccountsCompanion.insert({
@@ -1382,6 +1595,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     this.startDate = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.counterpartyName = const Value.absent(),
+    this.initialLendBalanceCents = const Value.absent(),
+    this.initialTime = const Value.absent(),
+    this.lendCounterpartyName = const Value.absent(),
+    this.lendDueDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<AccountEntry> custom({
@@ -1402,6 +1619,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     Expression<DateTime>? startDate,
     Expression<DateTime>? dueDate,
     Expression<String>? counterpartyName,
+    Expression<int>? initialLendBalanceCents,
+    Expression<DateTime>? initialTime,
+    Expression<String>? lendCounterpartyName,
+    Expression<DateTime>? lendDueDate,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1424,6 +1645,12 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
       if (startDate != null) 'start_date': startDate,
       if (dueDate != null) 'due_date': dueDate,
       if (counterpartyName != null) 'counterparty_name': counterpartyName,
+      if (initialLendBalanceCents != null)
+        'initial_lend_balance_cents': initialLendBalanceCents,
+      if (initialTime != null) 'initial_time': initialTime,
+      if (lendCounterpartyName != null)
+        'lend_counterparty_name': lendCounterpartyName,
+      if (lendDueDate != null) 'lend_due_date': lendDueDate,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1446,6 +1673,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     Value<DateTime?>? startDate,
     Value<DateTime?>? dueDate,
     Value<String?>? counterpartyName,
+    Value<int?>? initialLendBalanceCents,
+    Value<DateTime?>? initialTime,
+    Value<String?>? lendCounterpartyName,
+    Value<DateTime?>? lendDueDate,
     Value<DateTime>? createdAt,
   }) {
     return AccountsCompanion(
@@ -1468,6 +1699,11 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
       startDate: startDate ?? this.startDate,
       dueDate: dueDate ?? this.dueDate,
       counterpartyName: counterpartyName ?? this.counterpartyName,
+      initialLendBalanceCents:
+          initialLendBalanceCents ?? this.initialLendBalanceCents,
+      initialTime: initialTime ?? this.initialTime,
+      lendCounterpartyName: lendCounterpartyName ?? this.lendCounterpartyName,
+      lendDueDate: lendDueDate ?? this.lendDueDate,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1534,6 +1770,22 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
     if (counterpartyName.present) {
       map['counterparty_name'] = Variable<String>(counterpartyName.value);
     }
+    if (initialLendBalanceCents.present) {
+      map['initial_lend_balance_cents'] = Variable<int>(
+        initialLendBalanceCents.value,
+      );
+    }
+    if (initialTime.present) {
+      map['initial_time'] = Variable<DateTime>(initialTime.value);
+    }
+    if (lendCounterpartyName.present) {
+      map['lend_counterparty_name'] = Variable<String>(
+        lendCounterpartyName.value,
+      );
+    }
+    if (lendDueDate.present) {
+      map['lend_due_date'] = Variable<DateTime>(lendDueDate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1560,6 +1812,10 @@ class AccountsCompanion extends UpdateCompanion<AccountEntry> {
           ..write('startDate: $startDate, ')
           ..write('dueDate: $dueDate, ')
           ..write('counterpartyName: $counterpartyName, ')
+          ..write('initialLendBalanceCents: $initialLendBalanceCents, ')
+          ..write('initialTime: $initialTime, ')
+          ..write('lendCounterpartyName: $lendCounterpartyName, ')
+          ..write('lendDueDate: $lendDueDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1734,6 +1990,80 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lendStartDateMeta = const VerificationMeta(
+    'lendStartDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lendStartDate =
+      GeneratedColumn<DateTime>(
+        'lend_start_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lendEndDateMeta = const VerificationMeta(
+    'lendEndDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lendEndDate = GeneratedColumn<DateTime>(
+    'lend_end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originalTransactionIdMeta =
+      const VerificationMeta('originalTransactionId');
+  @override
+  late final GeneratedColumn<int> originalTransactionId = GeneratedColumn<int>(
+    'original_transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refundNoteMeta = const VerificationMeta(
+    'refundNote',
+  );
+  @override
+  late final GeneratedColumn<String> refundNote = GeneratedColumn<String>(
+    'refund_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _excludeFromIncomeExpenseMeta =
+      const VerificationMeta('excludeFromIncomeExpense');
+  @override
+  late final GeneratedColumn<bool> excludeFromIncomeExpense =
+      GeneratedColumn<bool>(
+        'exclude_from_income_expense',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("exclude_from_income_expense" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _excludeFromBudgetMeta = const VerificationMeta(
+    'excludeFromBudget',
+  );
+  @override
+  late final GeneratedColumn<bool> excludeFromBudget = GeneratedColumn<bool>(
+    'exclude_from_budget',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("exclude_from_budget" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1750,6 +2080,12 @@ class $TransactionsTable extends Transactions
     toAccountId,
     counterpartyName,
     startDate,
+    lendStartDate,
+    lendEndDate,
+    originalTransactionId,
+    refundNote,
+    excludeFromIncomeExpense,
+    excludeFromBudget,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1859,6 +2195,57 @@ class $TransactionsTable extends Transactions
         startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
       );
     }
+    if (data.containsKey('lend_start_date')) {
+      context.handle(
+        _lendStartDateMeta,
+        lendStartDate.isAcceptableOrUnknown(
+          data['lend_start_date']!,
+          _lendStartDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lend_end_date')) {
+      context.handle(
+        _lendEndDateMeta,
+        lendEndDate.isAcceptableOrUnknown(
+          data['lend_end_date']!,
+          _lendEndDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('original_transaction_id')) {
+      context.handle(
+        _originalTransactionIdMeta,
+        originalTransactionId.isAcceptableOrUnknown(
+          data['original_transaction_id']!,
+          _originalTransactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('refund_note')) {
+      context.handle(
+        _refundNoteMeta,
+        refundNote.isAcceptableOrUnknown(data['refund_note']!, _refundNoteMeta),
+      );
+    }
+    if (data.containsKey('exclude_from_income_expense')) {
+      context.handle(
+        _excludeFromIncomeExpenseMeta,
+        excludeFromIncomeExpense.isAcceptableOrUnknown(
+          data['exclude_from_income_expense']!,
+          _excludeFromIncomeExpenseMeta,
+        ),
+      );
+    }
+    if (data.containsKey('exclude_from_budget')) {
+      context.handle(
+        _excludeFromBudgetMeta,
+        excludeFromBudget.isAcceptableOrUnknown(
+          data['exclude_from_budget']!,
+          _excludeFromBudgetMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1926,6 +2313,30 @@ class $TransactionsTable extends Transactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_date'],
       ),
+      lendStartDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}lend_start_date'],
+      ),
+      lendEndDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}lend_end_date'],
+      ),
+      originalTransactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}original_transaction_id'],
+      ),
+      refundNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}refund_note'],
+      ),
+      excludeFromIncomeExpense: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}exclude_from_income_expense'],
+      )!,
+      excludeFromBudget: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}exclude_from_budget'],
+      )!,
     );
   }
 
@@ -2003,6 +2414,42 @@ class TransactionEntry extends DataClass
   /// 用户填借贷账户时输入的「起始时间」会作为该借贷 transaction 的 occurredAt,
   /// 实现咔皮「该时间之前的记录不计入余额统计」语义。
   final DateTime? startDate;
+
+  /// 借出/借入 transaction 的起始日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 与 [startDate] 语义重叠(都是借贷 transaction 的起始日期),保留为 ADR-0029
+  /// §决策 3 字面字段名。DAO 暂用 [startDate],本字段留给 D26+ 评估合并。
+  /// TODO(D24+):评估与 [startDate] 合并。
+  final DateTime? lendStartDate;
+
+  /// 借出 transaction 的收款日期 / 借入 transaction 的还款日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 区别于 [lendDueDate](账户级到期日),本字段是 transaction 级应收/应付日期,
+  /// 下游 S07 异常检测会基于此判断「应收未收」「到期未还」。Nullable。
+  final DateTime? lendEndDate;
+
+  /// 退款原 transaction ID(v8 D25 ADR-0030 占位)。
+  ///
+  /// 当 transaction.type='refund' 时,本字段指向被退款的原 transaction.id,
+  /// 形成反向引用链。普通 expense/income/transfer/repayment/lend/borrow 为 null。
+  /// 不显式 references(Transactions, ...)避免 drift codegen 在 nullable + FK 上
+  /// 出现迁移陷阱(沿用 fromAccountId 的策略)。
+  final int? originalTransactionId;
+
+  /// 退款备注(v8 D25 ADR-0030 占位)。
+  final String? refundNote;
+
+  /// 不计入收支统计(v8 D25 ADR-0033 占位)。
+  ///
+  /// 咔皮图 19/293 完美证实:某些转账(如内部调账、还款入账)需要隐藏掉,不显示
+  /// 在月度收支柱状图。默认 false,余额永远更新(沿用 ADR-0022 策略)。
+  final bool excludeFromIncomeExpense;
+
+  /// 不计入预算(v8 D25 ADR-0033 占位)。
+  ///
+  /// 咔皮图 19/293:某些交易(如信用卡还款)实际不算支出,需要排除在分类预算外。
+  /// 默认 false。
+  final bool excludeFromBudget;
   const TransactionEntry({
     required this.id,
     required this.amountCents,
@@ -2018,6 +2465,12 @@ class TransactionEntry extends DataClass
     this.toAccountId,
     this.counterpartyName,
     this.startDate,
+    this.lendStartDate,
+    this.lendEndDate,
+    this.originalTransactionId,
+    this.refundNote,
+    required this.excludeFromIncomeExpense,
+    required this.excludeFromBudget,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2050,6 +2503,22 @@ class TransactionEntry extends DataClass
     if (!nullToAbsent || startDate != null) {
       map['start_date'] = Variable<DateTime>(startDate);
     }
+    if (!nullToAbsent || lendStartDate != null) {
+      map['lend_start_date'] = Variable<DateTime>(lendStartDate);
+    }
+    if (!nullToAbsent || lendEndDate != null) {
+      map['lend_end_date'] = Variable<DateTime>(lendEndDate);
+    }
+    if (!nullToAbsent || originalTransactionId != null) {
+      map['original_transaction_id'] = Variable<int>(originalTransactionId);
+    }
+    if (!nullToAbsent || refundNote != null) {
+      map['refund_note'] = Variable<String>(refundNote);
+    }
+    map['exclude_from_income_expense'] = Variable<bool>(
+      excludeFromIncomeExpense,
+    );
+    map['exclude_from_budget'] = Variable<bool>(excludeFromBudget);
     return map;
   }
 
@@ -2079,6 +2548,20 @@ class TransactionEntry extends DataClass
       startDate: startDate == null && nullToAbsent
           ? const Value.absent()
           : Value(startDate),
+      lendStartDate: lendStartDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lendStartDate),
+      lendEndDate: lendEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lendEndDate),
+      originalTransactionId: originalTransactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalTransactionId),
+      refundNote: refundNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refundNote),
+      excludeFromIncomeExpense: Value(excludeFromIncomeExpense),
+      excludeFromBudget: Value(excludeFromBudget),
     );
   }
 
@@ -2104,6 +2587,16 @@ class TransactionEntry extends DataClass
       toAccountId: serializer.fromJson<int?>(json['toAccountId']),
       counterpartyName: serializer.fromJson<String?>(json['counterpartyName']),
       startDate: serializer.fromJson<DateTime?>(json['startDate']),
+      lendStartDate: serializer.fromJson<DateTime?>(json['lendStartDate']),
+      lendEndDate: serializer.fromJson<DateTime?>(json['lendEndDate']),
+      originalTransactionId: serializer.fromJson<int?>(
+        json['originalTransactionId'],
+      ),
+      refundNote: serializer.fromJson<String?>(json['refundNote']),
+      excludeFromIncomeExpense: serializer.fromJson<bool>(
+        json['excludeFromIncomeExpense'],
+      ),
+      excludeFromBudget: serializer.fromJson<bool>(json['excludeFromBudget']),
     );
   }
   @override
@@ -2126,6 +2619,14 @@ class TransactionEntry extends DataClass
       'toAccountId': serializer.toJson<int?>(toAccountId),
       'counterpartyName': serializer.toJson<String?>(counterpartyName),
       'startDate': serializer.toJson<DateTime?>(startDate),
+      'lendStartDate': serializer.toJson<DateTime?>(lendStartDate),
+      'lendEndDate': serializer.toJson<DateTime?>(lendEndDate),
+      'originalTransactionId': serializer.toJson<int?>(originalTransactionId),
+      'refundNote': serializer.toJson<String?>(refundNote),
+      'excludeFromIncomeExpense': serializer.toJson<bool>(
+        excludeFromIncomeExpense,
+      ),
+      'excludeFromBudget': serializer.toJson<bool>(excludeFromBudget),
     };
   }
 
@@ -2144,6 +2645,12 @@ class TransactionEntry extends DataClass
     Value<int?> toAccountId = const Value.absent(),
     Value<String?> counterpartyName = const Value.absent(),
     Value<DateTime?> startDate = const Value.absent(),
+    Value<DateTime?> lendStartDate = const Value.absent(),
+    Value<DateTime?> lendEndDate = const Value.absent(),
+    Value<int?> originalTransactionId = const Value.absent(),
+    Value<String?> refundNote = const Value.absent(),
+    bool? excludeFromIncomeExpense,
+    bool? excludeFromBudget,
   }) => TransactionEntry(
     id: id ?? this.id,
     amountCents: amountCents ?? this.amountCents,
@@ -2165,6 +2672,17 @@ class TransactionEntry extends DataClass
         ? counterpartyName.value
         : this.counterpartyName,
     startDate: startDate.present ? startDate.value : this.startDate,
+    lendStartDate: lendStartDate.present
+        ? lendStartDate.value
+        : this.lendStartDate,
+    lendEndDate: lendEndDate.present ? lendEndDate.value : this.lendEndDate,
+    originalTransactionId: originalTransactionId.present
+        ? originalTransactionId.value
+        : this.originalTransactionId,
+    refundNote: refundNote.present ? refundNote.value : this.refundNote,
+    excludeFromIncomeExpense:
+        excludeFromIncomeExpense ?? this.excludeFromIncomeExpense,
+    excludeFromBudget: excludeFromBudget ?? this.excludeFromBudget,
   );
   TransactionEntry copyWithCompanion(TransactionsCompanion data) {
     return TransactionEntry(
@@ -2196,6 +2714,24 @@ class TransactionEntry extends DataClass
           ? data.counterpartyName.value
           : this.counterpartyName,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      lendStartDate: data.lendStartDate.present
+          ? data.lendStartDate.value
+          : this.lendStartDate,
+      lendEndDate: data.lendEndDate.present
+          ? data.lendEndDate.value
+          : this.lendEndDate,
+      originalTransactionId: data.originalTransactionId.present
+          ? data.originalTransactionId.value
+          : this.originalTransactionId,
+      refundNote: data.refundNote.present
+          ? data.refundNote.value
+          : this.refundNote,
+      excludeFromIncomeExpense: data.excludeFromIncomeExpense.present
+          ? data.excludeFromIncomeExpense.value
+          : this.excludeFromIncomeExpense,
+      excludeFromBudget: data.excludeFromBudget.present
+          ? data.excludeFromBudget.value
+          : this.excludeFromBudget,
     );
   }
 
@@ -2215,7 +2751,13 @@ class TransactionEntry extends DataClass
           ..write('fromAccountId: $fromAccountId, ')
           ..write('toAccountId: $toAccountId, ')
           ..write('counterpartyName: $counterpartyName, ')
-          ..write('startDate: $startDate')
+          ..write('startDate: $startDate, ')
+          ..write('lendStartDate: $lendStartDate, ')
+          ..write('lendEndDate: $lendEndDate, ')
+          ..write('originalTransactionId: $originalTransactionId, ')
+          ..write('refundNote: $refundNote, ')
+          ..write('excludeFromIncomeExpense: $excludeFromIncomeExpense, ')
+          ..write('excludeFromBudget: $excludeFromBudget')
           ..write(')'))
         .toString();
   }
@@ -2236,6 +2778,12 @@ class TransactionEntry extends DataClass
     toAccountId,
     counterpartyName,
     startDate,
+    lendStartDate,
+    lendEndDate,
+    originalTransactionId,
+    refundNote,
+    excludeFromIncomeExpense,
+    excludeFromBudget,
   );
   @override
   bool operator ==(Object other) =>
@@ -2254,7 +2802,13 @@ class TransactionEntry extends DataClass
           other.fromAccountId == this.fromAccountId &&
           other.toAccountId == this.toAccountId &&
           other.counterpartyName == this.counterpartyName &&
-          other.startDate == this.startDate);
+          other.startDate == this.startDate &&
+          other.lendStartDate == this.lendStartDate &&
+          other.lendEndDate == this.lendEndDate &&
+          other.originalTransactionId == this.originalTransactionId &&
+          other.refundNote == this.refundNote &&
+          other.excludeFromIncomeExpense == this.excludeFromIncomeExpense &&
+          other.excludeFromBudget == this.excludeFromBudget);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
@@ -2272,6 +2826,12 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
   final Value<int?> toAccountId;
   final Value<String?> counterpartyName;
   final Value<DateTime?> startDate;
+  final Value<DateTime?> lendStartDate;
+  final Value<DateTime?> lendEndDate;
+  final Value<int?> originalTransactionId;
+  final Value<String?> refundNote;
+  final Value<bool> excludeFromIncomeExpense;
+  final Value<bool> excludeFromBudget;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.amountCents = const Value.absent(),
@@ -2287,6 +2847,12 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.toAccountId = const Value.absent(),
     this.counterpartyName = const Value.absent(),
     this.startDate = const Value.absent(),
+    this.lendStartDate = const Value.absent(),
+    this.lendEndDate = const Value.absent(),
+    this.originalTransactionId = const Value.absent(),
+    this.refundNote = const Value.absent(),
+    this.excludeFromIncomeExpense = const Value.absent(),
+    this.excludeFromBudget = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -2303,6 +2869,12 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     this.toAccountId = const Value.absent(),
     this.counterpartyName = const Value.absent(),
     this.startDate = const Value.absent(),
+    this.lendStartDate = const Value.absent(),
+    this.lendEndDate = const Value.absent(),
+    this.originalTransactionId = const Value.absent(),
+    this.refundNote = const Value.absent(),
+    this.excludeFromIncomeExpense = const Value.absent(),
+    this.excludeFromBudget = const Value.absent(),
   }) : amountCents = Value(amountCents),
        type = Value(type),
        categoryId = Value(categoryId),
@@ -2322,6 +2894,12 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Expression<int>? toAccountId,
     Expression<String>? counterpartyName,
     Expression<DateTime>? startDate,
+    Expression<DateTime>? lendStartDate,
+    Expression<DateTime>? lendEndDate,
+    Expression<int>? originalTransactionId,
+    Expression<String>? refundNote,
+    Expression<bool>? excludeFromIncomeExpense,
+    Expression<bool>? excludeFromBudget,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2338,6 +2916,14 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       if (toAccountId != null) 'to_account_id': toAccountId,
       if (counterpartyName != null) 'counterparty_name': counterpartyName,
       if (startDate != null) 'start_date': startDate,
+      if (lendStartDate != null) 'lend_start_date': lendStartDate,
+      if (lendEndDate != null) 'lend_end_date': lendEndDate,
+      if (originalTransactionId != null)
+        'original_transaction_id': originalTransactionId,
+      if (refundNote != null) 'refund_note': refundNote,
+      if (excludeFromIncomeExpense != null)
+        'exclude_from_income_expense': excludeFromIncomeExpense,
+      if (excludeFromBudget != null) 'exclude_from_budget': excludeFromBudget,
     });
   }
 
@@ -2356,6 +2942,12 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     Value<int?>? toAccountId,
     Value<String?>? counterpartyName,
     Value<DateTime?>? startDate,
+    Value<DateTime?>? lendStartDate,
+    Value<DateTime?>? lendEndDate,
+    Value<int?>? originalTransactionId,
+    Value<String?>? refundNote,
+    Value<bool>? excludeFromIncomeExpense,
+    Value<bool>? excludeFromBudget,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -2372,6 +2964,14 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
       toAccountId: toAccountId ?? this.toAccountId,
       counterpartyName: counterpartyName ?? this.counterpartyName,
       startDate: startDate ?? this.startDate,
+      lendStartDate: lendStartDate ?? this.lendStartDate,
+      lendEndDate: lendEndDate ?? this.lendEndDate,
+      originalTransactionId:
+          originalTransactionId ?? this.originalTransactionId,
+      refundNote: refundNote ?? this.refundNote,
+      excludeFromIncomeExpense:
+          excludeFromIncomeExpense ?? this.excludeFromIncomeExpense,
+      excludeFromBudget: excludeFromBudget ?? this.excludeFromBudget,
     );
   }
 
@@ -2422,6 +3022,28 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
     if (startDate.present) {
       map['start_date'] = Variable<DateTime>(startDate.value);
     }
+    if (lendStartDate.present) {
+      map['lend_start_date'] = Variable<DateTime>(lendStartDate.value);
+    }
+    if (lendEndDate.present) {
+      map['lend_end_date'] = Variable<DateTime>(lendEndDate.value);
+    }
+    if (originalTransactionId.present) {
+      map['original_transaction_id'] = Variable<int>(
+        originalTransactionId.value,
+      );
+    }
+    if (refundNote.present) {
+      map['refund_note'] = Variable<String>(refundNote.value);
+    }
+    if (excludeFromIncomeExpense.present) {
+      map['exclude_from_income_expense'] = Variable<bool>(
+        excludeFromIncomeExpense.value,
+      );
+    }
+    if (excludeFromBudget.present) {
+      map['exclude_from_budget'] = Variable<bool>(excludeFromBudget.value);
+    }
     return map;
   }
 
@@ -2441,7 +3063,13 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
           ..write('fromAccountId: $fromAccountId, ')
           ..write('toAccountId: $toAccountId, ')
           ..write('counterpartyName: $counterpartyName, ')
-          ..write('startDate: $startDate')
+          ..write('startDate: $startDate, ')
+          ..write('lendStartDate: $lendStartDate, ')
+          ..write('lendEndDate: $lendEndDate, ')
+          ..write('originalTransactionId: $originalTransactionId, ')
+          ..write('refundNote: $refundNote, ')
+          ..write('excludeFromIncomeExpense: $excludeFromIncomeExpense, ')
+          ..write('excludeFromBudget: $excludeFromBudget')
           ..write(')'))
         .toString();
   }
@@ -3253,6 +3881,10 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<DateTime?> startDate,
       Value<DateTime?> dueDate,
       Value<String?> counterpartyName,
+      Value<int?> initialLendBalanceCents,
+      Value<DateTime?> initialTime,
+      Value<String?> lendCounterpartyName,
+      Value<DateTime?> lendDueDate,
       Value<DateTime> createdAt,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -3274,6 +3906,10 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<DateTime?> startDate,
       Value<DateTime?> dueDate,
       Value<String?> counterpartyName,
+      Value<int?> initialLendBalanceCents,
+      Value<DateTime?> initialTime,
+      Value<String?> lendCounterpartyName,
+      Value<DateTime?> lendDueDate,
       Value<DateTime> createdAt,
     });
 
@@ -3393,6 +4029,26 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<String> get counterpartyName => $composableBuilder(
     column: $table.counterpartyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get initialLendBalanceCents => $composableBuilder(
+    column: $table.initialLendBalanceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get initialTime => $composableBuilder(
+    column: $table.initialTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lendCounterpartyName => $composableBuilder(
+    column: $table.lendCounterpartyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lendDueDate => $composableBuilder(
+    column: $table.lendDueDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3521,6 +4177,26 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get initialLendBalanceCents => $composableBuilder(
+    column: $table.initialLendBalanceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get initialTime => $composableBuilder(
+    column: $table.initialTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lendCounterpartyName => $composableBuilder(
+    column: $table.lendCounterpartyName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lendDueDate => $composableBuilder(
+    column: $table.lendDueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3603,6 +4279,26 @@ class $$AccountsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get initialLendBalanceCents => $composableBuilder(
+    column: $table.initialLendBalanceCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get initialTime => $composableBuilder(
+    column: $table.initialTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lendCounterpartyName => $composableBuilder(
+    column: $table.lendCounterpartyName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lendDueDate => $composableBuilder(
+    column: $table.lendDueDate,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -3677,6 +4373,10 @@ class $$AccountsTableTableManager
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<String?> counterpartyName = const Value.absent(),
+                Value<int?> initialLendBalanceCents = const Value.absent(),
+                Value<DateTime?> initialTime = const Value.absent(),
+                Value<String?> lendCounterpartyName = const Value.absent(),
+                Value<DateTime?> lendDueDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
@@ -3696,6 +4396,10 @@ class $$AccountsTableTableManager
                 startDate: startDate,
                 dueDate: dueDate,
                 counterpartyName: counterpartyName,
+                initialLendBalanceCents: initialLendBalanceCents,
+                initialTime: initialTime,
+                lendCounterpartyName: lendCounterpartyName,
+                lendDueDate: lendDueDate,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -3717,6 +4421,10 @@ class $$AccountsTableTableManager
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<String?> counterpartyName = const Value.absent(),
+                Value<int?> initialLendBalanceCents = const Value.absent(),
+                Value<DateTime?> initialTime = const Value.absent(),
+                Value<String?> lendCounterpartyName = const Value.absent(),
+                Value<DateTime?> lendDueDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
@@ -3736,6 +4444,10 @@ class $$AccountsTableTableManager
                 startDate: startDate,
                 dueDate: dueDate,
                 counterpartyName: counterpartyName,
+                initialLendBalanceCents: initialLendBalanceCents,
+                initialTime: initialTime,
+                lendCounterpartyName: lendCounterpartyName,
+                lendDueDate: lendDueDate,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -3809,6 +4521,12 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<int?> toAccountId,
       Value<String?> counterpartyName,
       Value<DateTime?> startDate,
+      Value<DateTime?> lendStartDate,
+      Value<DateTime?> lendEndDate,
+      Value<int?> originalTransactionId,
+      Value<String?> refundNote,
+      Value<bool> excludeFromIncomeExpense,
+      Value<bool> excludeFromBudget,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -3826,6 +4544,12 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<int?> toAccountId,
       Value<String?> counterpartyName,
       Value<DateTime?> startDate,
+      Value<DateTime?> lendStartDate,
+      Value<DateTime?> lendEndDate,
+      Value<int?> originalTransactionId,
+      Value<String?> refundNote,
+      Value<bool> excludeFromIncomeExpense,
+      Value<bool> excludeFromBudget,
     });
 
 final class $$TransactionsTableReferences
@@ -3935,6 +4659,36 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<DateTime> get startDate => $composableBuilder(
     column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lendStartDate => $composableBuilder(
+    column: $table.lendStartDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lendEndDate => $composableBuilder(
+    column: $table.lendEndDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get originalTransactionId => $composableBuilder(
+    column: $table.originalTransactionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refundNote => $composableBuilder(
+    column: $table.refundNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get excludeFromIncomeExpense => $composableBuilder(
+    column: $table.excludeFromIncomeExpense,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get excludeFromBudget => $composableBuilder(
+    column: $table.excludeFromBudget,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4054,6 +4808,36 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get lendStartDate => $composableBuilder(
+    column: $table.lendStartDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lendEndDate => $composableBuilder(
+    column: $table.lendEndDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get originalTransactionId => $composableBuilder(
+    column: $table.originalTransactionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refundNote => $composableBuilder(
+    column: $table.refundNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get excludeFromIncomeExpense => $composableBuilder(
+    column: $table.excludeFromIncomeExpense,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get excludeFromBudget => $composableBuilder(
+    column: $table.excludeFromBudget,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4158,6 +4942,36 @@ class $$TransactionsTableAnnotationComposer
   GeneratedColumn<DateTime> get startDate =>
       $composableBuilder(column: $table.startDate, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get lendStartDate => $composableBuilder(
+    column: $table.lendStartDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lendEndDate => $composableBuilder(
+    column: $table.lendEndDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get originalTransactionId => $composableBuilder(
+    column: $table.originalTransactionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get refundNote => $composableBuilder(
+    column: $table.refundNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get excludeFromIncomeExpense => $composableBuilder(
+    column: $table.excludeFromIncomeExpense,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get excludeFromBudget => $composableBuilder(
+    column: $table.excludeFromBudget,
+    builder: (column) => column,
+  );
+
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -4247,6 +5061,12 @@ class $$TransactionsTableTableManager
                 Value<int?> toAccountId = const Value.absent(),
                 Value<String?> counterpartyName = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> lendStartDate = const Value.absent(),
+                Value<DateTime?> lendEndDate = const Value.absent(),
+                Value<int?> originalTransactionId = const Value.absent(),
+                Value<String?> refundNote = const Value.absent(),
+                Value<bool> excludeFromIncomeExpense = const Value.absent(),
+                Value<bool> excludeFromBudget = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 amountCents: amountCents,
@@ -4262,6 +5082,12 @@ class $$TransactionsTableTableManager
                 toAccountId: toAccountId,
                 counterpartyName: counterpartyName,
                 startDate: startDate,
+                lendStartDate: lendStartDate,
+                lendEndDate: lendEndDate,
+                originalTransactionId: originalTransactionId,
+                refundNote: refundNote,
+                excludeFromIncomeExpense: excludeFromIncomeExpense,
+                excludeFromBudget: excludeFromBudget,
               ),
           createCompanionCallback:
               ({
@@ -4279,6 +5105,12 @@ class $$TransactionsTableTableManager
                 Value<int?> toAccountId = const Value.absent(),
                 Value<String?> counterpartyName = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> lendStartDate = const Value.absent(),
+                Value<DateTime?> lendEndDate = const Value.absent(),
+                Value<int?> originalTransactionId = const Value.absent(),
+                Value<String?> refundNote = const Value.absent(),
+                Value<bool> excludeFromIncomeExpense = const Value.absent(),
+                Value<bool> excludeFromBudget = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 amountCents: amountCents,
@@ -4294,6 +5126,12 @@ class $$TransactionsTableTableManager
                 toAccountId: toAccountId,
                 counterpartyName: counterpartyName,
                 startDate: startDate,
+                lendStartDate: lendStartDate,
+                lendEndDate: lendEndDate,
+                originalTransactionId: originalTransactionId,
+                refundNote: refundNote,
+                excludeFromIncomeExpense: excludeFromIncomeExpense,
+                excludeFromBudget: excludeFromBudget,
               ),
           withReferenceMapper: (p0) => p0
               .map(

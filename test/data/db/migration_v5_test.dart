@@ -28,7 +28,7 @@ void main() {
     });
 
     test('schemaVersion = 7', () {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
     });
 
     test('全新建库 transactions 表有 installmentPeriod 列(默认 null)', () async {

@@ -271,6 +271,11 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     String? counterparty,
     String? note,
     DateTime? startDate,
+    // D25 ADR-0029 扩展 4 字段:
+    DateTime? lendStartDate,
+    DateTime? lendEndDate,
+    int? initialLendBalanceCents,
+    DateTime? initialTime,
   }) async {
     return transaction(() async {
       if (amountCents <= 0) {
@@ -297,6 +302,18 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
       await _updateAccountBalance(fromAccountId, -amountCents);
       await _updateAccountBalance(toAccountId, amountCents);
 
+      // D25 ADR-0029:同步更新借贷账户(subType=lendOut)的起始余额/起始时间。
+      // 起始余额记在账户表,「之前的记录不计入余额统计」语义保留。
+      if (initialLendBalanceCents != null || initialTime != null) {
+        await db.accountDao.updateAccountById(
+          AccountsCompanion(
+            id: Value(toAccountId),
+            initialLendBalanceCents: Value(initialLendBalanceCents),
+            initialTime: Value(initialTime),
+          ),
+        );
+      }
+
       final categoryId = await _getOrCreateLendCategoryId();
       return await into(transactions).insert(
         TransactionsCompanion.insert(
@@ -309,6 +326,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           note: Value(note ?? '借出给${counterparty ?? "某人"}'),
           counterpartyName: Value(counterparty),
           startDate: Value(startDate),
+          // D25 ADR-0029:借出/收款 transaction 日期
+          lendStartDate: Value(lendStartDate),
+          lendEndDate: Value(lendEndDate),
           occurredAt: Value(startDate ?? DateTime.now()),
         ),
       );
@@ -330,6 +350,11 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     String? counterparty,
     String? note,
     DateTime? startDate,
+    // D25 ADR-0029 扩展 4 字段:
+    DateTime? lendStartDate,
+    DateTime? lendEndDate,
+    int? initialLendBalanceCents,
+    DateTime? initialTime,
   }) async {
     return transaction(() async {
       if (amountCents <= 0) {
@@ -351,6 +376,17 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
       await _updateAccountBalance(fromAccountId, amountCents);
       await _updateAccountBalance(toAccountId, amountCents);
 
+      // D25 ADR-0029:同步更新借贷账户(subType=borrowIn)的起始欠款/起始时间。
+      if (initialLendBalanceCents != null || initialTime != null) {
+        await db.accountDao.updateAccountById(
+          AccountsCompanion(
+            id: Value(fromAccountId),
+            initialLendBalanceCents: Value(initialLendBalanceCents),
+            initialTime: Value(initialTime),
+          ),
+        );
+      }
+
       return await into(transactions).insert(
         TransactionsCompanion.insert(
           accountId: toAccountId,
@@ -362,6 +398,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           note: Value(note ?? '从${counterparty ?? "某人"}借入'),
           counterpartyName: Value(counterparty),
           startDate: Value(startDate),
+          // D25 ADR-0029:借入/还款 transaction 日期
+          lendStartDate: Value(lendStartDate),
+          lendEndDate: Value(lendEndDate),
           occurredAt: Value(startDate ?? DateTime.now()),
         ),
       );

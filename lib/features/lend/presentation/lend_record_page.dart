@@ -27,6 +27,8 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
   final _noteController = TextEditingController();
   final _counterpartyController = TextEditingController();
   final _amountController = TextEditingController(text: '0.00');
+  // D25 ADR-0029:借贷账户「起始余额」独立输入(账户级,与 transaction 金额分离)。
+  final _initialBalanceController = TextEditingController(text: '0.00');
 
   int? _selectedFundAccountId;
   int? _lendAccountId; // 选中的「借出」子类型账户
@@ -46,6 +48,7 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
     _noteController.dispose();
     _counterpartyController.dispose();
     _amountController.dispose();
+    _initialBalanceController.dispose();
     super.dispose();
   }
 
@@ -119,6 +122,7 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
       // 1) 如果用户没选已有借出账户,先创建一个
       var lendAccId = _lendAccountId!;
       if (_lendAccountId == 0) {
+        final initialBalanceCents = _parseCents(_initialBalanceController.text);
         lendAccId = await db.accountDao.insertAccount(
           AccountsCompanion.insert(
             name: name,
@@ -131,10 +135,15 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
             includeInNetWorth: Value(_includeInNetWorth),
             isPinned: Value(_isPinned),
             isDefaultIncomeAccount: Value(_isDefaultIncome),
+            // D25 ADR-0029:借贷账户起始余额/起始时间(语义「该时间之前的记录不计入余额统计」)
+            initialLendBalanceCents: Value(
+                initialBalanceCents > 0 ? initialBalanceCents : null),
+            initialTime: Value(_startDate),
           ),
         );
       }
       // 2) 写 lend transaction(双账户联动)
+      final initialBalanceCents = _parseCents(_initialBalanceController.text);
       await db.transactionDao.lendMoney(
         fromAccountId: _selectedFundAccountId!,
         toAccountId: lendAccId,
@@ -142,6 +151,12 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
         counterparty: _counterpartyController.text.trim(),
         note: _noteController.text.trim(),
         startDate: _startDate,
+        // D25 ADR-0029:借贷 transaction 起始/结束日期 + 起始余额/起始时间
+        lendStartDate: _lendDate,
+        lendEndDate: _dueDate,
+        initialLendBalanceCents:
+            initialBalanceCents > 0 ? initialBalanceCents : null,
+        initialTime: _startDate,
       );
       ref.invalidate(accountListProvider);
       if (mounted) Navigator.pop(context, true);
@@ -168,21 +183,37 @@ class _LendRecordPageState extends ConsumerState<LendRecordPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
-          // 起始余额(顶部黄框)
+          // 起始余额(顶部黄框 + 可编辑 TextField,D25 ADR-0029)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFFFFF9C4),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('起始余额', style: TextStyle(fontSize: 16)),
-                const Spacer(),
-                Text('¥ ${_amountController.text}',
-                    key: const Key('lend-amount-display'),
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600)),
+                const Text('起始余额(元)', style: TextStyle(fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(
+                  '该时间之前的记录不计入余额统计',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  key: const Key('lend-initial-balance'),
+                  controller: _initialBalanceController,
+                  decoration: const InputDecoration(
+                    prefixText: '¥ ',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                ),
               ],
             ),
           ),

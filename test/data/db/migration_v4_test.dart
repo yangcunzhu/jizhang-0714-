@@ -126,13 +126,15 @@ void main() {
       return AppDatabase.forTesting(NativeDatabase(File(dbPath)));
     }
 
-    test('schemaVersion = 7(累计升级:v4 repayment → v5 期数 → v6 账户模型 → v7 借贷双账户)', () {
+    test('schemaVersion = 8(累计升级:v4 repayment → v5 期数 → v6 账户模型 → v7 借贷双账户 → v8 整合 5 ADR)', () {
       // WHY: v3→v4 ADR-0021(repayment),v4→v5 ADR-0024(installment_period),
       // v5→v6 ADR-0026(accounts 5 大类 × 23 子类模型),
-      // v6→v7 D22 借贷 transactions 加 4 列。验证当前 schemaVersion = 7。
+      // v6→v7 D22 借贷 transactions 加 4 列,
+      // v7→v8 D25 schema v8 整合 5 ADR(accounts +4 + transactions +6)。
+      // 验证当前 schemaVersion = 8。
       final db = AppDatabase.forTesting(NativeDatabase.memory());
-      expect(db.schemaVersion, 7,
-          reason: 'D22:transactions 加 fromAccountId/toAccountId 等 4 列,版本升至 7');
+      expect(db.schemaVersion, 8,
+          reason: 'D25:schema v8 整合 5 ADR(accounts +4 + transactions +6),版本升至 8');
       db.close();
     });
 

@@ -32,7 +32,7 @@ void main() {
     });
 
     test('schemaVersion = 7(累计升级)', () {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
     });
 
     test('fresh install 默认现金账户 subType = cash', () async {

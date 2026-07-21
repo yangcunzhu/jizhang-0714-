@@ -213,6 +213,8 @@ enum AccountType {
 /// - v2 (Stage 2):type / includeInNetWorth / creditLimit / billingDay / dueDay
 /// - v6 (Stage 3 ADR-0026):subType(主模型)/ brandName / 4 toggle 补 3 个 /
 ///   initialDebtCents / startDate / counterpartyName / dueDate
+/// - v8 (Stage 3 D25 ADR-0029):借贷账户 subType 补 4 字段 — initialLendBalanceCents /
+///   initialTime / lendCounterpartyName / lendDueDate(咔皮图 8/13/14/280/281 完整借贷字段)
 @DataClassName('AccountEntry')
 class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -270,6 +272,33 @@ class Accounts extends Table {
 
   /// 借款人姓名 — 借贷账户专用(借给谁/从谁借)。Nullable。占位符规则见 CLAUDE §5。
   TextColumn get counterpartyName => text().nullable()();
+
+  // --- v8 (Stage 3 D25 ADR-0029 借贷账户字段修补) ---
+
+  /// 起始余额/起始欠款(借贷账户专用,v8 D25 ADR-0029 加)。
+  ///
+  /// 借出 = 起始余额;借入 = 起始欠款。不在 includeInNetWorth 公式里
+  /// (沿用 ADR-0026 §6/§8 D22 修订)。整数分存储,与项目其他 cents 字段一致
+  /// (修正 ADR-0029 §决策 2 字面写的 RealColumn)。
+  IntColumn get initialLendBalanceCents => integer().nullable()();
+
+  /// 借贷账户起始时间(必填,v8 D25 ADR-0029 加)。
+  ///
+  /// 语义「该时间之前的记录不计入余额统计」。Nullable 让 v7 老数据零影响。
+  DateTimeColumn get initialTime => dateTime().nullable()();
+
+  /// 借贷账户对手方姓名(v8 D25 ADR-0029 加)。
+  ///
+  /// 与现有 [counterpartyName] 语义重叠,保留为借贷专用字段,UI 不暴露
+  /// (LendRecordPage/BorrowRecordPage 直接用 transaction.counterpartyName)。
+  /// TODO(D24+):评估与 [counterpartyName] 合并。
+  TextColumn get lendCounterpartyName => text().nullable()();
+
+  /// 借贷账户到期还款/收款日期(v8 D25 ADR-0029 加)。
+  ///
+  /// 与现有 [dueDate] 语义重叠(都是借贷账户到期日),保留为借贷专用。
+  /// TODO(D24+):评估与 [dueDate] 合并。
+  DateTimeColumn get lendDueDate => dateTime().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
