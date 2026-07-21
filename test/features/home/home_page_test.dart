@@ -77,7 +77,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('餐饮'), findsOneWidget);
+    expect(find.text('医疗健康'), findsOneWidget,
+        reason: 'D27 seed sortOrder=1 第 0 个分类是「医疗健康」');
     expect(find.textContaining('午饭'), findsOneWidget);
     expect(find.text('-¥12.99'), findsOneWidget);
     expect(find.text('还没有记账'), findsNothing);
@@ -90,7 +91,7 @@ void main() {
       TransactionsCompanion.insert(
         amountCents: 888,
         type: TransactionType.expense,
-        categoryId: cats.first.id, // 餐饮 🍔
+        categoryId: cats.first.id, // 医疗健康 💊(D27 sortOrder=1)
         accountId: acc!.id,
       ),
     );
@@ -106,7 +107,7 @@ void main() {
     await tester.pump();
 
     // ADR-0013: emoji 直接存 iconName,TransactionTile 用 Text 渲染。
-    expect(find.text('🍔'), findsOneWidget);
+    expect(find.text('💊'), findsOneWidget);
     expect(find.byIcon(Icons.label_outline), findsNothing,
         reason: 'Day 6 的占位 Icon 应已被 emoji Text 替代');
   });

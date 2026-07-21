@@ -89,7 +89,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     final cats = await db.categoryDao.getAll();
-    expect(cats, hasLength(10)); // seed 默认 10 个,无新增
+    expect(cats, hasLength(24)); // seed 默认 24 个(D27),无新增
   });
 
   testWidgets('输入名称后保存 → Navigator.pop(true) + DB 新增',

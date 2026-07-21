@@ -55,16 +55,18 @@ void main() {
 
     test('老分类数据完整保留(不影响现有分类)', () async {
       final categories = await db.categoryDao.getAll();
-      expect(categories, hasLength(10));
+      expect(categories, hasLength(24),
+          reason: 'D27 默认 seed 改为 24(8 收入 + 16 支出)');
       expect(categories.any((c) => c.name == '餐饮'), isTrue);
-      expect(categories.any((c) => c.name == '工资'), isTrue);
+      expect(categories.any((c) => c.name == '职业收入'), isTrue,
+          reason: 'D27 ADR-0031 #1「工资收入」→「职业收入」');
     });
 
-    test('同时存在 5 模板 + 10 默认分类(seed 互不干扰)', () async {
+    test('同时存在 5 模板 + 24 默认分类(D27 seed 互不干扰)', () async {
       final templates = await db.categoryTemplateDao.getAllTemplates();
       final categories = await db.categoryDao.getAll();
       expect(templates, hasLength(5));
-      expect(categories, hasLength(10));
+      expect(categories, hasLength(24));
     });
   });
 }

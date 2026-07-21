@@ -32,29 +32,31 @@ void main() {
       expect(def!.name, '现金');
     });
 
-    test('首次建库植入 10 个默认分类(9 支出 + 1 收入),按 sortOrder 升序', () async {
+    test('首次建库植入 24 个默认分类(16 支出 + 8 收入,D27 ADR-0031+0032),按 sortOrder 升序', () async {
       final cats = await db.categoryDao.getAll();
-      expect(cats, hasLength(10));
+      expect(cats, hasLength(24));
 
       final expense =
           cats.where((c) => c.type == TransactionType.expense).length;
       final income =
           cats.where((c) => c.type == TransactionType.income).length;
-      expect(expense, 9);
-      expect(income, 1);
+      expect(expense, 16, reason: 'D27 ADR-0032 16 支出完整版');
+      expect(income, 8, reason: 'D27 ADR-0031 8 收入完整版');
 
-      // "其他"应为支出
-      final other = cats.firstWhere((c) => c.name == '其他');
+      // "其他支出"应为支出(S02 老「其他」已改名)
+      final other = cats.firstWhere((c) => c.name == '其他支出');
       expect(other.type, TransactionType.expense);
-      // 唯一收入是"工资"
-      final onlyIncome =
-          cats.where((c) => c.type == TransactionType.income).single;
-      expect(onlyIncome.name, '工资');
+      // 8 收入:验证「职业收入」存在(ADR-0031 #1)
+      final firstIncome =
+          cats.where((c) => c.type == TransactionType.income).toList();
+      expect(firstIncome.any((c) => c.name == '职业收入'), isTrue);
+      expect(firstIncome.length, 8);
 
       final orders = cats.map((c) => c.sortOrder).toList();
       final sorted = [...orders]..sort();
       expect(orders, sorted);
-      expect(cats.first.name, '餐饮');
+      // ADR-0032 sortOrder=1 是「医疗健康」(而非「餐饮」)— 视觉排序按真实场景频度
+      expect(cats.first.name, '医疗健康');
     });
   });
 

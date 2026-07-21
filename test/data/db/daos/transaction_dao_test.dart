@@ -75,7 +75,7 @@ void main() {
 
       test('收入增加余额(默认 1000 元 → 收入 500 元 → 1500 元)', () async {
         final salaryCategory = (await db.categoryDao.getAll())
-            .firstWhere((c) => c.name == '工资');
+            .firstWhere((c) => c.type == TransactionType.income);
 
         await db.transactionDao.insertTransaction(
           TransactionsCompanion.insert(

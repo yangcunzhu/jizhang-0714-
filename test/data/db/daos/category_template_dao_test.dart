@@ -67,7 +67,7 @@ void main() {
   group('applyTemplate — append 模式', () {
     test('追加时不删除任何现有分类', () async {
       final before = await db.categoryDao.getAll();
-      expect(before, hasLength(10));
+      expect(before, hasLength(24));
 
       final result =
           await db.categoryTemplateDao.applyTemplate('minimal', TemplateApplyMode.append);
@@ -75,15 +75,17 @@ void main() {
       expect(result.mode, TemplateApplyMode.append);
       expect(result.deletedCount, 0);
       expect(result.preservedCount, 0);
-      // 极简模板 5 个分类:
-      // - 餐饮/交通/其他 = name+emoji 与 seed 重复 → 跳过 (3)
-      // - 居家(模板) ≠ 居住(seed,name 不同) → 插入 (1)
-      // - 收入(模板) ≠ 工资(seed,name 不同) → 插入 (1)
-      expect(result.insertedCount, 2);
-      expect(result.skippedDuplicateCount, 3);
+      // 极简模板 5 个分类(D27 后):
+      // - 餐饮/交通 = name+emoji 与 seed 重复 → 跳过 (2)
+      // - 居家(模板 name="居家") ≠ 居住/住房(seed name="居住"/"住房") → 插入 (1)
+      // - 其他(模板 name="其他") ≠ 其他支出(seed name="其他支出") → 插入 (1)
+      // - 收入(模板 name="收入") ≠ 职业收入/其他收入(seed) → 插入 (1)
+      expect(result.insertedCount, 3,
+          reason: 'D27 后「其他」+「收入」名字都改了,所以从 2 变 3 插入');
+      expect(result.skippedDuplicateCount, 2);
 
       final after = await db.categoryDao.getAll();
-      expect(after, hasLength(12)); // 10 seed + 2 新增
+      expect(after, hasLength(27)); // 24 seed(D27) + 3 新增
     });
 
     test('追加空模板 = 无操作', () async {
@@ -105,14 +107,14 @@ void main() {
   group('applyTemplate — overwrite 模式 + 引用保护', () {
     test('覆盖模式:删除无引用 + 插入新模板分类', () async {
       final before = await db.categoryDao.getAll();
-      expect(before, hasLength(10));
+      expect(before, hasLength(24));
 
       final result = await db.categoryTemplateDao
           .applyTemplate('student', TemplateApplyMode.overwrite);
 
       expect(result.mode, TemplateApplyMode.overwrite);
-      // seed 10 个分类都无引用 → 全部删除
-      expect(result.deletedCount, 10);
+      // seed 24 个分类都无引用 → 全部删除
+      expect(result.deletedCount, 24);
       expect(result.preservedCount, 0);
       // 学生模板 8 个,全部是新插入
       expect(result.insertedCount, 8);
@@ -140,7 +142,7 @@ void main() {
       final result = await db.categoryTemplateDao
           .applyTemplate('student', TemplateApplyMode.overwrite);
 
-      expect(result.deletedCount, 9);
+      expect(result.deletedCount, 23);
       expect(result.preservedCount, 1);
       // 学生模板里有「餐饮」(同名同 emoji),保留分类已存在 → 跳过
       expect(result.insertedCount, 7);
@@ -155,7 +157,7 @@ void main() {
       final result = await db.categoryTemplateDao
           .applyTemplate('empty', TemplateApplyMode.overwrite);
       // 全部 seed 删除
-      expect(result.deletedCount, 10);
+      expect(result.deletedCount, 24);
       expect(result.insertedCount, 0);
 
       final after = await db.categoryDao.getAll();
@@ -193,7 +195,7 @@ void main() {
       final result = await db.categoryTemplateDao
           .applyTemplate('minimal', TemplateApplyMode.overwrite);
       expect(result.insertedCount, 5);
-      expect(result.deletedCount, 13); // 10 seed + 3 用户
+      expect(result.deletedCount, 27); // 24 seed + 3 用户
 
       // 新插入的 5 个分类的 sortOrder 应该连续(从 max+1 开始)
       final after = await db.categoryDao.getAll();

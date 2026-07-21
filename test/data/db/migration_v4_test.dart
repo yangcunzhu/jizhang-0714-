@@ -126,15 +126,16 @@ void main() {
       return AppDatabase.forTesting(NativeDatabase(File(dbPath)));
     }
 
-    test('schemaVersion = 8(累计升级:v4 repayment → v5 期数 → v6 账户模型 → v7 借贷双账户 → v8 整合 5 ADR)', () {
+    test('schemaVersion = 9(累计升级:v4 repayment → v5 期数 → v6 账户模型 → v7 借贷双账户 → v8 D25 整合 5 ADR → v9 D27 24 分类完整版)', () {
       // WHY: v3→v4 ADR-0021(repayment),v4→v5 ADR-0024(installment_period),
       // v5→v6 ADR-0026(accounts 5 大类 × 23 子类模型),
       // v6→v7 D22 借贷 transactions 加 4 列,
-      // v7→v8 D25 schema v8 整合 5 ADR(accounts +4 + transactions +6)。
-      // 验证当前 schemaVersion = 8。
+      // v7→v8 D25 schema v8 整合 5 ADR(accounts +4 + transactions +6),
+      // v8→v9 D27 ADR-0031+0032 24 分类完整版 seed(bump schemaVersion = 9)。
+      // 验证当前 schemaVersion = 9。
       final db = AppDatabase.forTesting(NativeDatabase.memory());
-      expect(db.schemaVersion, 8,
-          reason: 'D25:schema v8 整合 5 ADR(accounts +4 + transactions +6),版本升至 8');
+      expect(db.schemaVersion, 9,
+          reason: 'D27:schema v9 seed 24 分类(ADR-0031+0032),版本升至 9');
       db.close();
     });
 
@@ -231,7 +232,7 @@ void main() {
 
         // 10 个默认分类(S01 沿用,v4 不影响 seed 列表)
         final categories = await db.categoryDao.getAll();
-        expect(categories, hasLength(10));
+        expect(categories, hasLength(24));
 
         await db.close();
       } finally {

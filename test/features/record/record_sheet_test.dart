@@ -30,9 +30,18 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
   });
 
-  tearDown(() async {
-    await db.close();
-  });
+  /// D27 后 24 分类 GridView 超出默认 test 视口(800x600),不扩展会让 tap 算的
+  /// offset 超出 hit test range → "could not find any matching widgets"。
+  /// 测试用 `tester.view.physicalSize = ...` 全局扩展到 1000x3000,让弹层
+  /// (主页 24 grid + sheet 数字键盘)都能 render + tap。
+  void useBigSurface(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1000, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+  }
 
   /// 把弹层嵌进一个最小 host page,提供 MaterialApp + Scaffold + 触发按钮。
   Widget hostWithFab() {
@@ -61,7 +70,8 @@ void main() {
 
     expect(find.text('记一笔'), findsOneWidget);
     expect(find.text('餐饮'), findsOneWidget);
-    expect(find.text('工资'), findsOneWidget);
+    expect(find.text('职业收入'), findsOneWidget,
+        reason: 'D27 ADR-0031 「工资收入」→「职业收入」');
     expect(find.text('交通'), findsOneWidget);
   });
 
@@ -151,6 +161,8 @@ void main() {
   testWidgets('完整流程：选分类 + 输入 12.34 + 下一步 + 保存 → 数据库新增一行 + 弹层关闭',
       (tester) async {
     await bootContainer();
+    // D27 24 分类 + 弹层数字键盘超出默认 test 视口,扩展
+    useBigSurface(tester);
     await tester.pumpWidget(hostWithFab());
 
     final initialCount = (await db.transactionDao.getAll()).length;

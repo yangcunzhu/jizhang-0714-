@@ -31,7 +31,7 @@ class BuildInfo {
   /// 数据库 schema 版本(随 migration 升级)。
   /// **必须** 与 `AppDatabase.schemaVersion` getter 保持一致!
   /// 同步检查点:每次升级 schema 时同时改两处(本常量 + AppDatabase.schemaVersion)。
-  static const int schemaVersion = 8; // S03 D25 schema v8 整合(5 ADR 协同):accounts +4 + transactions +6;v7 D22 借贷;v6 accounts 5 大类;v5 期数;v4 repayment
+  static const int schemaVersion = 9; // S03 D27 schema v9 整合(ADR-0031 + 0032):8 收入 + 16 支出 = 24 分类完整版;v8 D25 (5 ADR 字段占位);v7 D22 借贷;v6 accounts 5 大类;v5 期数;v4 repayment
 
   /// commit SHA 前 7 位(GitHub commit 列表用 7 位)。
   /// 本地 'dev' 返回 'dev'。

@@ -29,12 +29,14 @@ void main() {
     expect(list, isEmpty);
   });
 
-  test('categoryListProvider 包含 10 个 seed 分类(9 支出 + 1 收入),按 sortOrder 升序',
+  test('categoryListProvider 包含 24 个 seed 分类(D27:8 收入 + 16 支出),按 sortOrder 升序',
       () async {
     final cats = await container.read(categoryListProvider.future);
-    expect(cats, hasLength(10));
-    expect(cats.first.name, '餐饮');
-    expect(cats.last.name, '工资');
+    expect(cats, hasLength(24));
+    expect(cats.first.name, '医疗健康',
+        reason: 'D27 sortOrder=1 第 0 个是「医疗健康」');
+    expect(cats.last.name, '其他收入',
+        reason: 'D27 ADR-0031 sortOrder=99 末尾「其他收入」');
     expect(cats.first.type, TransactionType.expense);
     expect(cats.last.type, TransactionType.income);
   });

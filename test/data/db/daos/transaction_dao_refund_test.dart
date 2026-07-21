@@ -206,7 +206,7 @@ void main() {
 
     test('income 类型拒绝退款(→ StateError)', () async {
       final salaryCategory = (await db.categoryDao.getAll())
-          .firstWhere((c) => c.name == '工资');
+          .firstWhere((c) => c.type == TransactionType.income);
       final incomeId = await db.transactionDao.insertTransaction(
         TransactionsCompanion.insert(
           accountId: cashAccountId,

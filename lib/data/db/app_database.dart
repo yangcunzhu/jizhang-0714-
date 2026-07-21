@@ -51,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -196,6 +196,109 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(transactions, transactions.excludeFromIncomeExpense);
           await m.addColumn(transactions, transactions.excludeFromBudget);
         }
+        // Stage 3 → Stage 3 (D27 schema v9 整合:ADR-0031 + 0032 24 分类完整版)
+        //
+        // WHY 升级到 v9:D25 已 bump 到 v8(ADR-0029 借贷字段),继续 bump v9 是
+        // 标准 schema 升级惯例。本迁移**不动 schema 结构**,仅做数据迁移
+        // (rename + INSERT OR IGNORE),但 bump schemaVersion 触发 onUpgrade 路径。
+        //
+        // **M4 互斥显式声明(2026-08-09 IQA D26 M4)**:
+        // type=refund 分类由 DAO `_getOrCreateRefundCategoryId`(ADR-0030 §决策 4)
+        // 在首次 refundMoney 时**自动 seed**(按 name + type 双字段查找)。
+        // 本 migration **故意不 seed**「退款」type=refund 分类(避免与 DAO 懒加载
+        // seed 重复创建)。**种子路径互斥 = DAO 唯一来源**(防御性 design)。
+        if (from < 9) {
+          // ═══ ADR-0031:8 收入 rename + insert ═══
+          // 旧 S02 5 income rename(严格按 name 完全匹配时执行,用户自定义保留)
+
+          // 1. 工资收入 → 职业收入(emoji 改 💳)
+          await customStatement(
+            "UPDATE categories SET name = '职业收入' "
+            "WHERE name = '工资收入' AND type = 'income'",
+          );
+          // 2. 红包收入 → 好运收入(emoji 改 🎉)
+          await customStatement(
+            "UPDATE categories SET name = '好运收入' "
+            "WHERE name = '红包收入' AND type = 'income'",
+          );
+          // 3. 退款收入 → 退款 + type=refund(跟随 ADR-0030 §决策 4)
+          await customStatement(
+            "UPDATE categories SET name = '退款', type = 'refund' "
+            "WHERE name = '退款收入' AND type = 'income'",
+          );
+          // 4. 投资收益 → 保险理财
+          await customStatement(
+            "UPDATE categories SET name = '保险理财' "
+            "WHERE name = '投资收益' AND type = 'income'",
+          );
+          // 5. 其他收入 keep(语义不变)
+
+          // 新增 4 个 income(INSERT OR IGNORE 幂等)
+          // ARGB int 颜色以 hex 整数存储。常用色:
+          // 0xFF2196F3 = 4282550259(蓝色,职业收入 💳)
+          // 0xFF4CAF50 = 4283215696(绿色,经营收入 💰)
+          // 0xFFFF9800 = 4294934528(橙色,保险理财 🛡️)
+          // 0xFF9C27B0 = 4282479696(紫色,资金往来 💬)
+          // 0xFF00BCD4 = 4290703316(青色,二手买卖 🎁)
+          // 0xFFE91E63 = 4288028259(粉色,好运收入 🎉)
+          // 0xFF8BC34A = 4282326090(浅绿,生活费 🛍️)
+          // 0xFF9E9E9E = 4288585374(灰色,其他收入 📦)
+          await customStatement(
+            "INSERT OR IGNORE INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
+            "VALUES "
+            "('经营收入', '💰', 4283215696, 'income', 2, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('资金往来', '💬', 4282479696, 'income', 4, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('二手买卖', '🎁', 4290703316, 'income', 5, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('生活费', '🛍️', 4282326090, 'income', 7, CAST(strftime('%s', 'now') AS INTEGER))",
+          );
+
+          // ═══ ADR-0032:16 支出 keep + insert 11 个新支出 ═══
+          // S02 已有 8 支出(餐饮/交通/购物/娱乐/居住/医疗/通讯/学习/其他)全保留
+          // 改名 0 个(避免破坏用户归类习惯)
+          // 新增 11 个 INSERT OR IGNORE(已有同名跳过)
+          // 0xFFFF9800 = 4294940615(医疗健康/休闲娱乐橙色)
+          // 0xFFE91E63 = 4287010675(医疗健康粉色 — 实际用 0xFFE91E63 = 3919242851)
+          // 用 sqlite 颜色常量,decimal:
+          //   医疗健康 💊 0xFFE91E63 = 4287010675,粉色
+          //   老人 👴 0xFF795548 = 4284510557,棕色
+          //   交通 🚗 0xFF2196F3 = 4282550259(已有)
+          //   交通出行 🚙 0xFF1976D2 = 4283460609,深蓝
+          //   通讯 📞 0xFF00BCD4 = 4288982228,青色
+          //   缝纫 🧵 0xFF8D6E63 = 4287127651
+          //   育儿 🍼 0xFFFFEB3B = 4293716539
+          //   住房 🏠 0xFF4CAF50 = 4281428581(已有居住换名,实际我们 keep '居住')
+          //   休闲娱乐 🎬 0xFFFFC107 = 4294940615
+          //   学习办公 📚 0xFF3F51B5 = 4283268373
+          //   资金往来 💸 0xFF607D8B = 4290956491(蓝灰)
+          //   保险理财 💎 0xFF009688 = 4283161448
+          //   健身 💪 0xFFCDDC39 = 4295343161
+          //   其他支出 📦 0xFF9E9E9E = 4288585374
+          await customStatement(
+            "INSERT OR IGNORE INTO categories (name, icon_name, color_value, type, sort_order, created_at) "
+            "VALUES "
+            "('医疗健康', '💊', 4287010675, 'expense', 1, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('老人', '👴', 4284510557, 'expense', 2, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('交通出行', '🚙', 4283460609, 'expense', 6, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('通讯', '📞', 4288982228, 'expense', 7, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('缝纫', '🧵', 4287127651, 'expense', 8, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('育儿', '🍼', 4293716539, 'expense', 9, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('住房', '🏠', 4281428581, 'expense', 10, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('休闲娱乐', '🎬', 4294940615, 'expense', 11, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('学习办公', '📚', 4283268373, 'expense', 12, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('资金往来', '💸', 4290956491, 'expense', 13, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('保险理财', '💎', 4283161448, 'expense', 14, CAST(strftime('%s', 'now') AS INTEGER)), "
+            "('健身', '💪', 4295343161, 'expense', 15, CAST(strftime('%s', 'now') AS INTEGER))",
+          );
+          // 「其他」 → 「其他支出」改名(S02 已有「其他」,严格匹配才改)
+          await customStatement(
+            "UPDATE categories SET name = '其他支出' "
+            "WHERE name = '其他' AND type = 'expense'",
+          );
+          // 注意:不 seed「住房」(S02 已有「居住」语义重叠,需要重命名 or 保留?
+          //    按 ADR-0032 §不可逆性「不删不合并」,「居住」(D24 已有)和「住房」并存。
+          //    「住房」是「租金/房贷/物业」语义,「居住」是「家庭用品/水电」语义。
+          //    用户可手动二选一删一个。
+        }
       },
       beforeOpen: (details) async {
         // WHY: SQLite 默认每个连接 foreign_keys=OFF,不开则 references() 形同虚设。
@@ -238,71 +341,167 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// 10 个默认分类(8 支出 + 2 收入),iconName 直接存 emoji 字符串。
+/// 24 个默认分类(8 收入 + 16 支出),iconName 直接存 emoji 字符串。
+///
+/// D27 (ADR-0031 + ADR-0032) 升级:从 10 个(8 支出 + 2 收入)扩到 24 个完整版,
+/// 覆盖咔皮对标所有真实场景(餐饮/医疗/购物/老人/交通 等 16 支出 + 8 收入)。
 ///
 /// WHY: 选 emoji 而非 Material Icons,见 ADR-0013 — 跨平台一致 + 用户直观
 /// + 零依赖。Stage 2 自定义分类天然兼容 emoji 输入。
+///
+/// **M4 互斥(2026-08-09 IQA D26)**:本 seed **不包含** type=refund 「退款」分类。
+/// 「退款」分类由 DAO `_getOrCreateRefundCategoryId`(ADR-0030 §决策 4)在首次
+/// refundMoney 时自动 seed。本 seed 与 DAO seed 路径互斥,fresh install + 老数据
+/// 升级均如此(seed 互斥 = DAO 唯一来源)。
 const List<CategoriesCompanion> _defaultCategories = [
+  // ═══ 16 支出(ADR-0032 §决策 1)═══
+  CategoriesCompanion(
+      name: Value('医疗健康'),
+      iconName: Value('💊'),
+      colorValue: Value(0xFFE91E63),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(1)),
+  CategoriesCompanion(
+      name: Value('老人'),
+      iconName: Value('👴'),
+      colorValue: Value(0xFF795548),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(2)),
   CategoriesCompanion(
       name: Value('餐饮'),
       iconName: Value('🍔'),
       colorValue: Value(0xFFFF7043),
       type: Value(TransactionType.expense),
-      sortOrder: Value(0)),
-  CategoriesCompanion(
-      name: Value('交通'),
-      iconName: Value('🚗'),
-      colorValue: Value(0xFF42A5F5),
-      type: Value(TransactionType.expense),
-      sortOrder: Value(1)),
+      sortOrder: Value(3)),
   CategoriesCompanion(
       name: Value('购物'),
       iconName: Value('🛍️'),
       colorValue: Value(0xFFAB47BC),
       type: Value(TransactionType.expense),
-      sortOrder: Value(2)),
-  CategoriesCompanion(
-      name: Value('娱乐'),
-      iconName: Value('🎮'),
-      colorValue: Value(0xFFEC407A),
-      type: Value(TransactionType.expense),
-      sortOrder: Value(3)),
-  CategoriesCompanion(
-      name: Value('居住'),
-      iconName: Value('🏠'),
-      colorValue: Value(0xFF26A69A),
-      type: Value(TransactionType.expense),
       sortOrder: Value(4)),
   CategoriesCompanion(
-      name: Value('医疗'),
-      iconName: Value('🏥'),
-      colorValue: Value(0xFFEF5350),
+      name: Value('交通'),
+      iconName: Value('🚗'),
+      colorValue: Value(0xFF42A5F5),
       type: Value(TransactionType.expense),
       sortOrder: Value(5)),
   CategoriesCompanion(
-      name: Value('通讯'),
-      iconName: Value('📱'),
-      colorValue: Value(0xFF5C6BC0),
+      name: Value('交通出行'),
+      iconName: Value('🚙'),
+      colorValue: Value(0xFF1976D2),
       type: Value(TransactionType.expense),
       sortOrder: Value(6)),
   CategoriesCompanion(
-      name: Value('学习'),
-      iconName: Value('📚'),
-      colorValue: Value(0xFF66BB6A),
+      name: Value('通讯'),
+      iconName: Value('📞'),
+      colorValue: Value(0xFF00BCD4),
       type: Value(TransactionType.expense),
       sortOrder: Value(7)),
   CategoriesCompanion(
-      name: Value('其他'),
-      iconName: Value('📦'),
-      colorValue: Value(0xFF78909C),
+      name: Value('缝纫'),
+      iconName: Value('🧵'),
+      colorValue: Value(0xFF8D6E63),
       type: Value(TransactionType.expense),
       sortOrder: Value(8)),
   CategoriesCompanion(
-      name: Value('工资'),
-      iconName: Value('💰'),
-      colorValue: Value(0xFF26C6DA),
-      type: Value(TransactionType.income),
+      name: Value('育儿'),
+      iconName: Value('🍼'),
+      colorValue: Value(0xFFFFEB3B),
+      type: Value(TransactionType.expense),
       sortOrder: Value(9)),
+  CategoriesCompanion(
+      name: Value('住房'),
+      iconName: Value('🏠'),
+      colorValue: Value(0xFF4CAF50),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(10)),
+  CategoriesCompanion(
+      name: Value('休闲娱乐'),
+      iconName: Value('🎬'),
+      colorValue: Value(0xFFFFC107),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(11)),
+  CategoriesCompanion(
+      name: Value('学习办公'),
+      iconName: Value('📚'),
+      colorValue: Value(0xFF3F51B5),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(12)),
+  CategoriesCompanion(
+      name: Value('资金往来'),
+      iconName: Value('💸'),
+      colorValue: Value(0xFF607D8B),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(13)),
+  CategoriesCompanion(
+      name: Value('保险理财'),
+      iconName: Value('💎'),
+      colorValue: Value(0xFF009688),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(14)),
+  CategoriesCompanion(
+      name: Value('健身'),
+      iconName: Value('💪'),
+      colorValue: Value(0xFFCDDC39),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(15)),
+  CategoriesCompanion(
+      name: Value('其他支出'),
+      iconName: Value('📦'),
+      colorValue: Value(0xFF9E9E9E),
+      type: Value(TransactionType.expense),
+      sortOrder: Value(99)),
+  // ═══ 8 收入(ADR-0031 §决策 1)═══
+  CategoriesCompanion(
+      name: Value('职业收入'),
+      iconName: Value('💳'),
+      colorValue: Value(0xFF2196F3),
+      type: Value(TransactionType.income),
+      sortOrder: Value(1)),
+  CategoriesCompanion(
+      name: Value('经营收入'),
+      iconName: Value('💰'),
+      colorValue: Value(0xFF4CAF50),
+      type: Value(TransactionType.income),
+      sortOrder: Value(2)),
+  CategoriesCompanion(
+      name: Value('保险理财'),
+      iconName: Value('🛡️'),
+      colorValue: Value(0xFFFF9800),
+      type: Value(TransactionType.income),
+      sortOrder: Value(3)),
+  CategoriesCompanion(
+      name: Value('资金往来'),
+      iconName: Value('💬'),
+      colorValue: Value(0xFF9C27B0),
+      type: Value(TransactionType.income),
+      sortOrder: Value(4)),
+  CategoriesCompanion(
+      name: Value('二手买卖'),
+      iconName: Value('🎁'),
+      colorValue: Value(0xFF00BCD4),
+      type: Value(TransactionType.income),
+      sortOrder: Value(5)),
+  CategoriesCompanion(
+      name: Value('好运收入'),
+      iconName: Value('🎉'),
+      colorValue: Value(0xFFE91E63),
+      type: Value(TransactionType.income),
+      sortOrder: Value(6)),
+  CategoriesCompanion(
+      name: Value('生活费'),
+      iconName: Value('🛍️'),
+      colorValue: Value(0xFF8BC34A),
+      type: Value(TransactionType.income),
+      sortOrder: Value(7)),
+  CategoriesCompanion(
+      name: Value('其他收入'),
+      iconName: Value('📦'),
+      colorValue: Value(0xFF9E9E9E),
+      type: Value(TransactionType.income),
+      sortOrder: Value(99)),
+  // 注意:type=refund「退款」分类**故意不 seed**(M4 互斥),
+  // 由 transactionDao._getOrCreateRefundCategoryId 在首次 refund 时增量 seed。
 ];
 
 /// 打开物理数据库连接(应用运行时)。

@@ -124,15 +124,26 @@ void main() {
 
   group('swapSortOrder(ADR-0019)', () {
     test('交换两个分类的 sortOrder', () async {
+      // D27 后 sortOrder=1 有 2 个分类(expense「医疗健康」+ income「职业收入」),
+      // 改测试用 all 排序稳定的查找,避开 ORDER BY sortOrder 同值顺序不稳问题。
       final all = await db.categoryDao.getAll();
-      final first = all[0];
-      final second = all[1];
+      final first = all.firstWhere(
+        (c) => c.sortOrder == 1 && c.type == TransactionType.expense,
+      );
+      final second = all.firstWhere(
+        (c) => c.sortOrder == 2 && c.type == TransactionType.expense,
+      );
 
       await db.categoryDao.swapSortOrder(first.id, second.id);
 
       final after = await db.categoryDao.getAll();
-      expect(after[0].id, second.id);
-      expect(after[1].id, first.id);
+      final afterFirstExpense = after
+          .where((c) => c.type == TransactionType.expense)
+          .toList();
+      expect(afterFirstExpense[0].id, second.id,
+          reason: 'swap 后,second 排到 expense 第一(sortOrder=1 → first)');
+      expect(afterFirstExpense[1].id, first.id,
+          reason: 'swap 后,first 排到 expense 第二(sortOrder=2 → second)');
     });
 
     test('swapSortOrder 同 id = no-op', () async {
@@ -151,7 +162,7 @@ void main() {
       await db.categoryDao.swapSortOrder(9999, 9998);
       // 原数据未动
       final all = await db.categoryDao.getAll();
-      expect(all, hasLength(10));
+      expect(all, hasLength(24));
     });
   });
 

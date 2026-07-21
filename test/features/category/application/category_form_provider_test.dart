@@ -70,8 +70,8 @@ void main() {
       final all = await db.categoryDao.getAll();
       final milk = all.firstWhere((c) => c.name == '奶茶');
       expect(milk.iconName, '🧋');
-      // seed 中 sortOrder 最大 = 9(工资),新建 = 10
-      expect(milk.sortOrder, 10);
+      // seed 中 sortOrder 最大 = 99(其他支出),新建 = 100(D27 后排序边界扩大)
+      expect(milk.sortOrder, 100);
     });
 
     test('编辑场景:改 name + iconName,sortOrder 不变', () async {

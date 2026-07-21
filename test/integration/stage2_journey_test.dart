@@ -160,8 +160,9 @@ void main() {
       final result = await db.categoryTemplateDao
           .applyTemplate('office_worker', TemplateApplyMode.overwrite);
 
-      // 引用保护:餐饮保留 → preservedCount = 1(原 seed 10 - 删 9 - 保留 1)
-      expect(result.deletedCount, 9);
+      // 引用保护:餐饮保留 → preservedCount = 1(D27 seed 24 - 删 23 - 保留 1)
+      expect(result.deletedCount, 23,
+          reason: 'D27 seed 24 个,1 保留 → 删 23');
       expect(result.preservedCount, 1);
       // 上班族有 12 个,去重后:与现有「餐饮」重复 1 个 → 新增 11
       expect(result.insertedCount, 11);
@@ -174,13 +175,14 @@ void main() {
       expect(after.any((c) => c.name == '咖啡'), isTrue);
     });
 
-    test('应用模板「极简」追加模式 → 已有不删 + 新增 2 个新分类',
+    test('应用模板「极简」追加模式 → 已有不删 + 新增 3 个新分类',
         () async {
-      // seed 默认 10 个,「极简」5 个去重分析:
-      // - 餐饮(🍔)/ 交通(🚗)/ 其他(📦) 与 seed 完全同名同 emoji → 跳过 3
-      // - 居家(🏠) vs seed「居住」(🏠)name 不同 → 新增
-      // - 收入(💰) vs seed「工资」(💰)name 不同 → 新增
-      // → insertedCount = 2,skippedDuplicateCount = 3
+      // seed 默认 24(D27),「极简」5 个去重分析:
+      // - 餐饮(🍔)/ 交通(🚗) 与 seed 完全同名同 emoji → 跳过 2
+      // - 其他(📦) vs seed「其他支出」name 不同 → 新增(改名)1
+      // - 居家(🏠) vs seed「居住」/「住房」name 都不同 → 新增 1
+      // - 收入(💰) vs seed「职业收入」/「其他收入」name 都不同 → 新增 1
+      // → insertedCount = 3,skippedDuplicateCount = 2
       final initialCount = (await db.categoryDao.getAll()).length;
 
       final result = await db.categoryTemplateDao
@@ -188,12 +190,13 @@ void main() {
 
       expect(result.deletedCount, 0);
       expect(result.preservedCount, 0);
-      expect(result.insertedCount, 2);
-      expect(result.skippedDuplicateCount, 3);
+      expect(result.insertedCount, 3);
+      expect(result.skippedDuplicateCount, 2,
+          reason: 'D27 seed「餐饮」「交通」同名,「其他支出」改名 + 「居家」/「收入」都是新名');
 
       final cats = await db.categoryDao.getAll();
-      // 10 + 2 新增 = 12
-      expect(cats, hasLength(initialCount + 2));
+      // 24 + 3 新增 = 27
+      expect(cats, hasLength(initialCount + 3));
       expect(cats.any((c) => c.name == '居家'), isTrue);
       expect(cats.any((c) => c.name == '收入'), isTrue);
     });

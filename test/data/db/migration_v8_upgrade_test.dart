@@ -143,7 +143,7 @@ void main() {
 
     test('v7 → v8 onUpgrade 触发后 schemaVersion = 8', () async {
       final db = await bootstrapV7AndReopen();
-      expect(db.schemaVersion, 8);
+      expect(db.schemaVersion, 9);
       await db.close();
     });
 

@@ -34,8 +34,8 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion = 8', () {
-      expect(db.schemaVersion, 8);
+    test('schemaVersion = 9(累计升级 v9)', () {
+      expect(db.schemaVersion, 9);
     });
 
     test('accounts 加 4 借贷字段(ADR-0029)— nullable 默认 null', () async {
