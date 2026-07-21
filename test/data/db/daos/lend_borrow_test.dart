@@ -185,4 +185,71 @@ void main() {
       );
     });
   });
+
+  // D25 IQA 修复 M1+M2:DAO 不再写 accounts.initialLendBalanceCents/initialTime
+  // (避免已存在账户二次记账被 Value(null) 覆盖 + initialTime 被错误覆盖)。
+  // accounts 字段由 UI 在 insertAccount 路径写一次,DAO 仅写 transaction 表。
+  group('D25 IQA:DAO 不写 accounts(避免二次记账覆盖)', () {
+    test('lendMoney 不写 accounts.initialTime(已有账户二次记账不被覆盖)',
+        () async {
+      // seed 已存在 lend 账户,initialTime = 2025-01-15(用户已填)
+      final initialTime = DateTime(2025, 1, 15);
+      final lendAccId = await db.accountDao.insertAccount(
+        AccountsCompanion.insert(
+          name: '借出账户',
+          subType: const Value(AccountSubType.lendOut),
+          initialTime: Value(initialTime),
+          initialLendBalanceCents: const Value(50000),
+        ),
+      );
+      // UI _save 路径调用 lendMoney(无 initialTime 参数 — D25 修复后)
+      await db.transactionDao.lendMoney(
+        fromAccountId: fundId,
+        toAccountId: lendAccId,
+        amountCents: 10000,
+        counterparty: '占位-李四',
+        lendStartDate: DateTime(2026, 1, 15),
+        lendEndDate: DateTime(2026, 7, 15),
+      );
+      // 断言:accounts.initialTime 仍是 2025-01-15(未被 DAO 覆盖)
+      final acc = await db.accountDao.getById(lendAccId);
+      expect(acc!.initialTime, initialTime,
+          reason: 'M2 修复:DAO 不应覆盖已存在账户的 initialTime');
+      expect(acc.initialLendBalanceCents, 50000,
+          reason: 'M1 修复:DAO 不应覆盖已存在账户的 initialLendBalanceCents');
+      // 断言:transaction 4 字段正确落库
+      final txs = await db.transactionDao.getAll();
+      expect(txs, hasLength(1));
+      final tx = txs.first;
+      expect(tx.lendStartDate, DateTime(2026, 1, 15));
+      expect(tx.lendEndDate, DateTime(2026, 7, 15));
+      expect(tx.counterpartyName, '占位-李四');
+    });
+
+    test('borrowMoney 不写 accounts.initialTime', () async {
+      final initialTime = DateTime(2025, 3, 1);
+      final borrowAccId = await db.accountDao.insertAccount(
+        AccountsCompanion.insert(
+          name: '借入账户',
+          subType: const Value(AccountSubType.borrowIn),
+          initialTime: Value(initialTime),
+          initialLendBalanceCents: const Value(80000),
+        ),
+      );
+      await db.transactionDao.borrowMoney(
+        fromAccountId: borrowAccId,
+        toAccountId: fundId,
+        amountCents: 20000,
+        counterparty: '占位-王五',
+        lendStartDate: DateTime(2026, 3, 1),
+        lendEndDate: DateTime(2027, 3, 1),
+      );
+      final acc = await db.accountDao.getById(borrowAccId);
+      expect(acc!.initialTime, initialTime);
+      expect(acc.initialLendBalanceCents, 80000);
+      final txs = await db.transactionDao.getAll();
+      expect(txs.first.lendStartDate, DateTime(2026, 3, 1));
+      expect(txs.first.lendEndDate, DateTime(2027, 3, 1));
+    });
+  });
 }

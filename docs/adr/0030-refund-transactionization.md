@@ -63,11 +63,16 @@ enum TransactionType {
 // lib/data/db/tables/transactions.dart(D24+ 加)
 class Transactions extends Table {
   // ... 已有字段
-  
+
   // 退款 transaction 专用
-  IntColumn get originalTransactionId => integer().nullable().references(Transactions, #id)();
-  // 关联交易,refund 记录必填
-  
+  IntColumn get originalTransactionId => integer().nullable()();
+  // 关联交易,refund 记录必填(nullable 兜底 v7 旧数据 NULL)
+  //
+  // WHY 不加 .references(Transactions, #id):drift codegen 在 nullable + 自引用 FK
+  // 上有迁移陷阱(与 fromAccountId 现状一致,详 ADR-0028 §1.2)。FK 完整性由调用方
+  // 保证:refundMoney DAO 写 refund 前 select 原 transaction 验证存在 + 类型合法。
+  // 如未来需要 DB 层 FK 兜底,再走 schema v9 加约束。
+
   TextColumn get refundNote => text().nullable()();
   // 退款备注(图 4 「备注」字段)
 }

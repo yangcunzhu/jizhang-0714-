@@ -136,7 +136,9 @@ class _BorrowRecordPageState extends ConsumerState<BorrowRecordPage> {
           ),
         );
       }
-      final initialBalanceCents = _parseCents(_initialBalanceController.text);
+      // D25 IQA 修正:M1/M2 — accounts.initialLendBalanceCents/initialTime 只在
+      // insertAccount 路径写一次(避免已存在账户二次记账被 Value(null) 覆盖 +
+      // initialTime 被错误覆盖)。DAO 仅写 transaction 表 4 字段。
       await db.transactionDao.borrowMoney(
         fromAccountId: borrowAccId,
         toAccountId: _selectedFundAccountId!,
@@ -144,12 +146,8 @@ class _BorrowRecordPageState extends ConsumerState<BorrowRecordPage> {
         counterparty: _counterpartyController.text.trim(),
         note: _noteController.text.trim(),
         startDate: _startDate,
-        // D25 ADR-0029:借入/还款 transaction 日期 + 起始欠款/起始时间
         lendStartDate: _borrowDate,
         lendEndDate: _dueDate,
-        initialLendBalanceCents:
-            initialBalanceCents > 0 ? initialBalanceCents : null,
-        initialTime: _startDate,
       );
       ref.invalidate(accountListProvider);
       if (mounted) Navigator.pop(context, true);
