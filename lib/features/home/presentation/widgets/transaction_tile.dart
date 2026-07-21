@@ -8,17 +8,25 @@ import '../../../../data/db/tables/categories.dart';
 ///
 /// 显示分类（颜色 + 名称）/ 备注 / 时间 + 金额（红=支出 / 绿=收入）。
 ///
+/// D26 (ADR-0030) 增强:
+/// - 加 [onTap](短按进 TransactionDetailPage)+ 保留 [onLongPress](D8 弹 ActionSheet)
+/// - type=refund 显示 ↩️ overlay + 蓝灰色(0xFF607D8B)+ blueGrey.shade50 底色
+///
 /// ADR-0014: 顶层 ListTile 带 Key('txn-{id}'),Day 9 E2E 直接定位。
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
     required this.transaction,
     required this.category,
+    this.onTap,
     this.onLongPress,
   });
 
   final TransactionEntry transaction;
   final CategoryEntry? category;
+
+  /// 短按回调(D26 起跳 TransactionDetailPage)。null 时 ListTile 不响应短按。
+  final VoidCallback? onTap;
 
   /// 长按回调(Day 8 弹 ActionSheet 用)。null 时 ListTile 不响应长按。
   final VoidCallback? onLongPress;
@@ -28,22 +36,48 @@ class TransactionTile extends StatelessWidget {
     final color = category != null ? Color(category!.colorValue) : Colors.grey;
     final isExpense = transaction.type == TransactionType.expense;
     final isTransfer = transaction.type == TransactionType.transfer;
+    final isRefund = transaction.type == TransactionType.refund;
     final sign = isTransfer ? '⇄ ' : (isExpense ? '-' : '+');
-    final amountColor = isTransfer
-        ? Colors.blueGrey[600]
-        : (isExpense ? Colors.red[700] : Colors.green[700]);
+    final amountColor = isRefund
+        ? Colors.blueGrey[700] // D26:refund 用蓝灰色 0xFF607D8B
+        : (isTransfer
+            ? Colors.blueGrey[600]
+            : (isExpense ? Colors.red[700] : Colors.green[700]));
     final formatted = _formatYuan(transaction.amountCents);
     final dateLabel =
         DateFormat('MM-dd HH:mm').format(transaction.occurredAt);
+    // D26:refund 行 prefix 加 ↩️(ADR-0030 §决策 6)
+    final signWithIcon = isRefund ? '↩$sign' : sign;
 
     return ListTile(
       key: Key('txn-${transaction.id}'),
-      leading: CircleAvatar(
-        backgroundColor: color.withValues(alpha: 0.15),
-        child: Text(
-          category?.iconName ?? '📌',
-          style: const TextStyle(fontSize: 20),
-        ),
+      tileColor: isRefund ? Colors.blueGrey.shade50 : null,
+      leading: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.15),
+            child: Text(
+              category?.iconName ?? '📌',
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+          // D26:refund 行 ↩️ overlay 在右上角(ADR-0030 §决策 6)
+          if (isRefund)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                key: Key('txn-refund-overlay-${transaction.id}'),
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey[700],
+                  shape: BoxShape.circle,
+                ),
+                child: const Text('↩️', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+        ],
       ),
       title: Text(category?.name ?? '未知分类'),
       subtitle: Row(
@@ -79,13 +113,15 @@ class TransactionTile extends StatelessWidget {
         ],
       ),
       trailing: Text(
-        '$sign¥$formatted',
+        '$signWithIcon¥$formatted',
+        key: Key('txn-tile-amount-${transaction.id}'),
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: amountColor,
         ),
       ),
+      onTap: onTap,
       onLongPress: onLongPress,
     );
   }

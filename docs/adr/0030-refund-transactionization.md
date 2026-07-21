@@ -38,7 +38,7 @@ D23 用户补咔皮图 4(7/18 22:33 截图)给出**确切答案**:**「退款」
 ### 决策 1:新增 TransactionType.refund 枚举值
 
 ```dart
-// lib/data/db/tables/categories.dart(D24+ 加)
+// lib/data/db/tables/categories.dart(D26 加)
 enum TransactionType {
   expense,
   income,
@@ -46,7 +46,9 @@ enum TransactionType {
   repayment,   // D19
   lend,        // D22
   borrow,      // D22
-  refund,      // 🆕 D24+
+  refund,      // 🆕 D26(2026-08-09 用户拍板 Q2=B 触发:v1.0 支持
+              //   expense/repayment/lend/borrow 全退款,原 v4 §P0-05
+              //   "v1.0 只支持 expense"声明已对齐,详 ADR-0037 §v4 对齐)
 }
 
 // textEnum 兼容,旧数据零影响
@@ -78,72 +80,106 @@ class Transactions extends Table {
 }
 ```
 
-### 决策 3:refundMoney DAO 设计
+### 决策 3:refundMoney DAO 设计(2026-08-09 修订:支持拆分金额退款)
 
 ```dart
-// lib/data/db/daos/transaction_dao.dart(D24+ 加)
+// lib/data/db/daos/transaction_dao.dart(D26 加)
 Future<int> refundMoney({
   required int originalTransactionId,    // 原交易 ID
   required int refundAccountId,          // 退款账户(图 4 「退款账户」)
-  required int amountCents,              // 退款金额(图 4 「退款金额」,必须 == 原金额)
+  required int amountCents,              // 退款金额(图 4 「退款金额」,允许 <= original.amountCents)
   required DateTime refundTime,          // 退款时间(图 4 「退款时间」)
   String? refundNote,                    // 备注(图 4 「备注」)
 }) async {
   return transaction(() async {
-    // Step 1: 校验
+    // Step 1: 校验原交易
     final original = await (select(transactions)
       ..where((t) => t.id.equals(originalTransactionId)))
       .getSingleOrNull();
-    if (original == null) throw StateError('原交易不存在');
+    if (original == null) throw StateError('原交易不存在: $originalTransactionId');
     if (original.type == TransactionType.refund) {
-      throw StateError('不能对退款记录再退款');
+      throw StateError('不能对退款记录再退款(嵌套保护)');
     }
-    if (original.amountCents != amountCents) {
-      throw StateError('退款金额必须等于原交易金额(单笔完整退款)');
-    }
-    if (original.type == TransactionType.income || 
-        original.type == TransactionType.transfer ||
-        original.type == TransactionType.refund) {
+    if (original.type == TransactionType.income ||
+        original.type == TransactionType.transfer) {
       throw StateError('只能对支出/还款/借贷 transaction 退款');
     }
-    
-    // Step 2: 更新原账户余额(扣回)
+    if (amountCents <= 0) {
+      throw ArgumentError('退款金额必须 > 0(当前: $amountCents)');
+    }
+    if (amountCents > original.amountCents) {
+      throw StateError(
+        '单笔退款金额不能超过原交易金额(本次 ¥${_formatYuan(amountCents)},'
+        '原 ¥${_formatYuan(original.amountCents)})',
+      );
+    }
+
+    // Step 2: 累计已退金额检查(多次拆分退款保护:sum <= original)
+    final refundedSum = await _sumRefundedAmount(originalTransactionId);
+    if (refundedSum + amountCents > original.amountCents) {
+      throw StateError(
+        '累计退款金额超限(原 ¥${_formatYuan(original.amountCents)},'
+        '已退 ¥${_formatYuan(refundedSum)},'
+        '本次 ¥${_formatYuan(amountCents)})',
+      );
+    }
+
+    // Step 3: 更新账户余额(原账户扣回 = +amount,C6 fix 用 refundTime 不 now)
     await _updateAccountBalance(refundAccountId, amountCents);
-    // 支出 transaction:原账户 -amount,退款 +amount = 净值 0
-    // 信用卡还款:信用卡已用 -amount,储蓄 +amount = 净值 0
-    
-    // Step 3: 写 refund transaction
-    return await insertTransaction(
+    // 语义:支出原 -amount,这次退款 +amount = 净值 0(单笔完整退款)
+    // 拆分退款:原 -¥10,退 ¥3 = 净值 -¥7
+
+    // Step 4: 写 refund transaction(直接 into,不走 insertTransaction,因为类型 refund
+    // 已在 switch 抛 ArgumentError)
+    return await into(transactions).insert(
       TransactionsCompanion.insert(
         accountId: refundAccountId,
         categoryId: await _getOrCreateRefundCategoryId(),
         type: TransactionType.refund,
         amountCents: amountCents,
+        occurredAt: Value(refundTime),  // C6 fix:用 refundTime 非 now
         originalTransactionId: Value(originalTransactionId),
         refundNote: Value(refundNote ?? '退款'),
-        note: Value('退款: ${original.note ?? ''}'),
+        note: Value('退款:${original.note ?? ''} ¥${_formatYuan(amountCents)}'),
       ),
     );
   });
 }
+
+/// 查原交易累计已退金额(refund sum,2026-08-09 加,支持拆分退款显示 + UI 禁用判断)。
+Future<int> _sumRefundedAmount(int originalTransactionId) async {
+  final query = select(transactions)
+    ..where((t) => t.originalTransactionId.equals(originalTransactionId));
+  final rows = await query.get();
+  return rows.fold<int>(0, (sum, t) => sum + t.amountCents);
+}
+
+/// 查原交易是否被退过(公开 API,UI 详情页用于禁用编辑/删除/退款按钮)。
+/// 返回:0 = 未退过;>0 = 已退总额(分)。
+Future<int> getRefundedAmount(int originalTransactionId) async {
+  return _sumRefundedAmount(originalTransactionId);
+}
 ```
 
-### 决策 4:refund 分类自动 seed
+### 决策 4:refund 分类自动 seed(2026-08-09 修订:双字段查找 + sortOrder=99)
 
 ```dart
 // lib/data/db/daos/transaction_dao.dart
 Future<int> _getOrCreateRefundCategoryId() async {
   final all = await db.categoryDao.getAll();
-  final existing = all.where((c) => c.name == '退款');
+  // M4 修复:按 name + type 双字段查找,避免和用户自建的 "退款" expense 同名分类冲突
+  final existing = all.where((c) =>
+      c.name == '退款' && c.type == TransactionType.refund);
   if (existing.isNotEmpty) return existing.first.id;
-  
+
   return await db.categoryDao.insertCategory(
     CategoriesCompanion.insert(
       name: '退款',
       iconName: '↩️',
       colorValue: 0xFF607D8B,  // 蓝灰色
       type: TransactionType.refund,
-      sortOrder: Value(20),
+      // L4 修复:sortOrder = 99 放最后,与现有 9 个默认分类(0-9)不冲突
+      sortOrder: const Value(99),
     ),
   );
 }
@@ -173,16 +209,18 @@ final iconOverlay = isRefund ? '↩️' : null;
 
 ---
 
-## 不可逆性
+## 不可逆性(2026-08-09 修订)
 
 | 项 | 永不变更 | 理由 |
 |---|---|---|
 | TransactionType.refund 枚举值 | ✅ | textEnum 兼容,旧数据零影响;下游统计/异常检测 区分 refund vs income |
-| 关联交易 originalTransactionId 引用 | ✅ | 链式追踪,refund 嵌套保护(图 3 决策 3 防止 refund 退款) |
+| 关联交易 originalTransactionId 引用 | ✅ | 链式追踪,refund 嵌套保护(防止 refund 退款) |
 | refund 分类自动 seed | ✅ | 用户透明(无感知),统一图标「↩️」+ 蓝灰色 |
-| 退款金额必须 == 原金额 | ✅ | 单笔完整退款,避免部分退款(部分退款 v1.1 评估) |
+| **退款金额允许 <= 原金额(支持拆分,2026-08-09 修订)** | ✅ | v1.0 多次独立 refund transaction(DAO 校验 sum <= original),无 schema bump;v1.1 考虑硬部分退款 + schema v9 加 refundedAmountCents/isFullyRefunded 字段,详 ADR-0037 |
 | 退款账户默认 = 原付款账户 | ✅ | 99% 场景正确,用户可改(同账户) |
-| 主页交易列表 refund 视觉差异化 | ✅ | 用户易识别 |
+| 主页交易列表 refund 视觉差异化 | ✅ | 用户易识别(↩️ overlay + 蓝灰底色) |
+| **DAO 拒绝 income/transfer/refund 退款(只允许 expense/repayment/lend/borrow,2026-08-09 修订)** | ✅ | 与 v4 §P0-05 字面对齐(Q2=B 拍板)|
+| **DAO 累计超限保护(2026-08-09 修订)** | ✅ | sum(refunds where originalTransactionId=X) <= original.amountCents,防超额退款 |
 
 ---
 
@@ -194,12 +232,12 @@ final iconOverlay = isRefund ? '↩️' : null;
 - ✅ 统计语义清晰(refund 抵消支出,本年支出净值正确)
 - ✅ 主页交易列表易识别(图标 + 颜色)
 
-### 负面影响 / 风险
+### 负面影响 / 风险(2026-08-09 修订)
 | 风险 | 等级 | 缓解 |
 |---|---|---|
 | refund 分类不计入「收入」统计,需要所有统计 DAO 过滤 | 🟡 中 | ADR-0022 §1 余额联动不动(余额已正确回滚),但 S05 净资产仪表盘 + S07 异常检测需明确:refund 计入「收支净额」但不计入「收入合计」 |
-| 部分退款(¥10 退 ¥5) | 🟢 低 | 本期不支持(金额必须 == 原),v1.1 评估 |
-| 退款后改原交易 | 🟢 低 | UI 禁用(交易详情页已退款 → 改/删按钮灰)|
+| **拆分退款 UX 复杂度(2026-08-09 修订)** | 🟢 低 | 多次独立 refund,主页 tile 显示「已退 ¥X / ¥Y」(DAO getRefundedAmount 累加 SUM),用户感受自然 |
+| 退款后改原交易 | 🟢 低 | UI 禁用(交易详情页 + ActionSheet 详情页:DAO getRefundedAmount > 0 → 改/删/退全灰,2026-08-09 用户拍板 Q2=A 加 isRefunded 检测)|
 
 ### 衔接下游
 - **S04 账本 & 预算**:refund 计入预算(按原交易分类的预算)

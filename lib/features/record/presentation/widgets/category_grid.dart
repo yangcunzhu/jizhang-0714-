@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/db/app_database.dart';
+import '../../../../data/db/tables/categories.dart';
 import '../../../home/application/home_providers.dart';
 
 /// 记账弹层的分类网格（Step 1）。
@@ -38,9 +39,20 @@ class CategoryGrid extends ConsumerWidget {
         if (cats.isEmpty) {
           return const Center(child: Text('暂无分类'));
         }
+        // D26 (ADR-0030 + IQA M3):记账弹层只显示 expense/income 普通分类,
+        // 隐藏特殊分类(refund / transfer / repayment / lend / borrow),
+        // 避免用户误选特殊分类走 expense 路径(走错语义)。
+        final filteredCats = cats
+            .where((c) =>
+                c.type == TransactionType.expense ||
+                c.type == TransactionType.income)
+            .toList();
+        if (filteredCats.isEmpty) {
+          return const Center(child: Text('暂无普通分类'));
+        }
         // 末尾追加「+新增」tile(条件:onManageCategory 非 null)。
         final showAdd = onManageCategory != null;
-        final itemCount = cats.length + (showAdd ? 1 : 0);
+        final itemCount = filteredCats.length + (showAdd ? 1 : 0);
         return GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           shrinkWrap: true,
@@ -53,13 +65,13 @@ class CategoryGrid extends ConsumerWidget {
           ),
           itemCount: itemCount,
           itemBuilder: (context, index) {
-            if (showAdd && index == cats.length) {
+            if (showAdd && index == filteredCats.length) {
               return _AddTile(
                 key: const Key('category-grid-add'),
                 onTap: onManageCategory!,
               );
             }
-            final c = cats[index];
+            final c = filteredCats[index];
             final selected = c.id == selectedCategoryId;
             return _CategoryTile(
               key: Key('emoji-${c.name}'),

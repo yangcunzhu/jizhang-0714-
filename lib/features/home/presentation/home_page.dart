@@ -14,6 +14,7 @@ import '../../repayment/application/repayment_form_provider.dart';
 import '../../repayment/presentation/repayment_sheet.dart';
 import '../../transfer/application/transfer_form_provider.dart';
 import '../../transfer/presentation/transfer_sheet.dart';
+import '../../transaction/presentation/transaction_detail_page.dart';
 import '../application/home_providers.dart';
 import 'home_page_keys.dart';
 import 'widgets/confetti_burst.dart';
@@ -275,6 +276,14 @@ class _TransactionList extends ConsumerWidget {
         return TransactionTile(
           transaction: tx,
           category: categories[tx.categoryId],
+          // D26 (ADR-0030 §决策 5):短按进 TransactionDetailPage
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TransactionDetailPage(transactionId: tx.id),
+            ),
+          ),
+          // D8:长按弹 ActionSheet(编辑/删除)
           onLongPress: () => TransactionActionsSheet.show(context, tx),
         );
       },

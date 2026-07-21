@@ -141,5 +141,37 @@ void main() {
       expect(tx.excludeFromIncomeExpense, isTrue);
       expect(tx.excludeFromBudget, isTrue);
     });
+
+    // D26 P1-11 (ADR-0030 + IQA C8):type=refund 真路径测试 — textEnum 落库
+    test('type=refund 真路径落库(D26 ADR-0030 + IQA C8 修复)', () async {
+      final cats = await db.categoryDao.getAll();
+      // 原 transaction(给退款引用)
+      final originalId = await db.into(db.transactions).insert(
+        TransactionsCompanion.insert(
+          amountCents: 896,
+          type: TransactionType.expense,
+          categoryId: cats.first.id,
+          accountId: cashId,
+        ),
+      );
+      // refund transaction(type=refund + originalTransactionId + refundNote)
+      final refundId = await db.into(db.transactions).insert(
+        TransactionsCompanion.insert(
+          amountCents: 896,
+          type: TransactionType.refund,
+          categoryId: cats.first.id,
+          accountId: cashId,
+          originalTransactionId: Value(originalId),
+          refundNote: const Value('占位-退款'),
+        ),
+      );
+      final refund = await db.transactionDao.getById(refundId);
+      expect(refund, isNotNull);
+      expect(refund!.type, TransactionType.refund,
+          reason: 'textEnum 存 enum.name = "refund"(D26 加值)');
+      expect(refund.originalTransactionId, originalId,
+          reason: '关联交易引用落库');
+      expect(refund.refundNote, '占位-退款');
+    });
   });
 }

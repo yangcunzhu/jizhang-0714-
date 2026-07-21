@@ -76,6 +76,9 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         TransactionType.borrow => throw ArgumentError(
             'borrow 类型必须用 borrowMoney(双账户事务),不能用 insertTransaction',
           ),
+        TransactionType.refund => throw ArgumentError(
+            'refund 类型必须用 refundMoney(专用事务),不能用 insertTransaction',
+          ),
       };
       debugPrint('[D19-DEBUG] 准备 _updateAccountBalance accountId=${entry.accountId.value} delta=$delta');
       await _updateAccountBalance(entry.accountId.value, delta);
@@ -486,6 +489,148 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
         colorValue: 4282549237, // 蓝色 0xFF42A5F5
         type: TransactionType.transfer,
         sortOrder: const Value(11),
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // Day 26 (Stage 3):退款 transaction 化(ADR-0030) — D26 用户拍板 Q3=B + Q4=α2
+  //   - ¥10 餐饮可退 ¥3 + ¥5 + ¥2(多次独立 refund,sum <= original)
+  //   - DAO 校验 amount <= original + 累计已退 <= original
+  //   - ¥3 = ¥1 + ¥2 的硬部分退款 schema v9 设计留 ADR-0037(v1.1)
+  // ────────────────────────────────────────────────────────────────────
+
+  /// 退款(单笔 transaction 原路退款 + 自动 seed「退款」分类)— ADR-0030 §决策 3 修订版。
+  ///
+  /// 语义:
+  /// - DAO 类型校验:原交易 type ∈ {expense, repayment, lend, borrow} 才允许退款
+  ///   (income / transfer / refund 一律抛 StateError)
+  /// - 单笔金额校验:[amountCents] <= 原交易 [amountCents]
+  /// - 累计金额校验:SUM(refunds where originalTransactionId=X) + amountCents <= original
+  ///   (支持多次拆分退款,Q3=B + Q4=α2 拍板)
+  /// - 余额联动:[refundAccountId].balanceCents += amountCents(原账户扣回)
+  /// - 写 1 条 type=refund transaction,关联交易引用 + 备注 + refundTime 落库
+  ///
+  /// 3 类场景(铁律 8 — 边界必覆盖):
+  /// - **正常**:原 expense -¥8.96 + 退款时间 + 退款账户合法 → 成功
+  /// - **异常(类型不允许)**:对 income/transfer/refund 退款 → StateError「只能对支出/还款/借贷 transaction 退款」
+  /// - **边界(单笔超限)**:amountCents > original → StateError「单笔退款金额不能超过」
+  /// - **边界(累计超限)**:已退 ¥8 + 退 ¥5 > ¥10 → StateError「累计退款金额超限」
+  /// - **边界(嵌套退款)**:对 refund 退款 → StateError「不能对退款记录再退款」
+  /// - **边界(账户不存在)**:refundAccountId 非法 → silent skip 余额更新,refund 记录写入但余额不动
+  ///   (与 [transferMoney] 行为一致)
+  Future<int> refundMoney({
+    required int originalTransactionId,
+    required int refundAccountId,
+    required int amountCents,
+    required DateTime refundTime,
+    String? refundNote,
+  }) async {
+    return transaction(() async {
+      // Step 1: 校验原交易
+      final original = await (select(transactions)
+            ..where((t) => t.id.equals(originalTransactionId)))
+          .getSingleOrNull();
+      if (original == null) {
+        throw StateError('原交易不存在: $originalTransactionId');
+      }
+      if (original.type == TransactionType.refund) {
+        throw StateError('不能对退款记录再退款(嵌套保护)');
+      }
+      if (original.type == TransactionType.income ||
+          original.type == TransactionType.transfer) {
+        throw StateError(
+          '只能对支出/还款/借贷 transaction 退款'
+          '(原 type=${original.type.name})',
+        );
+      }
+      if (amountCents <= 0) {
+        throw ArgumentError('退款金额必须 > 0(当前: $amountCents)');
+      }
+      if (amountCents > original.amountCents) {
+        throw StateError(
+          '单笔退款金额不能超过原交易金额'
+          '(本次 ¥${_formatYuan(amountCents)},'
+          '原 ¥${_formatYuan(original.amountCents)})',
+        );
+      }
+
+      // Step 2: 累计已退金额检查(多次拆分退款保护)
+      final alreadyRefunded = await _sumRefundedAmount(originalTransactionId);
+      if (alreadyRefunded + amountCents > original.amountCents) {
+        throw StateError(
+          '累计退款金额超限'
+          '(原 ¥${_formatYuan(original.amountCents)},'
+          '已退 ¥${_formatYuan(alreadyRefunded)},'
+          '本次 ¥${_formatYuan(amountCents)})',
+        );
+      }
+
+      // Step 3: 更新账户余额(原账户扣回 = +amount,因为支出原 -amount)
+      await _updateAccountBalance(refundAccountId, amountCents);
+
+      // Step 4: 写 refund transaction(直接 into,不走 insertTransaction,因为类型
+      // refund 已在 switch 抛 ArgumentError 防 generic DAO 误用)
+      final refundCategoryId = await _getOrCreateRefundCategoryId();
+      return await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: refundAccountId,
+          categoryId: refundCategoryId,
+          type: TransactionType.refund,
+          amountCents: amountCents,
+          occurredAt: Value(refundTime), // C6 fix:用 refundTime 非 now
+          originalTransactionId: Value(originalTransactionId),
+          refundNote: Value(refundNote ?? '退款'),
+          note: Value(
+            '退款:${original.note} ¥${_formatYuan(amountCents)}',
+          ),
+        ),
+      );
+    });
+  }
+
+  /// 查原交易累计已退金额(refund sum)— ADR-0030 §决策 3 修订版(支持拆分退款)。
+  ///
+  /// 无 schema 字段(留 v1.1 评估 ADR-0037),用 SUM 查询返累加总额。
+  /// 返回:0 = 未退过;>0 = 已退总额(分)。
+  Future<int> _sumRefundedAmount(int originalTransactionId) async {
+    final query = select(transactions)
+      ..where((t) => t.originalTransactionId.equals(originalTransactionId));
+    final rows = await query.get();
+    return rows.fold<int>(0, (sum, t) => sum + t.amountCents);
+  }
+
+  /// 公开 API:查原交易是否被退过(UI 详情页用于禁用编辑/删除/退款按钮)。
+  ///
+  /// 返回:0 = 未退过;>0 = 已退总额(分)。
+  /// WHY:ActionSheet / DetailPage 在异步加载时拿到最新值,避免「已退款仍允许编辑」的竞态。
+  Future<int> getRefundedAmount(int originalTransactionId) async {
+    return _sumRefundedAmount(originalTransactionId);
+  }
+
+  /// 获取或创建「退款」分类 ID(私有,首次退款时自动 seed)— ADR-0030 §决策 4 修订版。
+  ///
+  /// name='退款' + icon='↩️' + type=refund + 蓝灰色 0xFF607D8B(4280457355)。
+  ///
+  /// M4 修复:按 name + type 双字段查找,避免和用户自建的 "退款" expense 同名分类冲突。
+  /// L4 修复:sortOrder=99 放最后,与现有 9 个默认分类(0-9)排序不冲突。
+  ///
+  /// 与 D27 onUpgrade seed 互斥:D27 实施 24 分类时,**必须** 跳过 name='退款' 的 seed,
+  /// 否则 DAO 自动 seed(本方法)与 D27 onUpgrade seed 会重复创建同名分类。
+  /// 详 M4(2026-08-09 IQA)。
+  Future<int> _getOrCreateRefundCategoryId() async {
+    final allCategories = await db.categoryDao.getAll();
+    final existing = allCategories.where((c) =>
+        c.name == '退款' && c.type == TransactionType.refund);
+    if (existing.isNotEmpty) return existing.first.id;
+
+    return await db.categoryDao.insertCategory(
+      CategoriesCompanion.insert(
+        name: '退款',
+        iconName: '↩️',
+        colorValue: 4280457355, // 蓝灰色 0xFF607D8B
+        type: TransactionType.refund,
+        sortOrder: const Value(99),
       ),
     );
   }
