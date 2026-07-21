@@ -102,13 +102,18 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
     );
   }
 
-  /// "8.96" → 896 cents
+  /// "8.96" → 896 cents(IQA-fix M4 2026-08-09):
+  /// inputFormatter 已限制最多 2 位小数,这里 `(v * 100).round()` 防 binary 浮点误差
+  /// (例 `8.96 * 100` 不精确等于 896,但 round 后仍是 896)。
   static int? _parseAmountToCents(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return null;
     final v = double.tryParse(trimmed);
     if (v == null || v < 0) return null;
-    return (v * 100).round();
+    // Double 转 int 用 roundToDouble 防 binary 浮点误差(8.99 * 100 = 898.999...→899 不正确)。
+    // (8.99).toStringAsFixed(2) = "8.99" → 解析 → 899 cents 是正确。
+    final cents = (v * 100).round();
+    return cents;
   }
 
   static String _formatYuan(int cents) {
@@ -166,19 +171,28 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              // 退款金额
+              // 退款金额(IQA-fix M4 2026-08-09):inputFormatter 限制最多 2 位小数,
+              // 避免 (v * 100).round() 跳号("8.996" → 900 cents)。
               TextField(
                 key: const Key('refund-amount-field'),
                 controller: _amountController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  TextInputFormatter.withFunction(
+                    (oldValue, newValue) {
+                      // 匹配:^\d*\.?\d{0,2}$(空,整数,小数点,1 位小数,2 位小数)
+                      if (RegExp(r'^\d*\.?\d{0,2}$').hasMatch(newValue.text)) {
+                        return newValue;
+                      }
+                      return oldValue;
+                    },
+                  ),
                 ],
                 decoration: InputDecoration(
                   labelText: '退款金额',
                   helperText:
-                      '可改,范围 ¥0.01 ~ ¥$originalAmount(Q3=B 拍板)',
+                      '可改,范围 ¥0.01 ~ ¥$originalAmount(Q3=B 拍板,2 位小数)',
                   border: const OutlineInputBorder(),
                   prefixText: '¥ ',
                 ),
@@ -230,7 +244,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _refundTime,
-                      firstDate: DateTime(2020),
+                      // IQA-fix M7 (2026-08-09):退款日期最早是原交易 occurredAt
+                      // (退款不会早于原记账时间,语义"先记账后退款")。
+                      firstDate: widget.originalTransaction.occurredAt,
                       lastDate: DateTime.now().add(const Duration(days: 1)),
                     );
                     if (date == null) return;

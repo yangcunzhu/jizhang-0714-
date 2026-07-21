@@ -246,18 +246,21 @@ final iconOverlay = isRefund ? '↩️' : null;
 
 ---
 
-## 实施清单(D24+ 装机验后)
+## 实施清单(D26 装机验后) — IQA-fix M5 2026-08-09 字面修订
 
 | # | 工作 | 范围 | 工作量 |
 |---|---|---|---|
-| 1 | schema v8 migration(加 TransactionType.refund + originalTransactionId + refundNote)| `app_database.dart` + 2 表 | 30 分钟 |
-| 2 | refundMoney DAO + _getOrCreateRefundCategoryId | `transaction_dao.dart` | 2 小时 |
-| 3 | 交易详情页加「退款」按钮(底部) | `transaction_detail_page.dart`(新建) | 1 小时 |
-| 4 | 退款详情弹层(图 4 复刻) | `refund_sheet.dart`(新建) | 2 小时 |
-| 5 | 主页交易 tile refund 视觉差异化 | `transaction_tile.dart` | 1 小时 |
-| 6 | 单元测试 8(DAO 3 类场景 × 1 边界 + 嵌套保护) + widget 测试 4 | 测试 | 2 小时 |
-| 7 | ADR-0030 自审 + 真机验 2 场景(支出退款 / 信用卡还款退款)| 收尾 | 1 小时 |
-| **总计** | | | **~10 小时(2 天)** |
+| 1 | schema v8 migration(加 TransactionType.refund + originalTransactionId + refundNote)| `app_database.dart` + 2 表 | 30 分钟(D25 整合)|
+| 2 | refundMoney DAO + _getOrCreateRefundCategoryId + _sumRefundedAmount + getRefundedAmount + 内存缓存(IQA-fix M1)| `transaction_dao.dart` | 3 小时 |
+| 3 | 交易详情页加「退款」按钮(底部) | `transaction_detail_page.dart`(新建) | 2 小时 |
+| 4 | 退款详情弹层(图 4 复刻 + inputFormatter 2 位小数 + firstDate=occurredAt) | `refund_sheet.dart`(新建) | 2.5 小时 |
+| 5 | 主页交易 tile refund 视觉差异化(↩️ overlay + 蓝灰底色) | `transaction_tile.dart` | 1 小时 |
+| 6 | actions_sheet isRefunded 一致检测(ConsumerStatefulWidget + FutureBuilder) | `transaction_actions_sheet.dart`(IQA-fix C-IQA-1) | 1 小时 |
+| 7 | 单元测试 9(DAO 4 类正常 + 4 类异常 + 1 边界)+ widget 测试 4(tile)+ widget 测试 4(DetailPage)+ 1 migration(refund)+ 1 silent skip(IQA C-IQA-3) | 测试 | 4 小时 |
+| 8 | 治理收尾(SSR 治理 — v4 §P0-05 修订 + ADR-0037 立 DRAFT + ADR-0030 §不可逆性修订)+ 字面校对(IQA M5/M6/M7/M8) | 文档 | 2 小时 |
+| 9 | IQA 复审(commit ea893f6 + 968dd5d)+ fix P0+P1(本卡) | 治理 | 1.5 小时 |
+| 10 | D29 整合装机验 7 场景(借出/借入/退款单笔/退款拆分/已退过禁用/toggle/24 分类) + ROA | 收尾 | D29 |
+| **总计** | | | **~17 小时(3 天 AI 自动 + 2 天 UI 复杂 + D29 ROA)** |
 
 ---
 
@@ -272,14 +275,25 @@ final iconOverlay = isRefund ? '↩️' : null;
 
 ---
 
-## 验证
+## 验证(IQA-fix M5 2026-08-09 字面修订)
 
 - [ ] flutter analyze 0 issues
-- [ ] flutter test 314 + 8(DAO) + 4(widget) 全绿
-- [ ] schema v8 migration_v8_test 3 用例 PASS(refund type + originalTransactionId + refundNote)
-- [ ] refundMoney 3 类场景(正常/嵌套退款拒绝/金额不匹配拒绝)PASS
+- [ ] flutter test 全绿 — 基线 323(D25 末)+ DAO 9 + widget 4(tile)+ widget 4(DetailPage 新加,IQA C-IQA-2)+ migration +1(refund 真路径)+ DAO +1(silent skip refundAccountId,IQA C-IQA-3)= **342/342**
+- [ ] schema v8 migration_v8_test PASS(含 type=refund 真路径 1 用例)
+- [ ] refundMoney 8 类场景 PASS:
+  - 正常 expense 退款 + 余额联动
+  - 嵌套退款拒绝(refund 对 refund)
+  - 单笔超限拒绝(amount > original)
+  - 累计超限拒绝(已退 + amount > original)
+  - income 拒绝退款
+  - repayment 允许退款(Q2=B 拍板扩展)
+  - lend 允许退款(Q2=B 拍板扩展)
+  - refundTime 落库(occurredAt == refundTime,C6 fix)
+  - 拆分退款 + SUM 累加(Q4=α2)
+- [ ] actions_sheet isRefunded 一致检测(IQA-fix C-IQA-1,1 widget 测试)
+- [ ] silent skip refundAccountId(IQA-fix C-IQA-3,1 DAO 测试)
 - [ ] 交易详情页 widget 4 测试 PASS
-- [ ] iPhone 真机手验 2 场景:餐饮 -¥8.96 退款 → 账户 +¥8.96,主页显示 ↩️ 标识
+- [ ] iPhone 真机手验 7 场景:餐饮 -¥8.96 退款 / 拆分退款 / 已退过禁用 / toggle / 24 分类(D29 整合装机验)
 - [ ] 旧 S03 数据零丢失(schema v8 兜底)
 
 ---

@@ -131,9 +131,16 @@ if (transaction.hasPartialRefund && !transaction.isFullyRefunded) {
 
 ---
 
-## 实施(v1.1,不在 D26 范围内)
+## 未来 v1.1 评估(IQA-fix M8 2026-08-09 修订:无 §实施清单)
 
-| # | 工作 | 范围 | 工作量 |
+> ⚠️ **DRAFT 状态不应写实施清单**(CLAUDE.md 治理纪律 — DRAFT = 背景 + 决策 + 不做)。
+> 本节改名为"§未来 v1.1 评估",作为 v1.1 启动时的入口备忘,**不**是 v1.1 实施计划。
+>
+> v1.1 真要实施时,把状态改 ACCEPTED + 复制本节到 §实施清单 + 写 Day v1.1.X daily。
+
+### 范围备忘(5 项)
+
+| # | 工作 | 范围 | 估计工作量 |
 |---|---|---|---|
 | 1 | schema v9 migration(3 字段:refundedAmountCents/isFullyRefunded/hasPartialRefund)| app_database + transactions 表 | 30 分钟 |
 | 2 | DAO 改原子化 update(取代 SUM)+ ADR-0030 §决策 3 修订 | transaction_dao | 1 小时 |
@@ -141,6 +148,15 @@ if (transaction.hasPartialRefund && !transaction.isFullyRefunded) {
 | 4 | 详情页加「退款历史」tab(v9 字段读)| transaction_detail_page | 1.5 小时 |
 | 5 | 单元测试 + widget 测试 + 装机验 | test | 1.5 小时 |
 | **总计** | | | **~5.5 小时(1 天)** |
+
+### IQA-fix M1 关联(2026-08-09)
+
+D26 已在 v1.0 加内存缓存 `_refundedSumCache` 缓解 N+1 + 全表扫,但**仅临时**——
+v1.1 加 schema v9 + refundedAmountCents 字段后,DAO 改原子化 update 单 transaction 字段
+读,无 SUM 查询(性能彻底解决)。
+
+**触发 v1.1 评估条件**:S07 攒攒智能记账触发几万笔交易,内存缓存命中率下降导致
+查询变慢时,或用户主观感受"交易列表卡" → 启动 v1.1 实施。
 
 ---
 

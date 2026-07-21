@@ -22,6 +22,11 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     with _$TransactionDaoMixin {
   TransactionDao(super.db);
 
+  /// IQA-fix M1(2026-08-09):已退累计金额缓存 — key=originalTransactionId。
+  /// 短期方案,长期用 schema v9 + refundedAmountCents 字段(ADR-0037 v1.1)。
+  /// 失效策略:refundMoney 写后 invalidate 单 id,getRefundedAmount(bypassCache) 强制重查。
+  final Map<int, int> _refundedSumCache = <int, int>{};
+
   /// 监听全部交易(按发生时间倒序,最新在前)。
   Stream<List<TransactionEntry>> watchAll() {
     return (select(transactions)
@@ -572,7 +577,7 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
       // Step 4: 写 refund transaction(直接 into,不走 insertTransaction,因为类型
       // refund 已在 switch 抛 ArgumentError 防 generic DAO 误用)
       final refundCategoryId = await _getOrCreateRefundCategoryId();
-      return await into(transactions).insert(
+      final refundId = await into(transactions).insert(
         TransactionsCompanion.insert(
           accountId: refundAccountId,
           categoryId: refundCategoryId,
@@ -586,6 +591,11 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
           ),
         ),
       );
+
+      // IQA-fix M1:写后 invalidate SUM 缓存,确保 getRefundedAmount 下次读到最新。
+      // 必须在事务 return 前 invalidate,这样下次 UI 读(getRefundedAmount)会重查 db。
+      _invalidateRefundedSumCache(originalTransactionId);
+      return refundId;
     });
   }
 
@@ -593,19 +603,44 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   ///
   /// 无 schema 字段(留 v1.1 评估 ADR-0037),用 SUM 查询返累加总额。
   /// 返回:0 = 未退过;>0 = 已退总额(分)。
+  ///
+  /// IQA-fix M1(2026-08-09):加内存缓存 `_refundedSumCache`,同 id 多次查询避免
+  /// 全表扫。S07 几万笔交易后性能:N 次查询 → 1 次查询。**长期优化** 留 ADR-0037
+  /// v1.1 schema v9 + refundedAmountCents 字段(本字段单 transaction 一次写入,
+  /// 无需 SUM 查询)。
   Future<int> _sumRefundedAmount(int originalTransactionId) async {
+    final cached = _refundedSumCache[originalTransactionId];
+    if (cached != null) return cached;
     final query = select(transactions)
       ..where((t) => t.originalTransactionId.equals(originalTransactionId));
     final rows = await query.get();
-    return rows.fold<int>(0, (sum, t) => sum + t.amountCents);
+    final sum = rows.fold<int>(0, (s, t) => s + t.amountCents);
+    _refundedSumCache[originalTransactionId] = sum;
+    return sum;
   }
 
   /// 公开 API:查原交易是否被退过(UI 详情页用于禁用编辑/删除/退款按钮)。
   ///
   /// 返回:0 = 未退过;>0 = 已退总额(分)。
   /// WHY:ActionSheet / DetailPage 在异步加载时拿到最新值,避免「已退款仍允许编辑」的竞态。
-  Future<int> getRefundedAmount(int originalTransactionId) async {
+  ///
+  /// [bypassCache] 测试或重查时设 true(忽略缓存,直接查 db)— 默认 false。
+  Future<int> getRefundedAmount(
+    int originalTransactionId, {
+    bool bypassCache = false,
+  }) async {
+    if (bypassCache) {
+      _refundedSumCache.remove(originalTransactionId);
+    }
     return _sumRefundedAmount(originalTransactionId);
+  }
+
+  /// 失效 SUM 缓存(id 上 + 全清)— refundMoney 写后调用,确保下次读最新值。
+  ///
+  /// WHY:refundMoney 写入新 refund 后,缓存里的 sum 不是最新的,必须 invalidate。
+  /// 两种策略:invalidate 单 id(精细)或全清(简单)— 本项目用单 id 精细。
+  void _invalidateRefundedSumCache(int originalTransactionId) {
+    _refundedSumCache.remove(originalTransactionId);
   }
 
   /// 获取或创建「退款」分类 ID(私有,首次退款时自动 seed)— ADR-0030 §决策 4 修订版。

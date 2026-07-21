@@ -27,7 +27,7 @@ void main() {
     await db.close();
   });
 
-  Future<TransactionEntry> _insertRefundTransaction() async {
+  Future<TransactionEntry> insertRefundTransaction() async {
     final cats = await db.categoryDao.getAll();
     final acc = await db.accountDao.getDefault();
     return (await db.transactionDao.getById(
@@ -42,7 +42,7 @@ void main() {
     ))!;
   }
 
-  Future<TransactionEntry> _insertExpenseTransaction() async {
+  Future<TransactionEntry> insertExpenseTransaction() async {
     final cats = await db.categoryDao.getAll();
     final acc = await db.accountDao.getDefault();
     return (await db.transactionDao.getById(
@@ -57,7 +57,7 @@ void main() {
     ))!;
   }
 
-  Widget _hostTile(TransactionEntry tx, {VoidCallback? onTap, VoidCallback? onLongPress}) {
+  Widget hostTile(TransactionEntry tx, {VoidCallback? onTap, VoidCallback? onLongPress}) {
     return ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
       child: MaterialApp(
@@ -75,8 +75,8 @@ void main() {
 
   testWidgets('TransactionTile type=refund 显示 ↩️ overlay + 蓝灰 + tileColor',
       (tester) async {
-    final tx = await _insertRefundTransaction();
-    await tester.pumpWidget(_hostTile(tx));
+    final tx = await insertRefundTransaction();
+    await tester.pumpWidget(hostTile(tx));
     await tester.pump();
 
     // ↩️ overlay(右上角 badge)
@@ -93,8 +93,8 @@ void main() {
   });
 
   testWidgets('TransactionTile type=expense 不显示 ↩️ overlay', (tester) async {
-    final tx = await _insertExpenseTransaction();
-    await tester.pumpWidget(_hostTile(tx));
+    final tx = await insertExpenseTransaction();
+    await tester.pumpWidget(hostTile(tx));
     await tester.pump();
 
     // 无 ↩️ overlay
@@ -104,9 +104,9 @@ void main() {
   });
 
   testWidgets('TransactionTile onTap 回调被触发', (tester) async {
-    final tx = await _insertExpenseTransaction();
+    final tx = await insertExpenseTransaction();
     var tapped = false;
-    await tester.pumpWidget(_hostTile(tx, onTap: () => tapped = true));
+    await tester.pumpWidget(hostTile(tx, onTap: () => tapped = true));
     await tester.pump();
     await tester.tap(find.byKey(Key('txn-${tx.id}')));
     await tester.pump();
@@ -129,7 +129,7 @@ void main() {
         ),
       ),
     ))!;
-    await tester.pumpWidget(_hostTile(tx));
+    await tester.pumpWidget(hostTile(tx));
     await tester.pump();
 
     expect(find.byKey(const Key('txn-installment-badge')), findsOneWidget);

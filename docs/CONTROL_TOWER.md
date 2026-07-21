@@ -156,40 +156,55 @@ Milestone v1.0.0 (MVP 上线)
 
 ---
 
-## 5️⃣ 当前任务树
+## 5️⃣ 当前任务树(IQA-fix C-IQA-4 2026-08-09 重写)
 
-### 当前活跃 Task(Stage 3 D23 — 治理收尾 + 装机验)
+> **状态**:S03 ACCEPTED + 5 ADR 实施期 D25/D26 完成 + D27-D29 待做 + D29 整合装机验。
+> 本节为手写任务树(SSOT 派生一部分;actual commit 由 git log 派生)。
 
-**本会话(2026-08-06,治理收尾,P0-P3)**:
-- T-治理-01:ADR-0028(S03 范围扩写 + 借贷业务流程独立化 + pubspec §11 例外授权)— ✅ 完成
-- T-治理-02:CONTROL_TOWER 全重写(本文件)— ✅ 完成
-- T-治理-03:ADR-0026 §12.1/§12.3 注「借贷已 transaction 化」
-- T-治理-04:ADR-0026 §6/§8 净资产公式删借贷 SUM 项
-- T-治理-05:ADR-0022 §1/§3 表格扩 5 类 transaction
-- T-治理-06:ADR-0024 §实施清单注「作废」
-- T-治理-07:S03 §In Scope + §时间切片
-- T-治理-08:PLAN.md §S02/§S03
-- T-治理-09:ROADMAP.md P0-04
-- T-治理-10:D21/D22 daily commit SHA 补填
-- T-治理-11:D21/D22 显式简化清单合并入本文件 §5
-- T-治理-12:scripts.md 注
-- T-治理-13:ADR-0026 §1 主页设计加注 D21
-- T-治理-14:深度审计 docs/audit/2026-08-06-doc-and-code.md
-
-**装机验(2026-08-06 用户装机后)**:
-- T-ROA-01:用户 iPhone 装 Runner.ipa(沿用 Stage 2 ROA 装机流程)
-- T-ROA-02:真机手验场景 1(借出/入独立全屏 + 起始时间 + 双账户联动)
-- T-ROA-03:真机手验场景 2(日期 picker 中文)
-- T-ROA-04:真机手验场景 3(转账下拉全账户可选)
-- T-ROA-05:CONTROL_TOWER 更新 → Stage 3 = ACCEPTED(场景全过后)
-
-### 已完成 Task(Stage 3 D18-D22)
+### 已完成 Task(Stage 3 — S03 ACCEPTED 2026-08-06)
 
 - T-S03-D18-01~05:schema v4 + TransactionType repayment + 5 tests
 - T-S03-D19-01~04:transferRepayment DAO + ADR-0022 余额联动 + 12 tests
 - T-S03-D20-01~08:还款流 UI 4 收款类型 + 网贷期数 + 主页提醒 + ADR-0024/0025/0026 + schema v5 + 12 tests
 - T-S03-D21-01~03:5 大类 × 23 子类 schema v6 + transferMoney + 主页 5 入口聚合菜单 + 26 tests
 - T-S03-D22-01~04:借贷业务流程独立化 schema v7 + lendMoney/borrowMoney + Lend/BorrowRecordPage + 日期 locale + 转账去过滤 + 11 tests
+- T-S03-D23:真机装机验 3 项全过 + S03 ROA 签字 + 治理收尾(ADR-0028 + 9 文档同步 + 深度审计) + 65 张咔皮图整理
+
+### 已完成 Task(5 ADR 实施期 Day 25-26/5)
+
+- T-D25:ADR-0029 借贷字段修补 + schema v8 整合(accounts +4 + transactions +6)+ 6 Medium IQA fix + 329 tests + commit `3b1fda8` `b02bd77` `2a5f3db`
+- T-D26 决策准备:refactor(s03) v4 §P0-05 接受 ADR-0030 + 删 D9 submitAsRefund + actions_sheet 改 2 action(假完成 IQA C7)+ commit `6b1fd67`
+- T-D26 主体:feat(s03) ADR-0030 退款 transaction 化 + TransactionDetailPage / RefundSheet / tile 视觉差异化 / actions_sheet isRefunded 一致 + 9 DAO + 4 widget tile + 1 migration = 337 tests + commit `ea893f6`
+- T-D26 派生:docs(control-tower) D26 主体状态更新 + commit `968dd5d`
+- T-D26 IQA-fix(本卡实施):真 BUG + 治理漏洞 + 性能 + 字面对齐 — 详见 commits 后续
+
+### 当前活跃 Task(5 ADR 实施期 Day 27-29/5)
+
+- **T-D27(2026-08-10)**:ADR-0031 + 0032 收入 8 + 支出 16 seed
+  - [ ] DefaultIncomeTemplate 8 分类(seed)
+  - [ ] DefaultExpenseTemplate 16 分类(seed)
+  - [ ] **M4 必 skip DAO 自动 seed 的「退款」分类**(互斥路径避免重复创建)
+  - [ ] 迁移 rename 5 旧预设 → 8 新(收入)+ insert 10 新(支出)
+  - [ ] 记账弹层收入/支出 tab 全显示
+  - [ ] 16 分类小屏适配(GridLayout 4×4)
+
+- **T-D28(2026-08-11)**:ADR-0033 交易 2 toggle + StatisticsDao
+  - [ ] StatisticsDao 新建,过滤 toggle
+  - [ ] 主页「+」记账弹层加 2 toggle chip
+  - [ ] 交易详情页 toggle 只读显示
+  - [ ] 定时记账同步支持 toggle
+
+- **T-D29(2026-08-12)**:整合 + 装机验 7 场景 + ROA 签字
+  - [ ] 5 ADR 全部代码完成后的整合(D25 + D26 + D27 + D28)
+  - [ ] iPhone 真机手验 7 场景:借出新建 / 借入新建 / 借贷二次记账 / 退款单笔 / 退款拆分 / ALREADY_REFUNDED 按钮灰 / toggle / 24 分类
+  - [ ] ROA 报告 + CONTROL_TOWER 派生 ACCEPTED
+  - [ ] S04 启动准备(ADR-0034/0035/0036)
+
+### 装机验(D29 整合日执行)
+
+- T-ROA-01:用户 iPhone 装 Runner.ipa(沿用 Stage 2 ROA 装机流程)
+- T-ROA-02:真机手验 7 场景(详 §5 D29 列表)
+- T-ROA-03:CONTROL_TOWER 更新 → Stage 3 = ACCEPTED + 5 ADR 实施期 = ACCEPTED(场景全过后)
 
 ### Stage 3 D21/D22 显式简化清单(铁律 8,合并自 D21/D22 daily)
 
@@ -255,7 +270,10 @@ Milestone v1.0.0 (MVP 上线)
 
 | 风险 | 等级 | 状态 | 缓解 |
 |---|---|---|---|
-| iOS 真机 3 场景验收失败(S03)| 🟡 中 | D23 待做 | D22 commit 装机手验(沿用 G-003 沉淀)|
+| iOS 真机 7 场景验收失败(D29 整合装机验) | 🟡 中 | D29 待做 | D25+26+27+28 整合 commit 装机手验(沿用 G-003)|
+| **actions_sheet isRefunded 检查不一致(D26 IQA-fix C-IQA-1)** | 🟢 已解决(2026-08-09) | `TransactionActionsSheet` 改 ConsumerStatefulWidget + FutureBuilder 异步查 `getRefundedAmount`,与 `TransactionDetailPage` 完全一致 |
+| **α2 SUM 性能 N+1 + 全表扫(D26 IQA-fix M1)** | 🟢 短期已解决(2026-08-09),🟡 长期 ADR-0037 v1.1 | DAO 加 `_refundedSumCache` 内存缓存;refundMoney 写后 invalidate。下次 S07 几万笔交易时触发 schema v9 + refundedAmountCents 字段原子化 |
+| iOS 真机 3 场景验收失败(S03 — 历史,已 ACCEPTED) | ✅ 已解决(2026-08-06) | S03 ROA 真机 3 场景签字 |
 | 治理漏洞(D21/D22 未走 DR)| 🟡 中 | ✅ 已解决(2026-08-06)| ADR-0028 追溯授权 + 13 文档同步 + 深度审计 |
 | 借贷 subType=lendOut/borrowIn 字段保留 = 死代码 | 🟢 低 | D24+ 评估 | ADR-0028 §5 P0,可选 schema v8 |
 | 借贷 transaction 化与 ADR-0026 §12.1 修订版「独立账户」矛盾 | 🟡 中 | ✅ 已解决 | ADR-0028 §1.3 + §2.1 显式记录;ADR-0026 §12.1 加注「transaction 化」|

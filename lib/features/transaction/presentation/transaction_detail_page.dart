@@ -86,20 +86,19 @@ class _DetailBody extends ConsumerWidget {
     return FutureBuilder<List<Object?>>(
       future: Future.wait([
         db.accountDao.getById(transaction.accountId),
-        db.categoryDao.getAll().then(
-              (cats) => cats.firstWhere(
-                (c) => c.id == transaction.categoryId,
-                orElse: () => CategoryEntry(
-                  id: 0,
-                  name: '未知',
-                  iconName: '📌',
-                  colorValue: 0xFF9E9E9E,
-                  type: TransactionType.expense,
-                  sortOrder: 0,
-                  createdAt: DateTime.now(),
-                ),
-              ),
-            ),
+        // IQA-fix M3 (2026-08-09):用 getById 单查替换 getAll() 全表扫(N+1 反模式)。
+        // getAll() 每次查全部分类只为 1 个 lookup,主页列表加载会卡。
+        db.categoryDao.getById(transaction.categoryId).then((c) =>
+            c ??
+            CategoryEntry(
+              id: 0,
+              name: '未知',
+              iconName: '📌',
+              colorValue: 0xFF9E9E9E,
+              type: TransactionType.expense,
+              sortOrder: 0,
+              createdAt: DateTime.now(),
+            )),
         db.transactionDao.getRefundedAmount(transaction.id),
       ]),
       builder: (context, snapshot) {

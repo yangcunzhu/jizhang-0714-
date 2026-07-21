@@ -22,7 +22,6 @@ void main() {
   group('TransactionDao.refundMoney — D26 (ADR-0030 §决策 3 修订版)', () {
     late AppDatabase db;
     late int cashAccountId;
-    late int creditCardAccountId;
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -31,13 +30,6 @@ void main() {
           name: '现金',
           type: const Value(AccountType.cash),
           balanceCents: const Value(100000), // 1000 元
-        ),
-      );
-      creditCardAccountId = await db.accountDao.insertAccount(
-        AccountsCompanion.insert(
-          name: '招行信用卡',
-          type: const Value(AccountType.creditCard),
-          balanceCents: const Value(0),
         ),
       );
     });
@@ -390,6 +382,43 @@ void main() {
           .get();
       expect(allRefunds, hasLength(3),
           reason: '3 笔独立 refund transaction,各自 originalTransactionId=原 ID');
+    });
+
+    // ────────────────────────────────────────────────────────────────
+    // 10. IQA-fix C-IQA-3 (2026-08-09):refundAccountId 不存在边界
+    // ────────────────────────────────────────────────────────────────
+
+    test('refundAccountId 不存在 → FK constraint 拒绝 + 事务回滚 + 无 refund 落库',
+        () async {
+      final mealCategory = (await db.categoryDao.getAll())
+          .firstWhere((c) => c.name == '餐饮');
+      final originalId = await db.transactionDao.insertTransaction(
+        TransactionsCompanion.insert(
+          accountId: cashAccountId,
+          categoryId: mealCategory.id,
+          type: TransactionType.expense,
+          amountCents: 1000,
+        ),
+      );
+      final beforeBalance = (await db.accountDao.getById(cashAccountId))!.balanceCents;
+
+      // 用不存在 accountId=999 退款(SQLite FK constraint 拦截,不是 silent skip)
+      await expectLater(
+        db.transactionDao.refundMoney(
+          originalTransactionId: originalId,
+          refundAccountId: 999, // 不存在 → FK constraint failed
+          amountCents: 500,
+          refundTime: DateTime(2026, 8, 1),
+        ),
+        throwsA(isA<Exception>()),
+      );
+
+      // 验证事务回滚:无 refund 落库 + 余额不变 + getRefundedAmount = 0
+      final afterBalance = (await db.accountDao.getById(cashAccountId))!.balanceCents;
+      expect(afterBalance, beforeBalance,
+          reason: '事务回滚,余额不变');
+      expect(await db.transactionDao.getRefundedAmount(originalId), 0,
+          reason: '无 refund 写入');
     });
   });
 }
