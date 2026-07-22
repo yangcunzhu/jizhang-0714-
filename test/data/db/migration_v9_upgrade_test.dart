@@ -21,7 +21,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jizhang_app/data/db/app_database.dart';
-import 'package:jizhang_app/data/db/tables/accounts.dart' show AccountType, AccountSubType;
+import 'package:jizhang_app/data/db/tables/accounts.dart' show AccountSubType;
 import 'package:jizhang_app/data/db/tables/categories.dart';
 import 'package:path/path.dart' as p;
 
