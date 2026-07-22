@@ -263,6 +263,16 @@ class AppDatabase extends _$AppDatabase {
             "AND type = 'income' AND id NOT IN (SELECT id FROM categories WHERE name = '保险理财' AND type = 'income')",
           );
 
+          // ─── BUG-4 用户反馈(2026-08-12):S03 seed 现金 + 用户新建现金储蓄 = 2 个同名「现金」───
+          // 修法:onUpgrade rename 老 S03 seed「现金」(subType=cash)→「现金(储蓄)」(区分)
+          // 避免同名账户混淆,用户新建同名「现金」时不与 seed 冲突。
+          // strict name+type 匹配,保留用户自定义。
+          await customStatement(
+            "UPDATE categories SET name = '现金(储蓄)' "
+            "WHERE name = '现金' AND type = 'income' "
+            "AND id NOT IN (SELECT id FROM categories WHERE name = '现金(储蓄)')",
+          );
+
           // ─── IQA-fix D27-4 (2026-08-10):S03 默认 expense rename───
           // 「娱乐」→「休闲娱乐」(D27 16 支出 sortOrder=11)
           await customStatement(

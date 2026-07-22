@@ -281,6 +281,12 @@ void main() {
           reason: '「娱乐」S03 同名已 rename「休闲娱乐」,无残留');
       expect(cats.where((c) => c.name == '居住').length, 0,
           reason: '「居住」S03 同名已 rename「住房」,无残留');
+      // BUG-4 用户反馈(2026-08-12):S03 seed 现金 + 用户新建现金储蓄 = 2 个同名「现金」—
+      // onUpgrade rename 老 S03 seed「现金」→「现金(储蓄)」,避免同名账户冲突
+      expect(cats.where((c) => c.name == '现金' && c.type == TransactionType.income).length, 0,
+          reason: 'BUG-4:「现金」S03 seed income 已 rename「现金(储蓄)」,无残留');
+      // S03 升级用户自己新建的「现金」账户(若 type 匹配)被保留(rename strict,
+      // 严格 name+type 匹配)所以用户自定义「现金」被保护,只 rename S03 seed 那条
       // 验证同名 2 个 type 共存:「资金往来」(expense + income) + 「保险理财」(expense + income) — 已在 IQA-fix D29-1 测试中
       await db.close();
     });

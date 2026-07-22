@@ -37,6 +37,9 @@ class TransactionTile extends StatelessWidget {
     final isExpense = transaction.type == TransactionType.expense;
     final isTransfer = transaction.type == TransactionType.transfer;
     final isRefund = transaction.type == TransactionType.refund;
+    // BUG-5 用户反馈(2026-08-12):还款 ↩️ + 退款 ↩️ icon 撞色 — 都用 ↩️
+    // 修法:还款 = 💳(信用卡/现金还款)+ ↩️(流向),退款 = ↩️(单向回退)
+    final isRepayment = transaction.type == TransactionType.repayment;
     final sign = isTransfer ? '⇄ ' : (isExpense ? '-' : '+');
     final amountColor = isRefund
         ? Colors.blueGrey[700] // D26:refund 用蓝灰色 0xFF607D8B
@@ -46,8 +49,10 @@ class TransactionTile extends StatelessWidget {
     final formatted = _formatYuan(transaction.amountCents);
     final dateLabel =
         DateFormat('MM-dd HH:mm').format(transaction.occurredAt);
-    // D26:refund 行 prefix 加 ↩️(ADR-0030 §决策 6)
-    final signWithIcon = isRefund ? '↩$sign' : sign;
+    // D26 + BUG-5:refund 用 ↩️ 区分,repayment 用 💳 区分(不再撞色)
+    final signWithIcon = isRefund
+        ? '↩$sign'
+        : (isRepayment ? '💳$sign' : sign);
 
     return ListTile(
       key: Key('txn-${transaction.id}'),

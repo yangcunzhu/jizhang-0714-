@@ -441,23 +441,63 @@ class _AccountPickerTile extends StatelessWidget {
         final result = await showModalBottomSheet<int?>(
           context: context,
           builder: (ctx) {
+            // BUG-2 用户反馈(2026-08-12):「每次借出或借入都要新建账户」—
+            // 旧版弹底部 sheet 混着「已有账户 + 新建」option,用户看不出来。
+            // 修法:分段 — 已有账户 + 新建(分两段,新建放末尾),已有默认 Checked
+            // 高亮,用户能区分(避免误触新建)。
             return SafeArea(
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  ...accounts.map((a) => ListTile(
-                        title: Text('${a.subType?.emoji ?? a.type.emoji} ${a.name}'),
-                        trailing: selectedId == a.id
-                            ? const Icon(Icons.check, color: Colors.green)
-                            : null,
-                        onTap: () => Navigator.pop(ctx, a.id),
-                      )),
-                  if (allowCreate)
+                  if (accounts.isNotEmpty) ...[
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(
+                        '选择已有账户',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(ctx).colorScheme.outline),
+                      ),
+                    ),
+                    ...accounts.map((a) => ListTile(
+                          leading: Text(
+                              a.subType?.emoji ?? a.type.emoji,
+                              style: const TextStyle(fontSize: 24)),
+                          title: Text(
+                            // BUG-3 用户反馈(2026-08-12):同名账户加 subType
+                            // 后缀防混淆,如「现金·储蓄」「现金·现金」
+                            '${a.name}${a.subType != null ? "·${a.subType!.displayName}" : ""}',
+                          ),
+                          subtitle: a.subType != null
+                              ? Text(
+                                  '${a.subType!.displayName} · ${a.type.displayName}',
+                                  style: const TextStyle(fontSize: 12),
+                                )
+                              : null,
+                          trailing: selectedId == a.id
+                              ? const Icon(Icons.check, color: Colors.green)
+                              : null,
+                          onTap: () => Navigator.pop(ctx, a.id),
+                        )),
+                  ],
+                  if (allowCreate) ...[
+                    const Divider(),
                     ListTile(
-                      leading: const Icon(Icons.add, color: Colors.blue),
-                      title: const Text('新建账户(填名自动创建)',
-                          style: TextStyle(color: Colors.blue)),
+                      key: const Key('account-picker-create-new'),
+                      leading: const Icon(Icons.add_circle, color: Colors.blue),
+                      title: const Text('+ 新建账户(填名自动创建)',
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w500)),
+                      subtitle: const Text('已选账户,需要新建时点此'),
                       onTap: () => Navigator.pop(ctx, 0),
+                    ),
+                  ],
+                  if (accounts.isEmpty && !allowCreate)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('暂无可选账户'),
                     ),
                 ],
               ),
@@ -485,8 +525,11 @@ class _AccountPickerTile extends StatelessWidget {
               Text(
                 accounts
                     .where((a) => a.id == selectedId)
-                    .map((a) => '${a.subType?.emoji ?? a.type.emoji} ${a.name}')
-                    .firstOrNull ?? '已选账户',
+                    .map((a) =>
+                        // BUG-3:加 subType 后缀区分同名账户
+                        '${a.subType?.emoji ?? a.type.emoji} ${a.name}${a.subType != null ? "·${a.subType!.displayName}" : ""}')
+                    .firstOrNull ??
+                    '已选账户',
               ),
             const SizedBox(width: 4),
             Icon(Icons.chevron_right,

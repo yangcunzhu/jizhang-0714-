@@ -49,11 +49,11 @@ void main() {
 
     expect(find.text('审计官'), findsOneWidget);
     expect(find.text('净资产'), findsOneWidget);
-    // D28 ADR-0033:主页接入 StatisticsDao,空态时显示「¥0.00」(income - expense = 0)
-    // 而不是占位「暂未计算」(Stage 5 placeholder 移除)
+    // BUG-1 用户反馈修复(2026-08-12):主页 _NetWorthCard 改用账户 SUM 聚合
+    // (v4 §P0-12 真「净资产」),空态账户余额 0 → 显示「¥0.00」
     expect(find.byKey(const Key('net-worth-balance')), findsOneWidget);
     expect(find.text('¥0.00'), findsOneWidget,
-        reason: '空态 income=0 expense=0 balance=¥0.00(D28 接入后)');
+        reason: 'BUG-1 修:空态账户余额聚合 = 0,显示「¥0.00」');
     expect(find.text('还没有记账'), findsOneWidget);
     expect(find.text('记一笔 / 还款'), findsOneWidget);
   });

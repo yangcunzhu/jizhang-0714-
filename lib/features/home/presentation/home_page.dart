@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../build_info.dart';
-import '../../../data/db/daos/statistics_dao.dart' show MonthlyStatsSnapshot;
 import '../../../data/db/database_provider.dart';
 import '../../../data/db/tables/accounts.dart';
 import '../../account/application/account_form_provider.dart';
@@ -171,14 +170,11 @@ class _NetWorthCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // BUG-1 用户反馈(2026-08-12):「现金余额有减少,首页资产没有汇总」—
+    // 旧版 D28 占位 v0 显示「本月收入-支出净额」(过滤 toggle),但用户期望
+    // 「净资产 = 所有账户余额 SUM」(v4 §P0-12 公式)。修法:用 accountListProvider
+    // 实时聚合 balanceCents,负余额自然扣(信用卡/网贷/花呗)— 净资产 = 资产 - 负债
     final accountsAsync = ref.watch(accountListProvider);
-    final count = accountsAsync.maybeWhen(
-      data: (list) => list.length,
-      orElse: () => 0,
-    );
-    // D28 ADR-0033:本月统计快照(过滤 toggle)— 主页净资产占位 v0
-    //   真实"净资产"需要账户余额(S05 实现),这里显示"本月收支净额"(income - expense)
-    final statsAsync = ref.watch(_monthlyStatsProvider);
 
     return Card(
       key: const Key('net-worth-card'),
@@ -193,75 +189,71 @@ class _NetWorthCard extends ConsumerWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '净资产',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              statsAsync.when(
-                data: (snapshot) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      snapshot.balanceYuan,
-                      key: const Key('net-worth-balance'),
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: snapshot.balanceCents >= 0
-                                    ? Colors.black87
-                                    : Colors.red[700],
-                              ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '本月(收入 ¥${_formatYuanShort(snapshot.incomeCents)} - 支出 ¥${_formatYuanShort(snapshot.expenseCents)})',
-                      key: const Key('net-worth-monthly-detail'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                    ),
-                  ],
-                ),
-                loading: () => const SizedBox(
-                  height: 48,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, _) => Text(
-                  '统计加载失败:$e',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.red,
-                      ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
+          child: accountsAsync.when(
+            data: (list) {
+              final totalCents = list.fold<int>(0, (s, a) => s + a.balanceCents);
+              final count = list.length;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(width: 4),
                   Text(
-                    '账户数 $count',
-                    key: const Key('net-worth-account-count'),
+                    '净资产',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _formatYuanShort(totalCents),
+                    key: const Key('net-worth-balance'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: totalCents >= 0 ? Colors.black87 : Colors.red[700],
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '总资产(账户余额聚合 ¥${_formatYuanShort(totalCents)})',
+                    key: const Key('net-worth-monthly-detail'),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.outline,
                         ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.outline,
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '账户数 $count',
+                        key: const Key('net-worth-account-count'),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
+            loading: () => const SizedBox(
+              height: 80,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Text(
+              '资产加载失败:$e',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.red,
+                  ),
+            ),
           ),
         ),
       ),
@@ -274,18 +266,8 @@ class _NetWorthCard extends ConsumerWidget {
 /// 复用 [databaseProvider] 的 [StatisticsDao.getMonthlyStats] 计算本月收支净额。
 ///
 /// **D28 IQA-fix (2026-08-11)**:为解决 submit 后主页不刷新 UX bug(C-IQA-D28-1),
-/// `ref.watch(transactionListProvider)` 显式建立依赖 — 当 [transactionListProvider]
-/// emit 新值(任何 transaction INSERT/UPDATE/DELETE 触发),本 provider 自动 rebuild。
-/// 这样用户在 record_sheet 提交 toggle toggle=true 的 expense 后,回到主页立即看到
-/// toggle 过滤生效的净额(无需手动刷新)。
-final _monthlyStatsProvider = FutureProvider.autoDispose<MonthlyStatsSnapshot>(
-  (ref) async {
-    // IQA-fix:建立 StreamProvider 依赖,自动 invalidate on transaction change。
-    ref.watch(transactionListProvider);
-    final db = ref.read(databaseProvider);
-    return db.statisticsDao.getMonthlyStats(DateTime.now());
-  },
-);
+/// (2026-08-12 BUG-1 修后删除:_NetWorthCard 改用 accountListProvider 实时 SUM 聚合,
+/// 不再依赖 _monthlyStatsProvider。S05/S04 实施时按需重写。)
 
 /// 整数分 → "¥1,234" 格式(用于卡片显示)— 复用类似 formatYuan。
 String _formatYuanShort(int cents) {
@@ -294,7 +276,7 @@ String _formatYuanShort(int cents) {
   // 千位分隔
   final yuanStr = yuan.toString().replaceAllMapped(
       RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
-  return '$yuanStr.${fen.toString().padLeft(2, '0')}';
+  return '¥$yuanStr.${fen.toString().padLeft(2, '0')}';
 }
 
 class _TransactionList extends ConsumerWidget {
