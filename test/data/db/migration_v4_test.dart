@@ -201,7 +201,9 @@ void main() {
         final accounts = await db.accountDao.getAll();
         expect(accounts, hasLength(2));
 
-        final cash = accounts.firstWhere((a) => a.name == '现金');
+        // IQA-fix2 (2026-08-12):D27 BUG-4 rename 老 S03 seed「现金」→「现金(储蓄)」,
+        // v3 → v9 升级触发 if<6 subType 回填 + if<9 rename。
+        final cash = accounts.firstWhere((a) => a.name == '现金(储蓄)');
         expect(cash.type, AccountType.cash);
         expect(cash.balanceCents, 50000);
 

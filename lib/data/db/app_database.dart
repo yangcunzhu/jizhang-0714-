@@ -264,15 +264,22 @@ class AppDatabase extends _$AppDatabase {
           );
 
           // ─── BUG-4 用户反馈(2026-08-12):S03 seed 现金 + 用户新建现金储蓄 = 2 个同名「现金」───
-          // 修法:onUpgrade rename 老 S03 seed「现金」(subType=cash, type=cash)→「现金(储蓄)」(区分)
-          // 避免同名账户混淆,用户新建同名「现金」时不与 seed 冲突。
-          // IQA-fix (2026-08-12 装机验后修):原版 WHERE type='income' 错 — S03 现金 type='cash'
-          // 应改 type='cash'。strict name+type 匹配,保留用户自定义。
-          await customStatement(
-            "UPDATE categories SET name = '现金(储蓄)' "
-            "WHERE name = '现金' AND type = 'cash' "
-            "AND id NOT IN (SELECT id FROM categories WHERE name = '现金(储蓄)')",
-          );
+          // 修法:onUpgrade rename 老 S03 seed accounts 表「现金」(subType=cash, type=cash)→
+          // 「现金(储蓄)」(区分)避免同名账户冲突。
+          // IQA-fix2 (2026-08-12 GitHub Actions 报错后):
+          //   - 原版 UPDATE categories 错!现金账户在 accounts 表,不在 categories 表
+          //   - 加 subType='cash' 条件避免 v2/v5 老设备「现金」(subType=NULL)被误 rename
+          //   - v6 onUpgrade 用 CASE WHEN 填 subType,确保 S03+ 设备的「现金」subType='cash'
+          //   - try-catch 包裹,防止 schema 状态异常时崩溃(理论不会)
+          try {
+            await customStatement(
+              "UPDATE accounts SET name = '现金(储蓄)' "
+              "WHERE name = '现金' AND sub_type = 'cash' AND type = 'cash' "
+              "AND id NOT IN (SELECT id FROM accounts WHERE name = '现金(储蓄)')",
+            );
+          } catch (_) {
+            // 防御性:极端情况下 subType column 不存在(老 schema)跳过
+          }
 
           // ─── IQA-fix D27-4 (2026-08-10):S03 默认 expense rename───
           // 「娱乐」→「休闲娱乐」(D27 16 支出 sortOrder=11)

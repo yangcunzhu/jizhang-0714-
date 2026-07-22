@@ -118,7 +118,8 @@ void main() {
         expect(accounts, hasLength(2));
 
         // 现金账户:Stage 1 seed,默认归类 cash
-        final cash = accounts.firstWhere((a) => a.name == '现金');
+        // IQA-fix2 (2026-08-12):D27 BUG-4 rename「现金」→「现金(储蓄)」,v1→v9 升级触发
+        final cash = accounts.firstWhere((a) => a.name == '现金(储蓄)');
         expect(cash.type, AccountType.cash,
             reason: 'ADR-0017:已有账户 type 默认 cash');
         expect(cash.includeInNetWorth, isTrue,
@@ -159,8 +160,12 @@ void main() {
         expect(txList.single.categoryId, 1);
 
         // 可以查到账户(确认没把历史账户清掉)
+        // IQA-fix2 (2026-08-12):D27 IQA-fix 装机验后,BUG-4 修复 onUpgrade rename
+        // 老 S03 seed「现金」(subType=cash)→「现金(储蓄)」防同名冲突。
+        // v1 → v9 升级触发 if<6 block 回填 subType='cash',然后 if<9 rename
         final accounts = await db.accountDao.getAll();
-        expect(accounts.map((a) => a.name), contains('现金'));
+        expect(accounts.map((a) => a.name), contains('现金(储蓄)'),
+            reason: 'IQA-fix2:BUG-4 rename S03 seed「现金」→「现金(储蓄)」,v1 → v9 升级触发');
       } finally {
         await db.close();
       }
