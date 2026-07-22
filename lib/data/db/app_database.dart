@@ -264,12 +264,13 @@ class AppDatabase extends _$AppDatabase {
           );
 
           // ─── BUG-4 用户反馈(2026-08-12):S03 seed 现金 + 用户新建现金储蓄 = 2 个同名「现金」───
-          // 修法:onUpgrade rename 老 S03 seed「现金」(subType=cash)→「现金(储蓄)」(区分)
+          // 修法:onUpgrade rename 老 S03 seed「现金」(subType=cash, type=cash)→「现金(储蓄)」(区分)
           // 避免同名账户混淆,用户新建同名「现金」时不与 seed 冲突。
-          // strict name+type 匹配,保留用户自定义。
+          // IQA-fix (2026-08-12 装机验后修):原版 WHERE type='income' 错 — S03 现金 type='cash'
+          // 应改 type='cash'。strict name+type 匹配,保留用户自定义。
           await customStatement(
             "UPDATE categories SET name = '现金(储蓄)' "
-            "WHERE name = '现金' AND type = 'income' "
+            "WHERE name = '现金' AND type = 'cash' "
             "AND id NOT IN (SELECT id FROM categories WHERE name = '现金(储蓄)')",
           );
 
